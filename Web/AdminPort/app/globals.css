@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-ink-950 text-slate-100 font-body antialiased; }
+.card { @apply rounded-2xl border border-white/10 bg-ink-900/70 p-5; }
+.input { @apply w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 outline-none focus:border-brand-400 text-sm; }
+.btn { @apply px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-brand-600 to-brand-500 hover:opacity-95 disabled:opacity-50; }
+.btn-ghost { @apply px-4 py-2.5 rounded-xl text-sm border border-white/15 hover:bg-white/5; }
