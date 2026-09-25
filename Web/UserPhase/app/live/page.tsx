@@ -11,14 +11,14 @@ export default async function LivePage() {
   const rooms = await getClassrooms();
 
   return (
-    <main className="min-h-screen bg-night-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section hues={["217,70,239", "139,92,246", "52,211,153"]}>
+      <Section variant="dense" word="LIVE">
         <div className="pt-24">
           <Reveal><Eyebrow>Instructor-led cohorts</Eyebrow></Reveal>
           <Reveal delay={0.08}>
-            <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold tracking-[-0.03em] sm:text-6xl sm:leading-[1.02]">
-              Live classes. <span className="text-aurora">Real accountability.</span>
+            <h1 className="mt-4 max-w-3xl font-display text-4xl font-black uppercase tracking-[-0.02em] sm:text-6xl sm:leading-[0.95]">
+              SHOW UP.<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">level up.</span>
             </h1>
           </Reveal>
           <Reveal delay={0.14}>
@@ -43,7 +43,7 @@ export default async function LivePage() {
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               {rooms.map((r: any, i: number) => (
                 <Reveal key={r.id} delay={i * 0.06}>
-                  <Link href={`/classrooms/${r.slug}`} className="card-lift block h-full rounded-3xl border border-white/10 bg-night-900/70 p-7">
+                  <Link href={`/classrooms/${r.slug}`} className="card-lift block h-full rounded-3xl border border-white/10 bg-stone-900/70 p-7">
                     <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{r.level} · Live cohort</p>
                     <h3 className="mt-2.5 font-display text-xl font-bold">{r.title}</h3>
                     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-slate-400">

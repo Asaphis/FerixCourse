@@ -14,20 +14,20 @@ const STEPS = [
 
 export default function MethodPage() {
   return (
-    <main className="min-h-screen bg-night-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section hues={["251,191,36", "217,70,239", "139,92,246"]}>
+      <Section variant="scatter" word="METHOD">
         <div className="pt-24">
           <Reveal><Eyebrow>The FerixCourse method</Eyebrow></Reveal>
           <Reveal delay={0.08}>
-            <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold tracking-[-0.03em] sm:text-6xl sm:leading-[1.02]">
-              Training engineered for <span className="text-aurora">outcomes.</span>
+            <h1 className="mt-4 max-w-3xl font-display text-4xl font-black uppercase tracking-[-0.02em] sm:text-6xl sm:leading-[0.95]">
+              BUILT FOR<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">outcomes.</span>
             </h1>
           </Reveal>
           <div className="mt-12 grid gap-4 md:grid-cols-2">
             {STEPS.map((s, i) => (
               <Reveal key={s.t} delay={i * 0.07}>
-                <div className="card-lift relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-night-900/70 p-8">
+                <div className="card-lift relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-stone-900/70 p-8">
                   <span className="pointer-events-none absolute -right-3 -top-7 font-display text-[110px] font-bold leading-none text-white/[.05]">0{i + 1}</span>
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/15 ring-1 ring-amber-300/20">
                     <s.icon size={19} className="text-amber-200" />

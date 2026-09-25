@@ -3,7 +3,7 @@ import { useState } from "react";
 import AppShell from "@/components/shell";
 import { apiFetch } from "@/lib/client";
 
-const input = "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-fuchsia-400/60";
+const input = "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-rose-400/60";
 
 export default function BookPage() {
   const [f, setF] = useState({ topic: "", duration_min: 60, mode: "online", preferred_date: "", preferred_time: "", location: "", message: "" });
@@ -29,7 +29,7 @@ export default function BookPage() {
     <AppShell title="Book 1-on-1 training" sub="Private mentorship, online or in person. Starts as pending until confirmed.">
       {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
       {ok && <p className="mb-4 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">{ok}</p>}
-      <form onSubmit={submit} className="grid max-w-2xl gap-3.5 rounded-3xl border border-white/10 bg-night-900/70 p-6 sm:grid-cols-2 sm:p-8">
+      <form onSubmit={submit} className="grid max-w-2xl gap-3.5 rounded-3xl border border-white/10 bg-stone-900/70 p-6 sm:grid-cols-2 sm:p-8">
         <label className="text-[13px] font-medium sm:col-span-2">What do you want to learn?<input value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} required placeholder="e.g. React hooks in depth" className={input} /></label>
         <label className="text-[13px] font-medium">Duration<select value={f.duration_min} onChange={(e) => setF({ ...f, duration_min: Number(e.target.value) })} className={input}>
           <option value={30}>30 minutes</option><option value={60}>1 hour</option><option value={120}>2 hours</option><option value={240}>Half day</option><option value={480}>Full day</option>

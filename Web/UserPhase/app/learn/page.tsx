@@ -14,7 +14,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { q?: 
 
   return (
     <AppShell title="Catalog" sub="Live cohorts and recorded courses. Everything listed is real and enrollable.">
-      <form method="GET" className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-night-900/70 p-3 sm:flex-row">
+      <form method="GET" className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-stone-900/70 p-3 sm:flex-row">
         <label className="flex flex-1 items-center gap-2 rounded-xl bg-black/40 px-3.5">
           <Search size={15} className="shrink-0 text-slate-500" />
           <input name="q" defaultValue={q} placeholder="Search training…" className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-slate-600" />
@@ -34,7 +34,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { q?: 
           <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-lg font-bold"><Radio size={17} className="text-rose-300" /> Live cohorts</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {rooms.map((r: any) => (
-              <Link key={r.id} href={`/classrooms/${r.slug}`} className="card-lift rounded-2xl border border-white/10 bg-night-900/70 p-5">
+              <Link key={r.id} href={`/classrooms/${r.slug}`} className="card-lift rounded-2xl border border-white/10 bg-stone-900/70 p-5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{r.level} · {r.enrolled}/{r.capacity} seats</p>
                 <h3 className="mt-1.5 font-display text-[17px] font-bold">{r.title}</h3>
                 <p className="mt-1 text-[13px] text-slate-400">{r.schedule_text || "Schedule announced"}</p>
@@ -45,7 +45,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { q?: 
         </>
       )}
 
-      <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-lg font-bold"><PlayCircle size={17} className="text-violet-300" /> Recorded courses</h2>
+      <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-lg font-bold"><PlayCircle size={17} className="text-orange-300" /> Recorded courses</h2>
       {courses.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center">
           <p className="font-display font-bold">No courses match.</p>
@@ -55,7 +55,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { q?: 
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {courses.map((c: any) => (
-            <Link key={c.id} href={`/courses/${c.slug}`} className="card-lift rounded-2xl border border-white/10 bg-night-900/70 p-5">
+            <Link key={c.id} href={`/courses/${c.slug}`} className="card-lift rounded-2xl border border-white/10 bg-stone-900/70 p-5">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{c.category} · {c.level} · {c.students} students</p>
               <h3 className="mt-1.5 font-display text-[17px] font-bold">{c.title}</h3>
               <p className="mt-1 line-clamp-2 text-[13px] text-slate-400">{c.short_description}</p>

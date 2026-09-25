@@ -4,13 +4,15 @@
 
 :root { color-scheme: dark; }
 html { scroll-behavior: smooth; }
-body { @apply bg-night-950 text-slate-100 font-body antialiased overflow-x-hidden; }
-::selection { background: rgba(217, 70, 239, 0.35); }
+body { @apply bg-stone-950 text-stone-100 font-body antialiased overflow-x-hidden; }
+::selection { background: rgba(249, 115, 22, 0.4); }
 
-.font-display { font-family: "Space Grotesk", system-ui, sans-serif; }
+.font-display { font-family: "Archivo", system-ui, sans-serif; }
+.font-accent { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-weight: 400; }
 
+/* Ember headline gradient (used sparingly) */
 .text-aurora {
-  background: linear-gradient(94deg, #E9D5FF 0%, #A78BFA 28%, #E879F9 55%, #FBBF24 85%, #FDE68A 100%);
+  background: linear-gradient(94deg, #FDBA74 0%, #FB923C 35%, #F43F5E 70%, #FACC15 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -31,25 +33,109 @@ body { @apply bg-night-950 text-slate-100 font-body antialiased overflow-x-hidde
 }
 .btn-aurora {
   position: relative;
-  background: linear-gradient(94deg, #7C3AED, #C026D3 60%, #DB2777);
-  box-shadow: 0 8px 40px -8px rgba(192, 38, 211, 0.55), inset 0 1px 0 rgba(255,255,255,.25);
+  background: linear-gradient(94deg, #EA580C, #F43F5E 65%, #E11D48);
+  box-shadow: 0 8px 40px -8px rgba(234, 88, 12, 0.55), inset 0 1px 0 rgba(255,255,255,.25);
   transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
 }
-.btn-aurora:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 14px 50px -8px rgba(192, 38, 211, 0.7), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn-aurora:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 14px 50px -8px rgba(234, 88, 12, 0.7), inset 0 1px 0 rgba(255,255,255,.25); }
 .btn-aurora:active { transform: translateY(0); }
 .card-lift { transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
-.card-lift:hover { transform: translateY(-5px); border-color: rgba(167,139,250,.35); box-shadow: 0 24px 70px -24px rgba(139,92,246,.5); }
-.shimmer-text {
-  background: linear-gradient(110deg, #fff 40%, #E879F9 50%, #fff 60%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer 5s linear infinite;
-}
+.card-lift:hover { transform: translateY(-5px); border-color: rgba(251,146,60,.4); box-shadow: 0 24px 70px -24px rgba(234,88,12,.45); }
 .mask-fade-x {
   mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
 }
+
+/* Giant outlined backdrop words */
+.outline-word {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255,255,255,.09);
+  user-select: none;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------- Floating 3D objects ---------- */
+.obj-scene { perspective: 900px; }
+.obj-float { animation: objFloat 7s ease-in-out infinite; }
+@keyframes objFloat {
+  0%, 100% { transform: translateY(0) rotate(0.001deg); }
+  50% { transform: translateY(-18px) rotate(0.001deg); }
+}
+.obj-spin-slow { animation: objSpin 26s linear infinite; transform-style: preserve-3d; }
+.obj-spin-slower { animation: objSpin 44s linear infinite reverse; transform-style: preserve-3d; }
+@keyframes objSpin {
+  from { transform: rotateX(-18deg) rotateY(0deg); }
+  to { transform: rotateX(-18deg) rotateY(360deg); }
+}
+
+/* Dice */
+.die { position: relative; transform-style: preserve-3d; }
+.die-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 18%;
+  border-radius: 22%;
+  background: linear-gradient(145deg, #FFF7ED 0%, #FDBA74 55%, #EA580C 130%);
+  border: 1px solid rgba(124, 45, 18, 0.35);
+  box-shadow: inset 0 2px 6px rgba(255,255,255,.7), inset 0 -6px 12px rgba(154, 52, 18, .35);
+  backface-visibility: visible;
+}
+.die-pip { width: 72%; aspect-ratio: 1; border-radius: 9999px; background: radial-gradient(circle at 35% 30%, #7C2D12, #431407); place-self: center; box-shadow: inset 0 1px 2px rgba(0,0,0,.6); }
+.die-dark .die-face {
+  background: linear-gradient(145deg, #292524 0%, #1C1917 60%, #0C0A09 130%);
+  border-color: rgba(255,255,255,.14);
+  box-shadow: inset 0 2px 6px rgba(255,255,255,.15), inset 0 -6px 12px rgba(0,0,0,.7);
+}
+.die-dark .die-pip { background: radial-gradient(circle at 35% 30%, #FDBA74, #EA580C); }
+
+/* Sphere */
+.orb-ball {
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 25%, #FFEDD5 0%, #FB923C 28%, #C2410C 62%, #431407 100%);
+  box-shadow: inset -8px -12px 24px rgba(0,0,0,.55), 0 18px 40px -12px rgba(234,88,12,.5);
+}
+.orb-shadow {
+  border-radius: 9999px;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.5), transparent 70%);
+  filter: blur(6px);
+}
+
+/* Ring */
+.ring-3d {
+  border-radius: 9999px;
+  border-style: solid;
+  border-color: transparent;
+  border-top-color: #FDBA74;
+  border-right-color: #EA580C;
+  border-bottom-color: #7C2D12;
+  border-left-color: #FDBA74;
+  transform: rotateX(62deg);
+  box-shadow: 0 0 34px -6px rgba(251,146,60,.55), inset 0 0 18px rgba(251,146,60,.25);
+}
+
+/* Capsule */
+.capsule-3d {
+  border-radius: 9999px;
+  background: linear-gradient(100deg, #7C2D12 0%, #EA580C 30%, #FDBA74 50%, #EA580C 70%, #7C2D12 100%);
+  box-shadow: 0 14px 34px -12px rgba(234,88,12,.6), inset 0 2px 4px rgba(255,255,255,.5);
+}
+
+/* Plus marks */
+.plus-mark { position: relative; }
+.plus-mark::before, .plus-mark::after {
+  content: ""; position: absolute; background: currentColor; border-radius: 2px;
+}
+.plus-mark::before { left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); }
+.plus-mark::after { top: 50%; left: 0; right: 0; height: 2px; transform: translateY(-50%); }
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }

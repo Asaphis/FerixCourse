@@ -19,7 +19,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ["Space Grotesk", "system-ui", "sans-serif"],
+        display: ["Archivo", "system-ui", "sans-serif"],
+        accent: ["Instrument Serif", "Georgia", "serif"],
         body: ["Inter", "system-ui", "sans-serif"],
       },
       keyframes: {

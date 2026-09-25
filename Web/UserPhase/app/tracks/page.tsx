@@ -30,14 +30,14 @@ const TRACKS = [
 
 export default function TracksPage() {
   return (
-    <main className="min-h-screen bg-night-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section hues={["139,92,246", "217,70,239", "52,211,153"]}>
+      <Section variant="dense" word="TRACKS">
         <div className="pt-24">
           <Reveal><Eyebrow>Learning tracks</Eyebrow></Reveal>
           <Reveal delay={0.08}>
-            <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold tracking-[-0.03em] sm:text-6xl sm:leading-[1.02]">
-              Four formats. <span className="text-aurora">One standard: real skill.</span>
+            <h1 className="mt-4 max-w-3xl font-display text-4xl font-black uppercase tracking-[-0.02em] sm:text-6xl sm:leading-[0.95]">
+              FOUR DOORS.<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">one standard.</span>
             </h1>
           </Reveal>
           <Reveal delay={0.14}>
@@ -49,10 +49,10 @@ export default function TracksPage() {
           <div className="mt-12 grid gap-5 lg:grid-cols-2">
             {TRACKS.map((t, i) => (
               <Reveal key={t.name} delay={i * 0.07}>
-                <div className="card-lift h-full rounded-[28px] border border-white/10 bg-night-900/70 p-8 backdrop-blur">
+                <div className="card-lift h-full rounded-[28px] border border-white/10 bg-stone-900/70 p-8 backdrop-blur">
                   <div className="flex items-start justify-between gap-4">
-                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 ring-1 ring-white/10">
-                      <t.icon size={21} className="text-fuchsia-200" />
+                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500/30 to-rose-500/20 ring-1 ring-white/10">
+                      <t.icon size={21} className="text-rose-200" />
                     </span>
                     <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11.5px] font-semibold text-slate-300">{t.price}</span>
                   </div>

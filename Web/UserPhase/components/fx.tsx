@@ -4,71 +4,150 @@ import { motion, useScroll, useTransform } from "framer-motion";
 
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
-/* Animated flowing-blobs canvas. `hues` re-themes each section.
-   Pauses offscreen + honors prefers-reduced-motion. */
-export function AuroraCanvas({ hues = ["139,92,246", "217,70,239", "251,191,36"], density = 4, className = "" }: {
-  hues?: string[]; density?: number; className?: string;
-}) {
-  const ref = useRef<HTMLCanvasElement>(null);
+/* ---------- Dice ---------- */
+const PIPS: Record<number, number[]> = {
+  1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
+};
 
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let raf = 0;
-    let visible = true;
-    const blobs = Array.from({ length: density }, (_, i) => ({
-      hue: hues[i % hues.length],
-      x: Math.random(), y: Math.random(),
-      r: 0.28 + Math.random() * 0.3,
-      sx: 0.0004 + Math.random() * 0.0009,
-      sy: 0.0003 + Math.random() * 0.0008,
-      px: Math.random() * Math.PI * 2,
-      py: Math.random() * Math.PI * 2,
-    }));
-
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 });
-    io.observe(canvas);
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    let t = 0;
-    const draw = () => {
-      raf = requestAnimationFrame(draw);
-      if (!visible) return;
-      t += 1;
-      const { width: W, height: H } = canvas;
-      ctx.clearRect(0, 0, W, H);
-      ctx.globalCompositeOperation = "lighter";
-      for (const b of blobs) {
-        const x = (b.x + Math.sin(t * b.sx * 60 + b.px) * 0.22) * W;
-        const y = (b.y + Math.cos(t * b.sy * 60 + b.py) * 0.22) * H;
-        const r = b.r * Math.max(W, H);
-        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, `rgba(${b.hue},0.5)`);
-        g.addColorStop(1, `rgba(${b.hue},0)`);
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, W, H);
-      }
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); io.disconnect(); window.removeEventListener("resize", resize); };
-  }, [hues.join(","), density]);
-
-  return <canvas ref={ref} aria-hidden className={`pointer-events-none absolute inset-0 h-full w-full ${className}`} />;
+function DieFace({ value, size, dark }: { value: number; size: number; dark?: boolean }) {
+  const half = size / 2;
+  const faces: [number, string][] = [
+    [1, `translateZ(${half}px)`],
+    [6, `rotateY(180deg) translateZ(${half}px)`],
+    [2, `rotateY(90deg) translateZ(${half}px)`],
+    [5, `rotateY(-90deg) translateZ(${half}px)`],
+    [3, `rotateX(90deg) translateZ(${half}px)`],
+    [4, `rotateX(-90deg) translateZ(${half}px)`],
+  ];
+  return (
+    <>
+      {faces.map(([v, t]) => (
+        <div key={v} className={`die-face${dark ? " die-dark" : ""}`} style={{ width: size, height: size, transform: t }}>
+          {Array.from({ length: 9 }, (_, i) => (
+            <span key={i}>{PIPS[value].includes(i) && <span className="die-pip block" />}</span>
+          ))}
+        </div>
+      ))}
+    </>
+  );
 }
 
-/* Subtle drifting starfield for hero depth. */
-export function Starfield({ count = 90, className = "" }: { count?: number; className?: string }) {
+export function Die({ size = 92, dark = false, spin = "slow", className = "" }: { size?: number; dark?: boolean; spin?: "slow" | "slower"; className?: string }) {
+  return (
+    <div className={`obj-scene ${className}`} style={{ width: size, height: size }}>
+      <div className={`die ${spin === "slow" ? "obj-spin-slow" : "obj-spin-slower"}`} style={{ width: size, height: size }}>
+        <DieFace value={3} size={size} dark={dark} />
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Other objects ---------- */
+export function OrbBall({ size = 120, className = "" }: { size?: number; className?: string }) {
+  return (
+    <div className={className} style={{ width: size }}>
+      <div className="orb-ball" style={{ width: size, height: size }} />
+      <div className="orb-shadow mx-auto mt-2" style={{ width: size * 0.7, height: 14 }} />
+    </div>
+  );
+}
+
+export function Ring3D({ size = 150, thick = 14, className = "" }: { size?: number; thick?: number; className?: string }) {
+  return <div className={`ring-3d ${className}`} style={{ width: size, height: size, borderWidth: thick }} />;
+}
+
+export function Capsule({ w = 150, h = 44, className = "", tilt = -24 }: { w?: number; h?: number; className?: string; tilt?: number }) {
+  return <div className={`capsule-3d ${className}`} style={{ width: w, height: h, transform: `rotate(${tilt}deg)` }} />;
+}
+
+export function Plus({ size = 18, className = "", color = "rgba(255,255,255,.22)" }: { size?: number; className?: string; color?: string }) {
+  return <div className={`plus-mark ${className}`} style={{ width: size, height: size, color }} />;
+}
+
+/* ---------- Object field: themed floating objects per section ---------- */
+type ObjSpec =
+  | { k: "die"; x: string; y: string; size: number; dark?: boolean; spin?: "slow" | "slower"; d: number; dur: number; o?: number }
+  | { k: "orb"; x: string; y: string; size: number; d: number; dur: number; o?: number }
+  | { k: "ring"; x: string; y: string; size: number; d: number; dur: number; o?: number }
+  | { k: "cap"; x: string; y: string; w: number; d: number; dur: number; o?: number }
+  | { k: "plus"; x: string; y: string; size: number; d: number; dur: number };
+
+const SETS: Record<string, ObjSpec[]> = {
+  hero: [
+    { k: "die", x: "6%", y: "16%", size: 96, d: 0, dur: 7 },
+    { k: "ring", x: "78%", y: "10%", size: 170, d: 1.2, dur: 9, o: 0.9 },
+    { k: "orb", x: "86%", y: "62%", size: 110, d: 0.6, dur: 8 },
+    { k: "cap", x: "4%", y: "70%", w: 150, d: 2, dur: 10, o: 0.8 },
+    { k: "die", x: "68%", y: "74%", size: 56, dark: true, spin: "slower", d: 1.6, dur: 8 },
+    { k: "plus", x: "30%", y: "12%", size: 18, d: 0, dur: 6 },
+    { k: "plus", x: "55%", y: "85%", size: 14, d: 1, dur: 7 },
+    { k: "plus", x: "90%", y: "35%", size: 20, d: 2, dur: 6 },
+  ],
+  scatter: [
+    { k: "ring", x: "85%", y: "8%", size: 130, d: 0, dur: 9, o: 0.55 },
+    { k: "die", x: "5%", y: "20%", size: 64, dark: true, d: 1, dur: 8, o: 0.9 },
+    { k: "orb", x: "10%", y: "72%", size: 76, d: 0.5, dur: 9, o: 0.8 },
+    { k: "plus", x: "70%", y: "80%", size: 16, d: 0, dur: 7 },
+    { k: "plus", x: "40%", y: "6%", size: 14, d: 1.4, dur: 6 },
+  ],
+  dense: [
+    { k: "die", x: "4%", y: "12%", size: 80, d: 0, dur: 7 },
+    { k: "die", x: "88%", y: "18%", size: 60, dark: true, spin: "slower", d: 1, dur: 9 },
+    { k: "ring", x: "75%", y: "65%", size: 150, d: 0.4, dur: 10, o: 0.8 },
+    { k: "orb", x: "12%", y: "68%", size: 96, d: 1.2, dur: 8 },
+    { k: "cap", x: "45%", y: "6%", w: 130, d: 0, dur: 9, o: 0.7 },
+    { k: "plus", x: "25%", y: "80%", size: 16, d: 0.8, dur: 6 },
+    { k: "plus", x: "60%", y: "30%", size: 14, d: 1.8, dur: 7 },
+    { k: "plus", x: "35%", y: "45%", size: 18, d: 0.3, dur: 8 },
+  ],
+};
+
+function renderObj(o: ObjSpec, i: number) {
+  const style: React.CSSProperties = {
+    position: "absolute", left: o.x, top: o.y,
+    animationDelay: `${o.d}s`, animationDuration: `${o.dur}s`,
+    opacity: o.o ?? 1,
+  };
+  return (
+    <div key={i} className="obj-float" style={style}>
+      {o.k === "die" && <Die size={o.size} dark={o.dark} spin={o.spin} />}
+      {o.k === "orb" && <OrbBall size={o.size} />}
+      {o.k === "ring" && <Ring3D size={o.size} />}
+      {o.k === "cap" && <Capsule w={o.w} />}
+      {o.k === "plus" && <Plus size={o.size} />}
+    </div>
+  );
+}
+
+export function ObjectField({ variant = "scatter", className = "" }: { variant?: keyof typeof SETS; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], [50, -50]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => {
+      (el as HTMLElement).style.setProperty("--play", e.isIntersecting ? "running" : "paused");
+      el.querySelectorAll(".obj-float,.obj-spin-slow,.obj-spin-slower").forEach((n) => {
+        ((n as HTMLElement).style as any).animationPlayState = e.isIntersecting ? "running" : "paused";
+      });
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <motion.div ref={ref} style={{ y }} aria-hidden className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
+      {(SETS[variant] ?? SETS.scatter).map(renderObj)}
+    </motion.div>
+  );
+}
+
+/* Backwards-compatible name: previously gradient blobs, now objects. */
+export function AuroraCanvas({ variant = "scatter", className = "" }: { hues?: string[]; density?: number; variant?: keyof typeof SETS; className?: string }) {
+  return <ObjectField variant={variant} className={className} />;
+}
+
+export function Starfield({ count = 70, className = "" }: { count?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -77,7 +156,7 @@ export function Starfield({ count = 90, className = "" }: { count?: number; clas
     for (let i = 0; i < count; i++) {
       const s = document.createElement("span");
       const size = Math.random() * 2 + 1;
-      s.style.cssText = `position:absolute;border-radius:9999px;background:#fff;opacity:${0.15 + Math.random() * 0.5};width:${size}px;height:${size}px;left:${Math.random() * 100}%;top:${Math.random() * 100}%;animation:floaty ${5 + Math.random() * 6}s ease-in-out ${Math.random() * 5}s infinite;`;
+      s.style.cssText = `position:absolute;border-radius:9999px;background:#fff;opacity:${0.1 + Math.random() * 0.4};width:${size}px;height:${size}px;left:${Math.random() * 100}%;top:${Math.random() * 100}%;animation:objFloat ${5 + Math.random() * 6}s ease-in-out ${Math.random() * 5}s infinite;`;
       el.appendChild(s);
       stars.push(s);
     }
@@ -100,11 +179,17 @@ export function Reveal({ children, delay = 0, y = 30, className }: { children: R
   );
 }
 
-/* Section shell: themed animated backdrop + overlaid content. */
-export function Section({ id, hues, children, tight = false }: { id?: string; hues?: string[]; children: React.ReactNode; tight?: boolean }) {
+export function Section({ id, word, children, tight = false, variant = "scatter" }: {
+  id?: string; word?: string; children: React.ReactNode; tight?: boolean; variant?: keyof typeof SETS;
+}) {
   return (
     <section id={id} className="relative overflow-hidden">
-      <AuroraCanvas hues={hues} />
+      <ObjectField variant={variant} />
+      {word && (
+        <span aria-hidden className="outline-word pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 text-[18vw] leading-none opacity-70">
+          {word}
+        </span>
+      )}
       <div className="grain absolute inset-0" />
       <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 ${tight ? "py-14" : "py-20 sm:py-28"}`}>{children}</div>
     </section>
@@ -113,15 +198,13 @@ export function Section({ id, hues, children, tight = false }: { id?: string; hu
 
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.28em] text-fuchsia-200/90">
-      <span className="h-px w-7 bg-gradient-to-r from-transparent to-fuchsia-300" />
+    <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-200 backdrop-blur">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500" />
       {children}
-      <span className="h-px w-7 bg-gradient-to-l from-transparent to-fuchsia-300" />
     </p>
   );
 }
 
-/* Parallax glow orb that drifts on scroll. */
 export function DriftOrb({ className = "", from = 0, to = -90 }: { className?: string; from?: number; to?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });

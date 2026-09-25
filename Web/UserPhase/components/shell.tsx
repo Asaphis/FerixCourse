@@ -20,12 +20,12 @@ const ITEMS = [
 export default function AppShell({ children, title, sub }: { children: React.ReactNode; title?: string; sub?: string }) {
   const path = usePathname();
   return (
-    <div className="relative min-h-screen bg-night-950">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-violet-700/15 via-fuchsia-600/5 to-transparent" />
+    <div className="relative min-h-screen bg-stone-950">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-orange-700/15 via-rose-600/5 to-transparent" />
       <div className="relative md:flex">
-        <aside className="sticky top-0 hidden min-h-screen w-64 shrink-0 flex-col border-r border-white/8 bg-night-900/60 p-4 backdrop-blur md:flex">
+        <aside className="sticky top-0 hidden min-h-screen w-64 shrink-0 flex-col border-r border-white/8 bg-stone-900/60 p-4 backdrop-blur md:flex">
           <Link href="/" className="flex items-center gap-2.5 px-2 pt-1">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-400"><GraduationCap size={16} className="text-white" /></span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400"><GraduationCap size={16} className="text-white" /></span>
             <span className="font-display text-[16px] font-bold">FerixCourse</span>
           </Link>
           <nav className="mt-7 space-y-1">
@@ -53,7 +53,7 @@ export default function AppShell({ children, title, sub }: { children: React.Rea
         </div>
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
-        <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-night-900/95 p-1.5 backdrop-blur-2xl">
+        <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-stone-900/95 p-1.5 backdrop-blur-2xl">
           {[["Home", "/"], ["Catalog", "/learn"], ["Live", "/live"], ["Chat", "/messages"], ["You", "/profile"]].map(([t, h]) => (
             <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-500"}`}>{t}</Link>
           ))}

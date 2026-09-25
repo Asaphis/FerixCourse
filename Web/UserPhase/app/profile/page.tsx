@@ -30,8 +30,8 @@ export default function ProfilePage() {
   return (
     <AppShell title="Profile" sub="Your account and recent activity.">
       <div className="grid max-w-3xl gap-3">
-        <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-night-900/70 p-6">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-400 font-display text-xl font-bold">
+        <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-stone-900/70 p-6">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 font-display text-xl font-bold">
             {(name || email).charAt(0).toUpperCase()}
           </span>
           <div>
@@ -40,7 +40,7 @@ export default function ProfilePage() {
           </div>
           <button onClick={logout} className="ml-auto rounded-xl border border-white/15 px-4 py-2 text-[13px] font-bold hover:bg-white/5">Log out</button>
         </div>
-        <div className="rounded-3xl border border-white/10 bg-night-900/70 p-6">
+        <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
           <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500">Recent payments</p>
           {tx.slice(0, 5).map((t) => (
             <div key={t.id} className="mt-2.5 flex items-center justify-between rounded-xl bg-black/30 px-4 py-2.5 text-sm">

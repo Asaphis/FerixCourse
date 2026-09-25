@@ -12,9 +12,9 @@ export default async function ClassroomPage({ params }: { params: { slug: string
   const seatsLeft = Math.max(0, c.capacity - (c.enrolled ?? 0));
 
   return (
-    <main className="min-h-screen bg-night-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section hues={["217,70,239", "139,92,246", "52,211,153"]}>
+      <Section variant="scatter">
         <div className="grid gap-10 pt-24 lg:grid-cols-[1.4fr_.8fr]">
           <div>
             <Reveal><Eyebrow>Live cohort · {c.level}</Eyebrow></Reveal>
@@ -25,10 +25,10 @@ export default async function ClassroomPage({ params }: { params: { slug: string
               <p className="mt-5 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-slate-400">{c.description || "Full syllabus announced by the instructor."}</p>
             </Reveal>
             <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3 text-sm text-slate-300">
-              <span className="inline-flex items-center gap-2"><CalendarDays size={15} className="text-fuchsia-300" /> {c.schedule_text || "Scheduled"}</span>
-              <span className="inline-flex items-center gap-2"><Users size={15} className="text-fuchsia-300" /> {c.enrolled ?? 0}/{c.capacity} enrolled</span>
-              <span className="inline-flex items-center gap-2"><BarChart3 size={15} className="text-fuchsia-300" /> {c.level}</span>
-              {c.starts_at && <span className="inline-flex items-center gap-2"><Clock size={15} className="text-fuchsia-300" /> Starts {new Date(c.starts_at).toLocaleDateString()}</span>}
+              <span className="inline-flex items-center gap-2"><CalendarDays size={15} className="text-rose-300" /> {c.schedule_text || "Scheduled"}</span>
+              <span className="inline-flex items-center gap-2"><Users size={15} className="text-rose-300" /> {c.enrolled ?? 0}/{c.capacity} enrolled</span>
+              <span className="inline-flex items-center gap-2"><BarChart3 size={15} className="text-rose-300" /> {c.level}</span>
+              {c.starts_at && <span className="inline-flex items-center gap-2"><Clock size={15} className="text-rose-300" /> Starts {new Date(c.starts_at).toLocaleDateString()}</span>}
             </div>
             <Reveal delay={0.1}>
               <h2 className="mt-10 font-display text-xl font-bold">Sessions {(c.sessions ?? []).length > 0 && <span className="text-slate-500">({c.sessions.length})</span>}</h2>
@@ -37,7 +37,7 @@ export default async function ClassroomPage({ params }: { params: { slug: string
               ) : (
                 <div className="mt-4 grid gap-2.5">
                   {c.sessions.map((s: any) => (
-                    <div key={s.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-night-900/70 px-4 py-3 text-sm">
+                    <div key={s.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
                       <Check size={14} className="text-emerald-300" /><span className="font-semibold">{s.title}</span>
                       <span className="ml-auto text-xs text-slate-500">{s.starts_at ? new Date(s.starts_at).toLocaleDateString() : ""} · {s.recording_status}</span>
                     </div>
@@ -57,7 +57,7 @@ export default async function ClassroomPage({ params }: { params: { slug: string
             )}
           </div>
           <Reveal delay={0.15}>
-            <div className="h-fit rounded-[28px] border border-white/12 bg-night-900/85 p-7 backdrop-blur lg:sticky lg:top-28">
+            <div className="h-fit rounded-[28px] border border-white/12 bg-stone-900/85 p-7 backdrop-blur lg:sticky lg:top-28">
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cohort access</p>
               <p className="mt-2 font-display text-4xl font-bold">{formatMoney(c.price_kobo, c.currency)}</p>
               <p className="mt-1.5 text-[13px] text-slate-400">{seatsLeft} of {c.capacity} seats left</p>

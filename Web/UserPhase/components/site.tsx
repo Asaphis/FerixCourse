@@ -15,9 +15,9 @@ export function Navbar() {
   return (
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-night-900/75 py-3 pl-4 pr-3 shadow-[0_24px_70px_-24px_rgba(2,4,10,.9)] backdrop-blur-2xl">
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-stone-900/75 py-3 pl-4 pr-3 shadow-[0_24px_70px_-24px_rgba(2,4,10,.9)] backdrop-blur-2xl">
           <Link href="/" className="group flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-400 shadow-[0_0_30px_-6px_rgba(217,70,239,.7)] transition group-hover:rotate-6">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 shadow-[0_0_30px_-6px_rgba(217,70,239,.7)] transition group-hover:rotate-6">
               <GraduationCap size={18} className="text-white" />
             </span>
             <span className="font-display text-[17px] font-bold tracking-tight">FerixCourse</span>
@@ -53,7 +53,7 @@ export function Footer() {
       <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.2fr_2fr]">
         <div>
           <p className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-400"><GraduationCap size={18} className="text-white" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400"><GraduationCap size={18} className="text-white" /></span>
             <span className="font-display text-lg font-bold">FerixCourse</span>
           </p>
           <p className="mt-4 max-w-xs text-[13.5px] leading-relaxed text-slate-500">
@@ -88,7 +88,7 @@ export function MobileNav() {
   const items: [string, string][] = [["Home", "/"], ["Catalog", "/learn"], ["Live", "/live"], ["Messages", "/messages"], ["You", "/profile"]];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
-      <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-night-900/95 p-1.5 backdrop-blur-2xl">
+      <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-stone-900/95 p-1.5 backdrop-blur-2xl">
         {items.map(([t, h]) => (
           <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-200"}`}>
             {t}

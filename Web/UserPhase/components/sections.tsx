@@ -33,9 +33,9 @@ export function TrackTeasers() {
     <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {TRACKS.map((t, i) => (
         <Reveal key={t.title} delay={i * 0.07}>
-          <Link href={t.href} className="card-lift group block h-full rounded-3xl border border-white/10 bg-night-900/70 p-6 backdrop-blur">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/15 ring-1 ring-white/10 transition group-hover:from-violet-500/40 group-hover:to-fuchsia-500/30">
-              <t.icon size={19} className="text-fuchsia-200" />
+          <Link href={t.href} className="card-lift group block h-full rounded-3xl border border-white/10 bg-stone-900/70 p-6 backdrop-blur">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500/25 to-rose-500/15 ring-1 ring-white/10 transition group-hover:from-orange-500/40 group-hover:to-rose-500/30">
+              <t.icon size={19} className="text-rose-200" />
             </span>
             <h3 className="mt-5 font-display text-lg font-bold">{t.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">{t.desc}</p>
@@ -59,7 +59,7 @@ export function MethodTeasers() {
     <div className="mt-10 grid gap-4 md:grid-cols-4">
       {STEPS.map(([t, d], i) => (
         <Reveal key={t} delay={i * 0.07}>
-          <div className="card-lift relative h-full overflow-hidden rounded-3xl border border-white/10 bg-night-900/70 p-6">
+          <div className="card-lift relative h-full overflow-hidden rounded-3xl border border-white/10 bg-stone-900/70 p-6">
             <span className="pointer-events-none absolute -right-2 -top-5 font-display text-[88px] font-bold leading-none text-white/[.05]">0{i + 1}</span>
             <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/15 ring-1 ring-emerald-300/20"><Check size={16} className="text-emerald-300" /></span>
             <h3 className="mt-4 font-display text-lg font-bold">{t}</h3>
@@ -84,7 +84,7 @@ export function LiveTeasers() {
     <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {feats.map((f, i) => (
         <Reveal key={f.t} delay={i * 0.05}>
-          <div className="card-lift rounded-2xl border border-white/10 bg-night-900/70 p-4 text-center">
+          <div className="card-lift rounded-2xl border border-white/10 bg-stone-900/70 p-4 text-center">
             <f.icon size={18} className="mx-auto text-amber-200" />
             <p className="mt-2.5 text-[12.5px] font-semibold leading-snug">{f.t}</p>
           </div>
@@ -114,7 +114,7 @@ export function FeaturedGrid({ items }: { items: any[] }) {
     <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((c, i) => (
         <Reveal key={c.id} delay={i * 0.06}>
-          <Link href={`/courses/${c.slug}`} className="card-lift block h-full rounded-3xl border border-white/10 bg-night-900/70 p-6">
+          <Link href={`/courses/${c.slug}`} className="card-lift block h-full rounded-3xl border border-white/10 bg-stone-900/70 p-6">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{c.category} · {c.level}</p>
             <h3 className="mt-2.5 font-display text-lg font-bold leading-snug">{c.title}</h3>
             <p className="mt-2 line-clamp-2 text-[13.5px] text-slate-400">{c.short_description}</p>
@@ -129,8 +129,8 @@ export function FeaturedGrid({ items }: { items: any[] }) {
 export function ClassroomMock() {
   return (
     <div className="relative">
-      <div className="absolute -inset-8 rounded-[40px] bg-gradient-to-br from-violet-600/25 via-transparent to-amber-400/15 blur-3xl" />
-      <div className="grain relative overflow-hidden rounded-[28px] border border-white/12 bg-night-900/90 shadow-[0_50px_120px_-30px_rgba(2,4,10,.95)]">
+      <div className="absolute -inset-8 rounded-[40px] bg-gradient-to-br from-orange-600/25 via-transparent to-amber-400/15 blur-3xl" />
+      <div className="grain relative overflow-hidden rounded-[28px] border border-white/12 bg-stone-900/90 shadow-[0_50px_120px_-30px_rgba(2,4,10,.95)]">
         <div className="flex items-center gap-2.5 border-b border-white/8 px-5 py-4">
           <span className="relative flex h-2.5 w-2.5"><span className="absolute h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" /><span className="h-2.5 w-2.5 rounded-full bg-rose-400" /></span>
           <p className="text-[13px] font-semibold">Advanced JavaScript <span className="font-normal text-slate-500">— live now</span></p>
@@ -139,7 +139,7 @@ export function ClassroomMock() {
         <div className="grid grid-cols-3 gap-2 p-4">
           {[{ n: "Instructor", live: true, tag: "Presenting" }, { n: "You", live: true, tag: null }, { n: "Ada", live: false, tag: null }].map((p) => (
             <div key={p.n} className="relative flex h-28 flex-col justify-end overflow-hidden rounded-2xl border border-white/8 bg-gradient-to-b from-white/[.06] to-transparent p-2">
-              {p.tag && <span className="absolute left-2 top-2 rounded-md bg-fuchsia-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-fuchsia-200">{p.tag}</span>}
+              {p.tag && <span className="absolute left-2 top-2 rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200">{p.tag}</span>}
               <div className="flex items-center justify-between">
                 <span className="rounded-md bg-black/60 px-1.5 py-0.5 text-[10.5px] text-slate-300">{p.n}</span>
                 {p.live ? <Mic size={11} className="text-emerald-300" /> : <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />}
@@ -149,7 +149,7 @@ export function ClassroomMock() {
         </div>
         <div className="mx-4 rounded-2xl border border-white/8 bg-black/50 p-3.5 font-mono text-[12px] leading-relaxed">
           <p className="text-slate-600">// verified enrollment only</p>
-          <p><span className="text-violet-300">await</span> <span className="text-slate-100">join</span><span className="text-slate-500">(</span><span className="text-amber-200">"js-live-cohort"</span><span className="text-slate-500">)</span></p>
+          <p><span className="text-orange-300">await</span> <span className="text-slate-100">join</span><span className="text-slate-500">(</span><span className="text-amber-200">"js-live-cohort"</span><span className="text-slate-500">)</span></p>
         </div>
         <div className="flex items-center gap-2 p-4">
           {[Mic, Video, MonitorUp, MessageSquare].map((Icon, i) => (
@@ -158,7 +158,7 @@ export function ClassroomMock() {
           <span className="flex h-10 items-center rounded-xl bg-rose-500/90 px-5 text-[12.5px] font-bold">Leave</span>
         </div>
       </div>
-      <div className="absolute -bottom-6 -right-3 animate-floaty rounded-2xl border border-white/12 bg-night-850/95 px-4 py-3 shadow-2xl backdrop-blur sm:-right-6">
+      <div className="absolute -bottom-6 -right-3 animate-floaty rounded-2xl border border-white/12 bg-stone-900/95 px-4 py-3 shadow-2xl backdrop-blur sm:-right-6">
         <p className="flex items-center gap-1.5 text-[12.5px] font-bold"><CalendarCheck size={14} className="text-emerald-300" /> Recording saved</p>
         <p className="mt-0.5 text-[11px] text-slate-400">Rewatch anytime</p>
       </div>

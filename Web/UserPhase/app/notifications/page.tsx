@@ -17,8 +17,8 @@ export default function NotificationsPage() {
       {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
       <div className="grid max-w-3xl gap-2.5">
         {items.map((n) => (
-          <div key={n.id} className="flex gap-3 rounded-2xl border border-white/10 bg-night-900/70 px-4 py-3.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/15"><Bell size={15} className="text-fuchsia-200" /></span>
+          <div key={n.id} className="flex gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15"><Bell size={15} className="text-rose-200" /></span>
             <div>
               <p className="text-sm font-bold">{n.title}</p>
               {n.body && <p className="mt-0.5 text-[13px] text-slate-400">{n.body}</p>}

@@ -11,23 +11,24 @@ export default async function Home() {
   const [featured, courses, rooms] = await Promise.all([getFeatured(), getCourses(), getClassrooms()]);
 
   return (
-    <main className="min-h-screen bg-night-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <AuroraCanvas hues={["139,92,246", "217,70,239", "251,191,36"]} density={5} />
+        <AuroraCanvas variant="hero" />
         <Starfield />
         <div className="grain absolute inset-0" />
-        <DriftOrb className="left-[8%] top-[20%] h-72 w-72 bg-violet-600/25" from={0} to={-70} />
-        <DriftOrb className="right-[5%] top-[55%] h-80 w-80 bg-fuchsia-600/20" from={40} to={-60} />
+        <DriftOrb className="left-[8%] top-[20%] h-72 w-72 bg-orange-600/25" from={0} to={-70} />
+        <DriftOrb className="right-[5%] top-[55%] h-80 w-80 bg-rose-600/20" from={40} to={-60} />
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-16 pt-36 sm:px-6 sm:pt-44">
           <div className="lg:col-span-1">
             <Reveal><Eyebrow>Live cohorts · Courses · Mentorship</Eyebrow></Reveal>
             <Reveal delay={0.08}>
-              <h1 className="mt-5 font-display text-[46px] font-bold leading-[0.98] tracking-[-0.035em] sm:text-7xl">
-                Master code.
-                <br /><span className="text-aurora">Build the future.</span>
+              <h1 className="mt-6 font-display text-[52px] font-black uppercase leading-[0.92] tracking-[-0.02em] sm:text-7xl lg:text-[86px]">
+                Learn
+                <br />out loud.
+                <br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">Ship for real.</span>
               </h1>
             </Reveal>
             <Reveal delay={0.16}>
@@ -76,27 +77,27 @@ export default async function Home() {
       </section>
 
       {/* TRACKS */}
-      <Section hues={["52,211,153", "139,92,246", "217,70,239"]}>
+      <Section variant="dense" word="TRACKS">
         <Reveal><Eyebrow>Learning tracks</Eyebrow></Reveal>
         <Reveal delay={0.08}>
-          <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
-            Pick the format that fits your life.
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl sm:leading-[1.02]">
+            Train your way.<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">no compromises.</span>
           </h2>
         </Reveal>
         <TrackTeasers />
         <Reveal delay={0.1}>
           <p className="mt-8 text-center text-sm text-slate-500">
-            Full breakdown on the <Link href="/tracks" className="font-bold text-white underline decoration-fuchsia-400/60 underline-offset-4 hover:decoration-fuchsia-300">tracks page <ArrowRight size={13} className="inline" /></Link>
+            Full breakdown on the <Link href="/tracks" className="font-bold text-white underline decoration-rose-400/60 underline-offset-4 hover:decoration-rose-300">tracks page <ArrowRight size={13} className="inline" /></Link>
           </p>
         </Reveal>
       </Section>
 
       {/* METHOD */}
-      <Section hues={["251,191,36", "217,70,239", "139,92,246"]}>
+      <Section variant="scatter" word="METHOD">
         <Reveal><Eyebrow>The method</Eyebrow></Reveal>
         <Reveal delay={0.08}>
-          <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
-            Choose. Enroll. Build. Prove.
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl sm:leading-[1.02]">
+            From curious<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">to capable.</span>
           </h2>
         </Reveal>
         <MethodTeasers />
@@ -108,11 +109,11 @@ export default async function Home() {
       </Section>
 
       {/* LIVE */}
-      <Section hues={["217,70,239", "139,92,246", "52,211,153"]}>
+      <Section variant="dense" word="LIVE">
         <Reveal><Eyebrow>Live classrooms</Eyebrow></Reveal>
         <Reveal delay={0.08}>
-          <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
-            A real classroom, <span className="text-aurora">not a webinar.</span>
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl sm:leading-[1.02]">
+            Not a webinar.<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">a classroom.</span>
           </h2>
         </Reveal>
         <Reveal delay={0.14}>
@@ -124,17 +125,17 @@ export default async function Home() {
         <LiveTeasers />
         <Reveal delay={0.1}>
           <p className="mt-8 text-center text-sm text-slate-500">
-            See schedules and seats on the <Link href="/live" className="font-bold text-white underline decoration-fuchsia-400/60 underline-offset-4 hover:decoration-fuchsia-300">live page <ArrowRight size={13} className="inline" /></Link>
+            See schedules and seats on the <Link href="/live" className="font-bold text-white underline decoration-rose-400/60 underline-offset-4 hover:decoration-rose-300">live page <ArrowRight size={13} className="inline" /></Link>
           </p>
         </Reveal>
       </Section>
 
       {/* CATALOG */}
-      <Section hues={["139,92,246", "52,211,153", "251,191,36"]}>
+      <Section variant="scatter" word="CATALOG">
         <Reveal><Eyebrow>Fresh from the catalog</Eyebrow></Reveal>
         <Reveal delay={0.08}>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <h2 className="font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl">Featured training</h2>
+            <h2 className="font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl">Start with<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">live proof.</span></h2>
             <Link href="/learn" className="group inline-flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white">
               Open full catalog <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
@@ -147,10 +148,10 @@ export default async function Home() {
       <section className="relative overflow-hidden px-4 pb-24 sm:px-6">
         <Reveal>
           <div className="grain relative mx-auto max-w-7xl overflow-hidden rounded-[36px] border border-white/12 px-6 py-16 text-center sm:py-24">
-            <AuroraCanvas hues={["217,70,239", "124,58,237", "251,191,36"]} density={5} />
+            <AuroraCanvas variant="dense" />
             <div className="relative">
-              <h2 className="mx-auto max-w-2xl font-display text-4xl font-bold tracking-[-0.02em] sm:text-6xl sm:leading-[1.02]">
-                Your future in tech starts with one class.
+              <h2 className="mx-auto max-w-3xl font-display text-4xl font-black uppercase tracking-[-0.02em] sm:text-6xl sm:leading-[0.95]">
+                One class away<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">from everything.</span>
               </h2>
               <p className="mx-auto mt-5 max-w-lg text-[15px] text-slate-300">
                 Free account. Real instructors. Verified payments. Recordings you keep forever.

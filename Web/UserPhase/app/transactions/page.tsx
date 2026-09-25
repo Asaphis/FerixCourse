@@ -17,7 +17,7 @@ export default function TransactionsPage() {
       {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
       <div className="grid max-w-3xl gap-2.5">
         {tx.map((t) => (
-          <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-night-900/70 px-4 py-3.5 text-sm">
+          <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3.5 text-sm">
             <div>
               <p className="font-bold">{formatMoney(t.amount_kobo, t.currency)} <span className="font-normal text-slate-400">· {t.product_type}</span></p>
               <p className="mt-0.5 font-mono text-[11.5px] text-slate-500">{t.flutterwave_ref ?? "no provider ref"} · {new Date(t.created_at).toLocaleString()}</p>
