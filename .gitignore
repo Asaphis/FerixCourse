@@ -1,0 +1,10 @@
+Backend/node_modules/
+Backend/dist/
+Backend/*.log
+Web/UserPhase/node_modules/
+Web/UserPhase/.next/
+Web/UserPhase/*.log
+Web/AdminPort/node_modules/
+Web/AdminPort/.next/
+**/.env
+**/.env.local
