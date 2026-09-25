@@ -1,149 +1,171 @@
-import { Navbar, Hero, Reveal, Eyebrow, Tracks } from "@/components/landing";
-import { getFeatured, getCourses, getClassrooms, formatMoney } from "@/lib/api";
-import { ArrowRight, ArrowUpRight, Lock } from "lucide-react";
 import Link from "next/link";
+import { ArrowRight, Play, CalendarCheck } from "lucide-react";
+import { Navbar, Footer, MobileNav } from "@/components/site";
+import { AuroraCanvas, Starfield, Section, Eyebrow, Reveal, DriftOrb } from "@/components/fx";
+import { Counter, TrackTeasers, MethodTeasers, LiveTeasers, FeaturedGrid, ClassroomMock } from "@/components/sections";
+import { getFeatured, getCourses, getClassrooms } from "@/lib/api";
+
+const SKILLS = ["React", "TypeScript", "Next.js", "Node.js", "PostgreSQL", "REST APIs", "React Native", "Python", "AI Engineering", "DevOps", "Docker", "Git"];
 
 export default async function Home() {
   const [featured, courses, rooms] = await Promise.all([getFeatured(), getCourses(), getClassrooms()]);
-  const liveCount = rooms.length;
-  const courseCount = courses.length;
 
   return (
-    <main className="min-h-screen bg-[#060913] text-slate-100">
+    <main className="min-h-screen bg-night-950 pb-20 md:pb-0">
       <Navbar />
-      <Hero />
 
-      <section id="tracks" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-        <Reveal>
-          <Eyebrow>Choose your path</Eyebrow>
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <h2 className="max-w-xl font-display text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-[1.08]">
-              Four ways to learn. One goal: <span className="text-gradient">real skill.</span>
-            </h2>
-            <Link href="/learn" className="group inline-flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white">
-              Browse the catalog <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <AuroraCanvas hues={["139,92,246", "217,70,239", "251,191,36"]} density={5} />
+        <Starfield />
+        <div className="grain absolute inset-0" />
+        <DriftOrb className="left-[8%] top-[20%] h-72 w-72 bg-violet-600/25" from={0} to={-70} />
+        <DriftOrb className="right-[5%] top-[55%] h-80 w-80 bg-fuchsia-600/20" from={40} to={-60} />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-16 pt-36 sm:px-6 sm:pt-44">
+          <div className="lg:col-span-1">
+            <Reveal><Eyebrow>Live cohorts · Courses · Mentorship</Eyebrow></Reveal>
+            <Reveal delay={0.08}>
+              <h1 className="mt-5 font-display text-[46px] font-bold leading-[0.98] tracking-[-0.035em] sm:text-7xl">
+                Master code.
+                <br /><span className="text-aurora">Build the future.</span>
+              </h1>
+            </Reveal>
+            <Reveal delay={0.16}>
+              <p className="mt-6 max-w-xl text-[16.5px] leading-relaxed text-slate-400">
+                FerixCourse is a live-first technology school. Join real instructor-led
+                classrooms, learn at your pace with recorded courses, or go private
+                with one-on-one mentorship.
+              </p>
+            </Reveal>
+            <Reveal delay={0.24}>
+              <div className="mt-9 flex flex-wrap gap-3">
+                <Link href="/learn" className="btn-aurora group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-bold text-white">
+                  <Play size={17} className="fill-white" /> Start learning
+                </Link>
+                <Link href="/book" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[.04] px-7 py-4 text-[15px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
+                  <CalendarCheck size={17} /> Book mentorship
+                </Link>
+              </div>
+            </Reveal>
+            <Reveal delay={0.32}>
+              <div className="mt-10 flex gap-9">
+                {[
+                  [courses.length, "Courses live"],
+                  [rooms.length, "Active cohorts"],
+                  [4, "Ways to learn"],
+                ].map(([v, l]) => (
+                  <div key={l as string}>
+                    <p className="font-display text-[28px] font-bold"><Counter to={v as number} /></p>
+                    <p className="mt-0.5 text-[12px] font-medium uppercase tracking-[0.14em] text-slate-500">{l}</p>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
           </div>
-        </Reveal>
-        <Tracks />
-      </section>
-
-      <section id="method" className="border-y border-white/8 bg-white/[.015]">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[.9fr_1.1fr]">
-          <Reveal>
-            <Eyebrow>How FerixCourse works</Eyebrow>
-            <h2 className="mt-4 font-display text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-[1.08]">
-              From curious to capable in four steps.
-            </h2>
-            <p className="mt-4 max-w-md text-[15px] leading-relaxed text-slate-400">
-              No fluff, no fake completions. You enroll through verified payment,
-              learn with a real instructor or at your own pace, and leave with
-              project work that proves the skill.
-            </p>
-            <div className="mt-7 flex gap-8">
-              <div><p className="font-display text-3xl font-extrabold">{liveCount + courseCount}</p><p className="mt-1 text-xs text-slate-500">Published programs</p></div>
-              <div><p className="font-display text-3xl font-extrabold">4</p><p className="mt-1 text-xs text-slate-500">Learning paths</p></div>
-              <div><p className="font-display text-3xl font-extrabold">100%</p><p className="mt-1 text-xs text-slate-500">Project-based</p></div>
-            </div>
+          <Reveal delay={0.2} className="lg:col-span-1">
+            <ClassroomMock />
           </Reveal>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              ["01", "Choose training", "Pick a live cohort, a recorded course, or private mentorship."],
-              ["02", "Enroll securely", "Pay through verified checkout. Access unlocks only after confirmation."],
-              ["03", "Learn for real", "Attend live, watch recordings, ask questions, build projects."],
-              ["04", "Prove the skill", "Track progress lesson by lesson and keep every recording."],
-            ].map(([n, t, d], i) => (
-              <Reveal key={n} delay={i * 0.07}>
-                <div className="h-full rounded-3xl border border-white/10 bg-[#0A0F1E] p-6">
-                  <p className="font-display text-sm font-bold text-cyan-300/80">{n}</p>
-                  <p className="mt-3 font-display text-[17px] font-bold">{t}</p>
-                  <p className="mt-2 text-[13.5px] leading-relaxed text-slate-400">{d}</p>
-                </div>
-              </Reveal>
+        </div>
+        <div className="relative overflow-hidden border-y border-white/8 bg-black/30">
+          <div className="mask-fade-x flex w-max animate-marquee items-center gap-10 whitespace-nowrap py-4 pr-10">
+            {[...SKILLS, ...SKILLS].map((s, i) => (
+              <span key={i} className="font-display text-[13px] font-semibold uppercase tracking-[0.2em] text-slate-500">{s}</span>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="featured" className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-        <Reveal>
-          <Eyebrow>Catalog</Eyebrow>
+      {/* TRACKS */}
+      <Section hues={["52,211,153", "139,92,246", "217,70,239"]}>
+        <Reveal><Eyebrow>Learning tracks</Eyebrow></Reveal>
+        <Reveal delay={0.08}>
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
+            Pick the format that fits your life.
+          </h2>
+        </Reveal>
+        <TrackTeasers />
+        <Reveal delay={0.1}>
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Full breakdown on the <Link href="/tracks" className="font-bold text-white underline decoration-fuchsia-400/60 underline-offset-4 hover:decoration-fuchsia-300">tracks page <ArrowRight size={13} className="inline" /></Link>
+          </p>
+        </Reveal>
+      </Section>
+
+      {/* METHOD */}
+      <Section hues={["251,191,36", "217,70,239", "139,92,246"]}>
+        <Reveal><Eyebrow>The method</Eyebrow></Reveal>
+        <Reveal delay={0.08}>
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
+            Choose. Enroll. Build. Prove.
+          </h2>
+        </Reveal>
+        <MethodTeasers />
+        <Reveal delay={0.1}>
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Read the full method on the <Link href="/method" className="font-bold text-white underline decoration-amber-300/60 underline-offset-4 hover:decoration-amber-200">method page <ArrowRight size={13} className="inline" /></Link>
+          </p>
+        </Reveal>
+      </Section>
+
+      {/* LIVE */}
+      <Section hues={["217,70,239", "139,92,246", "52,211,153"]}>
+        <Reveal><Eyebrow>Live classrooms</Eyebrow></Reveal>
+        <Reveal delay={0.08}>
+          <h2 className="mt-4 max-w-2xl font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
+            A real classroom, <span className="text-aurora">not a webinar.</span>
+          </h2>
+        </Reveal>
+        <Reveal delay={0.14}>
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400">
+            Cameras on, questions live, screen shared both ways. Every session is
+            recorded automatically so you never lose a lesson.
+          </p>
+        </Reveal>
+        <LiveTeasers />
+        <Reveal delay={0.1}>
+          <p className="mt-8 text-center text-sm text-slate-500">
+            See schedules and seats on the <Link href="/live" className="font-bold text-white underline decoration-fuchsia-400/60 underline-offset-4 hover:decoration-fuchsia-300">live page <ArrowRight size={13} className="inline" /></Link>
+          </p>
+        </Reveal>
+      </Section>
+
+      {/* CATALOG */}
+      <Section hues={["139,92,246", "52,211,153", "251,191,36"]}>
+        <Reveal><Eyebrow>Fresh from the catalog</Eyebrow></Reveal>
+        <Reveal delay={0.08}>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-            <h2 className="font-display text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px]">Featured training</h2>
-            <Link href="/learn" className="group inline-flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white">
-              View all <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+            <h2 className="font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl">Featured training</h2>
+            <Link href="/learn" className="group inline-flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white">
+              Open full catalog <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
         </Reveal>
-        {featured.length === 0 ? (
-          <Reveal delay={0.1}>
-            <div className="mt-8 overflow-hidden rounded-3xl border border-dashed border-white/15 bg-white/[.02] p-10 text-center sm:p-14">
-              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5"><Lock size={19} className="text-slate-400" /></span>
-              <p className="mt-5 font-display text-xl font-bold">Cohorts are being prepared</p>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-                Nothing published yet. Create a free account and you will be notified
-                the moment the first live classes and courses open.
-              </p>
-              <Link href="/register" className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-slate-200">
-                Notify me <ArrowUpRight size={15} />
-              </Link>
-            </div>
-          </Reveal>
-        ) : (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(featured as any[]).map((c, i) => (
-              <Reveal key={c.id} delay={i * 0.06}>
-                <Link href={`/courses/${c.slug}`} className="group block h-full rounded-3xl border border-white/10 bg-[#0A0F1E] p-6 transition hover:-translate-y-1 hover:border-indigo-400/30">
-                  <p className="text-[11.5px] font-semibold uppercase tracking-[0.14em] text-slate-500">{c.category} · {c.level}</p>
-                  <h3 className="mt-2.5 font-display text-[19px] font-bold leading-snug">{c.title}</h3>
-                  <p className="mt-2 line-clamp-2 text-[13.5px] leading-relaxed text-slate-400">{c.short_description}</p>
-                  <p className="mt-4 font-display text-lg font-extrabold">{formatMoney(c.price_kobo, c.currency)}</p>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-        )}
-      </section>
+        <FeaturedGrid items={featured} />
+      </Section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6">
+      {/* CTA */}
+      <section className="relative overflow-hidden px-4 pb-24 sm:px-6">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-indigo-600 via-violet-600 to-cyan-500 p-10 text-center sm:p-16">
-            <div className="noise absolute inset-0" />
-            <div className="absolute inset-0 bg-[#060913]/45" />
+          <div className="grain relative mx-auto max-w-7xl overflow-hidden rounded-[36px] border border-white/12 px-6 py-16 text-center sm:py-24">
+            <AuroraCanvas hues={["217,70,239", "124,58,237", "251,191,36"]} density={5} />
             <div className="relative">
-              <h2 className="mx-auto max-w-2xl font-display text-3xl font-extrabold tracking-[-0.02em] sm:text-5xl sm:leading-[1.05]">
-                Start building real skills today.
+              <h2 className="mx-auto max-w-2xl font-display text-4xl font-bold tracking-[-0.02em] sm:text-6xl sm:leading-[1.02]">
+                Your future in tech starts with one class.
               </h2>
-              <p className="mx-auto mt-4 max-w-lg text-[15px] text-white/75">
-                Create a free account, explore the catalog, and enroll in your first
-                live classroom or recorded course.
+              <p className="mx-auto mt-5 max-w-lg text-[15px] text-slate-300">
+                Free account. Real instructors. Verified payments. Recordings you keep forever.
               </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Link href="/register" className="rounded-2xl bg-white px-7 py-3.5 text-[15px] font-semibold text-slate-950 transition hover:bg-slate-200">Create free account</Link>
-                <Link href="/learn" className="rounded-2xl border border-white/35 px-7 py-3.5 text-[15px] font-semibold text-white transition hover:bg-white/10">Explore training</Link>
+              <div className="mt-9 flex flex-wrap justify-center gap-3">
+                <Link href="/register" className="btn-aurora rounded-2xl px-8 py-4 text-[15px] font-bold text-white">Create free account</Link>
+                <Link href="/tracks" className="rounded-2xl border border-white/25 bg-black/30 px-8 py-4 text-[15px] font-bold backdrop-blur transition hover:bg-black/50">Compare tracks</Link>
               </div>
             </div>
           </div>
         </Reveal>
-        <footer className="flex flex-col gap-3 pb-24 pt-10 text-[12.5px] text-slate-600 sm:flex-row sm:items-center sm:justify-between md:pb-4">
-          <span className="font-display font-bold text-slate-400">FerixCourse <span className="font-normal text-slate-600">— practical technology training</span></span>
-          <span className="flex flex-wrap gap-x-5 gap-y-1">
-            {["About", "Contact", "Training", "Terms", "Privacy", "Support"].map((l) => (
-              <a key={l} href="#" className="transition hover:text-slate-300">{l}</a>
-            ))}
-          </span>
-        </footer>
       </section>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
-        <div className="m-3 grid grid-cols-5 rounded-2xl border border-white/10 bg-[#0A0F1E]/95 py-2 text-[10.5px] font-medium text-slate-400 backdrop-blur-xl">
-          {[["Home", "/"], ["Learn", "/learn"], ["Classes", "/classes"], ["Messages", "/messages"], ["Profile", "/profile"]].map(([t, h]) => (
-            <Link key={t} href={h} className="flex flex-col items-center gap-1 py-1.5 transition hover:text-white">
-              <span className="h-1 w-1 rounded-full bg-indigo-400/70" />{t}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <Footer />
+      <MobileNav />
     </main>
   );
 }

@@ -1,13 +1,64 @@
-import { Sidebar, BottomNav } from "@/components/nav";
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard, BookOpen, Radio, MessageSquare, User, Bell, Receipt, GraduationCap, CalendarCheck, Wand2,
+} from "lucide-react";
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+const ITEMS = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/learn", label: "Catalog", icon: BookOpen },
+  { href: "/live", label: "Live classes", icon: Radio },
+  { href: "/book", label: "Book training", icon: CalendarCheck },
+  { href: "/request", label: "Request", icon: Wand2 },
+  { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/transactions", label: "Transactions", icon: Receipt },
+  { href: "/notifications", label: "Alerts", icon: Bell },
+  { href: "/profile", label: "Profile", icon: User },
+];
+
+export default function AppShell({ children, title, sub }: { children: React.ReactNode; title?: string; sub?: string }) {
+  const path = usePathname();
   return (
-    <div className="min-h-screen bg-ink-950 md:flex">
-      <Sidebar />
-      <div className="flex-1 min-w-0">
-        <div className="mx-auto max-w-6xl px-4 py-6 pb-28 md:pb-10">{children}</div>
+    <div className="relative min-h-screen bg-night-950">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-violet-700/15 via-fuchsia-600/5 to-transparent" />
+      <div className="relative md:flex">
+        <aside className="sticky top-0 hidden min-h-screen w-64 shrink-0 flex-col border-r border-white/8 bg-night-900/60 p-4 backdrop-blur md:flex">
+          <Link href="/" className="flex items-center gap-2.5 px-2 pt-1">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-400"><GraduationCap size={16} className="text-white" /></span>
+            <span className="font-display text-[16px] font-bold">FerixCourse</span>
+          </Link>
+          <nav className="mt-7 space-y-1">
+            {ITEMS.map((i) => (
+              <Link key={i.href} href={i.href}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition ${path === i.href ? "bg-white/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)]" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
+                <i.icon size={17} /> {i.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="mt-auto rounded-2xl border border-white/10 bg-white/[.03] p-4 text-[12px] leading-relaxed text-slate-500">
+            Enrollments unlock only after verified payment. Nothing here is simulated.
+          </div>
+        </aside>
+        <div className="min-w-0 flex-1">
+          <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 md:pb-12 md:pt-8">
+            {title && (
+              <div className="mb-6">
+                <h1 className="font-display text-[28px] font-bold tracking-[-0.02em] sm:text-4xl">{title}</h1>
+                {sub && <p className="mt-1.5 text-[14px] text-slate-400">{sub}</p>}
+              </div>
+            )}
+            {children}
+          </div>
+        </div>
       </div>
-      <BottomNav />
+      <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
+        <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-night-900/95 p-1.5 backdrop-blur-2xl">
+          {[["Home", "/"], ["Catalog", "/learn"], ["Live", "/live"], ["Chat", "/messages"], ["You", "/profile"]].map(([t, h]) => (
+            <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-500"}`}>{t}</Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

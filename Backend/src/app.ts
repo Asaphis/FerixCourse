@@ -8,6 +8,7 @@ import { coursesRouter } from './routes/courses.js';
 import { adminRouter } from './routes/admin.js';
 import { requestsRouter, bookingsRouter, messagesRouter, notificationsRouter } from './routes/student.js';
 import { publicRouter } from './routes/public.js';
+import { paymentsRouter } from './routes/payments.js';
 
 export function createApp() {
   const app = express();
@@ -24,6 +25,7 @@ export function createApp() {
   app.use('/messages', messagesRouter);
   app.use('/notifications', notificationsRouter);
   app.use('/api', publicRouter);
+  app.use('/payments', paymentsRouter);
 
   // Phase 2+ modules mount here, one router per business function:
   // app.use('/courses', coursesRouter);

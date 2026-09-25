@@ -5,54 +5,32 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: {
-          950: "#050A1F",
-          900: "#0A1230",
-          800: "#111C4A",
+        night: {
+          950: "#05070D",
+          900: "#0A0E18",
+          850: "#0D1322",
+          800: "#131B30",
         },
-        brand: {
-          300: "#A5B4FC",
-          400: "#818CF8",
-          500: "#6366F1",
-          600: "#4F46E5",
-        },
-        neon: {
-          cyan: "#22D3EE",
-          violet: "#A78BFA",
-          lime: "#A3E635",
+        aurora: {
+          violet: "#8B5CF6",
+          fuchsia: "#D946EF",
+          amber: "#FBBF24",
+          mint: "#34D399",
         },
       },
       fontFamily: {
-        display: ["Sora", "Space Grotesk", "system-ui", "sans-serif"],
+        display: ["Space Grotesk", "system-ui", "sans-serif"],
         body: ["Inter", "system-ui", "sans-serif"],
       },
-      boxShadow: {
-        glow: "0 0 40px -8px rgba(99,102,241,.55)",
-        card: "0 20px 60px -20px rgba(2,6,23,.7)",
-      },
       keyframes: {
-        aurora: {
-          "0%,100%": { transform: "translate(0,0) scale(1)", opacity: ".8" },
-          "50%": { transform: "translate(4%, -6%) scale(1.12)", opacity: "1" },
-        },
-        floaty: {
-          "0%,100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-12px)" },
-        },
-        marquee: {
-          from: { transform: "translateX(0)" },
-          to: { transform: "translateX(-50%)" },
-        },
-        gridpan: {
-          from: { backgroundPosition: "0 0" },
-          to: { backgroundPosition: "60px 60px" },
-        },
+        marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
+        floaty: { "0%,100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-14px)" } },
+        pulseRing: { "0%": { transform: "scale(1)", opacity: ".6" }, "100%": { transform: "scale(1.9)", opacity: "0" } },
+        shimmer: { from: { backgroundPosition: "200% 0" }, to: { backgroundPosition: "-200% 0" } },
       },
       animation: {
-        aurora: "aurora 12s ease-in-out infinite",
-        "aurora-slow": "aurora 18s ease-in-out infinite",
-        floaty: "floaty 6s ease-in-out infinite",
-        marquee: "marquee 28s linear infinite",
+        marquee: "marquee 30s linear infinite",
+        floaty: "floaty 7s ease-in-out infinite",
       },
     },
   },
