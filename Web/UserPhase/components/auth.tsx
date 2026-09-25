@@ -1,6 +1,6 @@
 "use client";
 import { GraduationCap, ShieldCheck, Video, Infinity as InfinityIcon } from "lucide-react";
-import { AuroraCanvas } from "./fx";
+import { ObjectWallpaper } from "./objects";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const inputCls = "mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-rose-400/60";
@@ -8,11 +8,11 @@ export const inputCls = "mt-1.5 w-full rounded-xl border border-white/10 bg-blac
 export function AuthFrame({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-950 px-4 py-10">
-      <AuroraCanvas hues={["139,92,246", "217,70,239", "251,191,36"]} density={4} />
+      <ObjectWallpaper variant="hero" seed={5} />
       <div className="grain absolute inset-0" />
       <div className="relative grid w-full max-w-4xl overflow-hidden rounded-[28px] border border-white/10 bg-stone-900/80 shadow-[0_50px_120px_-30px_rgba(2,4,10,.95)] backdrop-blur-xl md:grid-cols-2">
         <div className="relative hidden flex-col justify-between overflow-hidden p-9 md:flex">
-          <AuroraCanvas hues={["217,70,239", "124,58,237", "52,211,153"]} density={4} />
+          <ObjectWallpaper variant="dense" seed={9} />
           <p className="relative flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400"><GraduationCap size={18} className="text-white" /></span>
             <span className="font-display text-lg font-bold">FerixCourse</span>

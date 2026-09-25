@@ -32,7 +32,7 @@ export default function TracksPage() {
   return (
     <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section variant="dense" word="TRACKS">
+      <Section variant="dense" word="TRACKS" seed={13}>
         <div className="pt-24">
           <Reveal><Eyebrow>Learning tracks</Eyebrow></Reveal>
           <Reveal delay={0.08}>

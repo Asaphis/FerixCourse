@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { ObjectWallpaper } from "./objects";
 
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -179,12 +180,14 @@ export function Reveal({ children, delay = 0, y = 30, className }: { children: R
   );
 }
 
-export function Section({ id, word, children, tight = false, variant = "scatter" }: {
-  id?: string; word?: string; children: React.ReactNode; tight?: boolean; variant?: keyof typeof SETS;
+export function Section({ id, word, children, tight = false, variant = "scatter", seed = 7 }: {
+  id?: string; word?: string; children: React.ReactNode; tight?: boolean; variant?: "hero" | "dense" | "scatter"; seed?: number;
 }) {
   return (
     <section id={id} className="relative overflow-hidden">
-      <ObjectField variant={variant} />
+      <ObjectWallpaper variant={variant} seed={seed} />
+      {/* readability scrim: wallpaper stays a background, content stays king */}
+      <div className="pointer-events-none absolute inset-0 bg-stone-950/55" />
       {word && (
         <span aria-hidden className="outline-word pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 text-[18vw] leading-none opacity-70">
           {word}
