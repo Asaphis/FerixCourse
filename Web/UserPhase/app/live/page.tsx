@@ -13,7 +13,7 @@ export default async function LivePage() {
   return (
     <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section variant="dense" word="LIVE" seed={41}>
+      <Section variant="dense" word="LIVE">
         <div className="pt-24">
           <Reveal><Eyebrow>Instructor-led cohorts</Eyebrow></Reveal>
           <Reveal delay={0.08}>

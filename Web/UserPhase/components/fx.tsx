@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ObjectWallpaper } from "./objects";
+import {
+  Brackets3D, Braces3D, Laptop3D, Rocket3D, GradCap3D, Bulb3D,
+  Gear3D, Target3D, Play3D, Lock3D, Database3D, Cloud3D,
+} from "./objects3d";
 
 export const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -71,36 +74,63 @@ type ObjSpec =
   | { k: "orb"; x: string; y: string; size: number; d: number; dur: number; o?: number }
   | { k: "ring"; x: string; y: string; size: number; d: number; dur: number; o?: number }
   | { k: "cap"; x: string; y: string; w: number; d: number; dur: number; o?: number }
-  | { k: "plus"; x: string; y: string; size: number; d: number; dur: number };
+  | { k: "plus"; x: string; y: string; size: number; d: number; dur: number }
+  | { k: "3d"; x: string; y: string; what: "brackets" | "braces" | "laptop" | "rocket" | "gradcap" | "bulb" | "gear" | "target" | "play" | "lock" | "db" | "cloud"; scale: number; d: number; dur: number; o?: number };
 
 const SETS: Record<string, ObjSpec[]> = {
   hero: [
     { k: "die", x: "6%", y: "16%", size: 96, d: 0, dur: 7 },
-    { k: "ring", x: "78%", y: "10%", size: 170, d: 1.2, dur: 9, o: 0.9 },
-    { k: "orb", x: "86%", y: "62%", size: 110, d: 0.6, dur: 8 },
-    { k: "cap", x: "4%", y: "70%", w: 150, d: 2, dur: 10, o: 0.8 },
-    { k: "die", x: "68%", y: "74%", size: 56, dark: true, spin: "slower", d: 1.6, dur: 8 },
-    { k: "plus", x: "30%", y: "12%", size: 18, d: 0, dur: 6 },
-    { k: "plus", x: "55%", y: "85%", size: 14, d: 1, dur: 7 },
-    { k: "plus", x: "90%", y: "35%", size: 20, d: 2, dur: 6 },
+    { k: "3d", what: "brackets", x: "80%", y: "12%", scale: 1.1, d: 0.4, dur: 8 },
+    { k: "ring", x: "76%", y: "8%", size: 150, d: 1.2, dur: 9, o: 0.7 },
+    { k: "orb", x: "88%", y: "60%", size: 100, d: 0.6, dur: 8 },
+    { k: "3d", what: "rocket", x: "62%", y: "66%", scale: 0.9, d: 1.1, dur: 9 },
+    { k: "cap", x: "3%", y: "68%", w: 140, d: 2, dur: 10, o: 0.8 },
+    { k: "3d", what: "laptop", x: "30%", y: "78%", scale: 0.85, d: 0.8, dur: 10, o: 0.95 },
+    { k: "die", x: "68%", y: "76%", size: 52, dark: true, spin: "slower", d: 1.6, dur: 8 },
+    { k: "3d", what: "bulb", x: "45%", y: "8%", scale: 0.9, d: 2.2, dur: 7 },
+    { k: "plus", x: "24%", y: "14%", size: 18, d: 0, dur: 6 },
+    { k: "plus", x: "55%", y: "86%", size: 14, d: 1, dur: 7 },
+    { k: "plus", x: "92%", y: "38%", size: 20, d: 2, dur: 6 },
   ],
   scatter: [
     { k: "ring", x: "85%", y: "8%", size: 130, d: 0, dur: 9, o: 0.55 },
-    { k: "die", x: "5%", y: "20%", size: 64, dark: true, d: 1, dur: 8, o: 0.9 },
-    { k: "orb", x: "10%", y: "72%", size: 76, d: 0.5, dur: 9, o: 0.8 },
-    { k: "plus", x: "70%", y: "80%", size: 16, d: 0, dur: 7 },
+    { k: "3d", what: "braces", x: "6%", y: "18%", scale: 0.9, d: 0.7, dur: 8, o: 0.9 },
+    { k: "die", x: "4%", y: "55%", size: 60, dark: true, d: 1, dur: 8, o: 0.9 },
+    { k: "3d", what: "gradcap", x: "78%", y: "70%", scale: 0.95, d: 1.4, dur: 9, o: 0.9 },
+    { k: "orb", x: "12%", y: "76%", size: 72, d: 0.5, dur: 9, o: 0.8 },
+    { k: "3d", what: "gear", x: "60%", y: "10%", scale: 0.85, d: 2, dur: 10, o: 0.75 },
+    { k: "plus", x: "70%", y: "82%", size: 16, d: 0, dur: 7 },
     { k: "plus", x: "40%", y: "6%", size: 14, d: 1.4, dur: 6 },
   ],
   dense: [
     { k: "die", x: "4%", y: "12%", size: 80, d: 0, dur: 7 },
-    { k: "die", x: "88%", y: "18%", size: 60, dark: true, spin: "slower", d: 1, dur: 9 },
-    { k: "ring", x: "75%", y: "65%", size: 150, d: 0.4, dur: 10, o: 0.8 },
-    { k: "orb", x: "12%", y: "68%", size: 96, d: 1.2, dur: 8 },
-    { k: "cap", x: "45%", y: "6%", w: 130, d: 0, dur: 9, o: 0.7 },
-    { k: "plus", x: "25%", y: "80%", size: 16, d: 0.8, dur: 6 },
-    { k: "plus", x: "60%", y: "30%", size: 14, d: 1.8, dur: 7 },
+    { k: "3d", what: "cloud", x: "86%", y: "14%", scale: 0.9, d: 0.5, dur: 9, o: 0.9 },
+    { k: "die", x: "90%", y: "52%", size: 56, dark: true, spin: "slower", d: 1, dur: 9 },
+    { k: "3d", what: "lock", x: "70%", y: "68%", scale: 0.9, d: 1.3, dur: 8 },
+    { k: "ring", x: "74%", y: "62%", size: 140, d: 0.4, dur: 10, o: 0.6 },
+    { k: "3d", what: "db", x: "10%", y: "64%", scale: 0.95, d: 0.9, dur: 9 },
+    { k: "orb", x: "30%", y: "82%", size: 84, d: 1.2, dur: 8, o: 0.85 },
+    { k: "3d", what: "target", x: "46%", y: "6%", scale: 0.85, d: 0.2, dur: 8, o: 0.8 },
+    { k: "3d", what: "play", x: "20%", y: "30%", scale: 0.9, d: 1.8, dur: 7, o: 0.9 },
+    { k: "cap", x: "55%", y: "88%", w: 120, d: 0, dur: 9, o: 0.7 },
+    { k: "plus", x: "62%", y: "30%", size: 14, d: 1.8, dur: 7 },
     { k: "plus", x: "35%", y: "45%", size: 18, d: 0.3, dur: 8 },
   ],
+};
+
+const D3: Record<string, (p: { scale: number }) => JSX.Element> = {
+  brackets: (p) => <Brackets3D scale={p.scale} />,
+  braces: (p) => <Braces3D scale={p.scale} />,
+  laptop: (p) => <Laptop3D scale={p.scale} />,
+  rocket: (p) => <Rocket3D scale={p.scale} />,
+  gradcap: (p) => <GradCap3D scale={p.scale} />,
+  bulb: (p) => <Bulb3D scale={p.scale} />,
+  gear: (p) => <Gear3D scale={p.scale} />,
+  target: (p) => <Target3D scale={p.scale} />,
+  play: (p) => <Play3D scale={p.scale} />,
+  lock: (p) => <Lock3D scale={p.scale} />,
+  db: (p) => <Database3D scale={p.scale} />,
+  cloud: (p) => <Cloud3D scale={p.scale} />,
 };
 
 function renderObj(o: ObjSpec, i: number) {
@@ -109,6 +139,7 @@ function renderObj(o: ObjSpec, i: number) {
     animationDelay: `${o.d}s`, animationDuration: `${o.dur}s`,
     opacity: o.o ?? 1,
   };
+  const C = o.k === "3d" ? D3[o.what] : null;
   return (
     <div key={i} className="obj-float" style={style}>
       {o.k === "die" && <Die size={o.size} dark={o.dark} spin={o.spin} />}
@@ -116,6 +147,7 @@ function renderObj(o: ObjSpec, i: number) {
       {o.k === "ring" && <Ring3D size={o.size} />}
       {o.k === "cap" && <Capsule w={o.w} />}
       {o.k === "plus" && <Plus size={o.size} />}
+      {C && <C scale={o.scale} />}
     </div>
   );
 }
@@ -180,14 +212,12 @@ export function Reveal({ children, delay = 0, y = 30, className }: { children: R
   );
 }
 
-export function Section({ id, word, children, tight = false, variant = "scatter", seed = 7 }: {
-  id?: string; word?: string; children: React.ReactNode; tight?: boolean; variant?: "hero" | "dense" | "scatter"; seed?: number;
+export function Section({ id, word, children, tight = false, variant = "scatter" }: {
+  id?: string; word?: string; children: React.ReactNode; tight?: boolean; variant?: keyof typeof SETS;
 }) {
   return (
     <section id={id} className="relative overflow-hidden">
-      <ObjectWallpaper variant={variant} seed={seed} />
-      {/* readability scrim: wallpaper stays a background, content stays king */}
-      <div className="pointer-events-none absolute inset-0 bg-stone-950/55" />
+      <ObjectField variant={variant} />
       {word && (
         <span aria-hidden className="outline-word pointer-events-none absolute left-1/2 top-8 -translate-x-1/2 text-[18vw] leading-none opacity-70">
           {word}

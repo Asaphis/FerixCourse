@@ -16,7 +16,7 @@ export default function MethodPage() {
   return (
     <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
       <Navbar />
-      <Section variant="scatter" word="METHOD" seed={29}>
+      <Section variant="scatter" word="METHOD">
         <div className="pt-24">
           <Reveal><Eyebrow>The FerixCourse method</Eyebrow></Reveal>
           <Reveal delay={0.08}>

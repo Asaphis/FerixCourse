@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Play, CalendarCheck } from "lucide-react";
 import { Navbar, Footer, MobileNav } from "@/components/site";
-import { Starfield, Section, Eyebrow, Reveal, DriftOrb } from "@/components/fx";
-import { ObjectWallpaper } from "@/components/objects";
+import { Starfield, Section, Eyebrow, Reveal, DriftOrb, AuroraCanvas } from "@/components/fx";
 import { Counter, TrackTeasers, MethodTeasers, LiveTeasers, FeaturedGrid, ClassroomMock } from "@/components/sections";
 import { getFeatured, getCourses, getClassrooms } from "@/lib/api";
 
@@ -17,7 +16,7 @@ export default async function Home() {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <ObjectWallpaper variant="hero" seed={3} />
+        <AuroraCanvas variant="hero" />
         <div className="pointer-events-none absolute inset-0 bg-stone-950/45" />
         <Starfield />
         <div className="grain absolute inset-0" />
@@ -79,7 +78,7 @@ export default async function Home() {
       </section>
 
       {/* TRACKS */}
-      <Section variant="dense" word="TRACKS" seed={11}>
+      <Section variant="dense" word="TRACKS">
         <Reveal><Eyebrow>Learning tracks</Eyebrow></Reveal>
         <Reveal delay={0.08}>
           <h2 className="mt-4 max-w-2xl font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl sm:leading-[1.02]">
@@ -95,7 +94,7 @@ export default async function Home() {
       </Section>
 
       {/* METHOD */}
-      <Section variant="scatter" word="METHOD" seed={23}>
+      <Section variant="scatter" word="METHOD">
         <Reveal><Eyebrow>The method</Eyebrow></Reveal>
         <Reveal delay={0.08}>
           <h2 className="mt-4 max-w-2xl font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl sm:leading-[1.02]">
@@ -111,7 +110,7 @@ export default async function Home() {
       </Section>
 
       {/* LIVE */}
-      <Section variant="dense" word="LIVE" seed={37}>
+      <Section variant="dense" word="LIVE">
         <Reveal><Eyebrow>Live classrooms</Eyebrow></Reveal>
         <Reveal delay={0.08}>
           <h2 className="mt-4 max-w-2xl font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl sm:leading-[1.02]">
@@ -133,7 +132,7 @@ export default async function Home() {
       </Section>
 
       {/* CATALOG */}
-      <Section variant="scatter" word="CATALOG" seed={51}>
+      <Section variant="scatter" word="CATALOG">
         <Reveal><Eyebrow>Fresh from the catalog</Eyebrow></Reveal>
         <Reveal delay={0.08}>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
@@ -150,7 +149,7 @@ export default async function Home() {
       <section className="relative overflow-hidden px-4 pb-24 sm:px-6">
         <Reveal>
           <div className="grain relative mx-auto max-w-7xl overflow-hidden rounded-[36px] border border-white/12 px-6 py-16 text-center sm:py-24">
-            <ObjectWallpaper variant="dense" seed={91} />
+            <AuroraCanvas variant="dense" />
             <div className="relative">
               <h2 className="mx-auto max-w-3xl font-display text-4xl font-black uppercase tracking-[-0.02em] sm:text-6xl sm:leading-[0.95]">
                 One class away<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">from everything.</span>
