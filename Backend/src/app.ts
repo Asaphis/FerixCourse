@@ -6,6 +6,7 @@ import { corsOrigins } from './config/env.js';
 import { healthRouter } from './routes/health.js';
 import { coursesRouter } from './routes/courses.js';
 import { adminRouter } from './routes/admin.js';
+import { requestsRouter, bookingsRouter, messagesRouter, notificationsRouter } from './routes/student.js';
 
 export function createApp() {
   const app = express();
@@ -17,6 +18,10 @@ export function createApp() {
   app.use('/health', healthRouter);
   app.use('/courses', coursesRouter);
   app.use('/admin', adminRouter);
+  app.use('/requests', requestsRouter);
+  app.use('/bookings', bookingsRouter);
+  app.use('/messages', messagesRouter);
+  app.use('/notifications', notificationsRouter);
 
   // Phase 2+ modules mount here, one router per business function:
   // app.use('/courses', coursesRouter);

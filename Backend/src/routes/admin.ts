@@ -77,7 +77,141 @@ adminRouter.put('/settings/:key', async (req, res) => {
   }
 });
 
-// Courses: GET /admin/courses, POST /admin/courses, PATCH /admin/courses/:id
+// ---- Custom training requests ----
+adminRouter.get('/requests', async (req, res) => {
+  try {
+    const status = String(req.query.status ?? '');
+    const rows = status
+      ? await q(`select r.*, p.email as user_email from training_requests r left join profiles p on p.id = r.user_id where r.status = $1 order by r.created_at desc`, [status])
+      : await q(`select r.*, p.email as user_email from training_requests r left join profiles p on p.id = r.user_id order by r.created_at desc`);
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load requests.', detail: e?.message });
+  }
+});
+
+adminRouter.patch('/requests/:id', async (req, res) => {
+  try {
+    const allowed = ['status', 'admin_note', 'converted_classroom_id'];
+    const sets: string[] = [];
+    const vals: any[] = [];
+    for (const k of allowed) {
+      if (req.body?.[k] !== undefined) { vals.push(req.body[k]); sets.push(`${k} = $${vals.length}`); }
+    }
+    if (!sets.length) return res.status(400).json({ error: 'Nothing to update.' });
+    vals.push(req.params.id);
+    const rows = await q(`update training_requests set ${sets.join(', ')} where id = $${vals.length} returning *`, vals);
+    if (!rows[0]) return res.status(404).json({ error: 'Request not found.' });
+    // Notify student of status change
+    if (req.body?.status) {
+      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'request_update', $2, $3)`,
+        [rows[0].user_id, `Training request ${req.body.status}`, rows[0].topic]).catch(() => {});
+    }
+    res.json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not update request.', detail: e?.message });
+  }
+});
+
+// ---- Bookings ----
+adminRouter.get('/bookings', async (req, res) => {
+  try {
+    const status = String(req.query.status ?? '');
+    const rows = status
+      ? await q(`select b.*, p.email as user_email from bookings b left join profiles p on p.id = b.user_id where b.status = $1 order by b.created_at desc`, [status])
+      : await q(`select b.*, p.email as user_email from bookings b left join profiles p on p.id = b.user_id order by b.created_at desc`);
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load bookings.', detail: e?.message });
+  }
+});
+
+adminRouter.patch('/bookings/:id', async (req, res) => {
+  try {
+    const allowed = ['status', 'location', 'livekit_room'];
+    const sets: string[] = [];
+    const vals: any[] = [];
+    for (const k of allowed) {
+      if (req.body?.[k] !== undefined) { vals.push(req.body[k]); sets.push(`${k} = $${vals.length}`); }
+    }
+    if (!sets.length) return res.status(400).json({ error: 'Nothing to update.' });
+    vals.push(req.params.id);
+    const rows = await q(`update bookings set ${sets.join(', ')} where id = $${vals.length} returning *`, vals);
+    if (!rows[0]) return res.status(404).json({ error: 'Booking not found.' });
+    if (req.body?.status) {
+      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'booking_update', $2, $3)`,
+        [rows[0].user_id, `Booking ${req.body.status}`, rows[0].topic]).catch(() => {});
+    }
+    res.json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not update booking.', detail: e?.message });
+  }
+});
+
+// ---- Sessions / recordings / materials (read views; recording pipeline lands in Phase 3) ----
+adminRouter.get('/sessions', async (_req, res) => {
+  try {
+    res.json(await q(`select s.*, c.title as classroom_title from classroom_sessions s left join classrooms c on c.id = s.classroom_id order by s.created_at desc limit 100`));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load sessions.', detail: e?.message });
+  }
+});
+
+adminRouter.get('/recordings', async (_req, res) => {
+  try {
+    res.json(await q(`select r.*, s.title as session_title from classroom_recordings r left join classroom_sessions s on s.id = r.session_id order by r.created_at desc limit 100`));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load recordings.', detail: e?.message });
+  }
+});
+
+adminRouter.get('/materials', async (_req, res) => {
+  try {
+    const rooms = await q(`select m.*, c.title as classroom_title from classroom_materials m left join classrooms c on c.id = m.classroom_id order by m.created_at desc limit 100`);
+    const courses = await q(`select m.*, c.title as course_title from course_materials m left join courses c on c.id = m.course_id order by m.created_at desc limit 100`);
+    res.json({ classroom: rooms, courses });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load materials.', detail: e?.message });
+  }
+});
+
+// ---- Admin: all conversations + reply ----
+adminRouter.get('/conversations', async (_req, res) => {
+  try {
+    res.json(await q(`select c.*, p.email as student_email from conversations c left join profiles p on p.id = c.student_id order by c.updated_at desc limit 100`));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load conversations.', detail: e?.message });
+  }
+});
+
+adminRouter.get('/conversations/:id', async (req, res) => {
+  try {
+    res.json(await q('select * from messages where conversation_id = $1 order by created_at asc', [req.params.id]));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load messages.', detail: e?.message });
+  }
+});
+
+adminRouter.post('/conversations/:id', async (req, res) => {
+  try {
+    if (!req.body?.body) return res.status(400).json({ error: 'Message is empty.' });
+    const rows = await q('insert into messages(conversation_id, sender_id, body) values ($1, $2, $3) returning *',
+      [req.params.id, (req as any).admin.id, req.body.body]);
+    await pool.query('update conversations set updated_at = now() where id = $1', [req.params.id]);
+    res.status(201).json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not send message.', detail: e?.message });
+  }
+});
+
+// ---- Admin: notifications log ----
+adminRouter.get('/notifications', async (_req, res) => {
+  try {
+    res.json(await q(`select n.*, p.email as user_email from notifications n left join profiles p on p.id = n.user_id order by n.created_at desc limit 100`));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load notifications.', detail: e?.message });
+  }
+});
 adminRouter.get('/courses', async (_req, res) => {
   try {
     res.json(await q('select * from courses order by created_at desc'));
