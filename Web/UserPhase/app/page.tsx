@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { Navbar, Footer, MobileNav } from "@/components/site";
 import { Starfield, Section, Eyebrow, Reveal, DriftOrb, AuroraCanvas } from "@/components/fx";
 import { Counter, TrackTeasers, MethodTeasers, LiveTeasers, FeaturedGrid, DeskScene } from "@/components/sections";
+import ImageSlot from "@/components/ImageSlot";
 import { getFeatured, getCourses, getClassrooms } from "@/lib/api";
 
 const SKILLS = ["React", "TypeScript", "Next.js", "Node.js", "PostgreSQL", "REST APIs", "React Native", "Python", "AI Engineering", "DevOps", "Docker", "Git"];
@@ -65,6 +66,16 @@ export default async function Home() {
           </div>
           <Reveal delay={0.18} className="w-full">
             <DeskScene openCohorts={rooms.length} />
+          </Reveal>
+        </div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal delay={0.05}>
+            <div className="grid grid-cols-2 gap-3 pb-2 lg:grid-cols-4">
+              <ImageSlot src="/images/hero-1.jpg" label="Live classroom" hint="Add public/images/hero-1.jpg" />
+              <ImageSlot src="/images/hero-2.jpg" label="Students building" hint="Add public/images/hero-2.jpg" />
+              <ImageSlot src="/images/hero-3.jpg" label="Mentor session" hint="Add public/images/hero-3.jpg" />
+              <ImageSlot src="/images/hero-4.jpg" label="Project showcase" hint="Add public/images/hero-4.jpg" />
+            </div>
           </Reveal>
         </div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
