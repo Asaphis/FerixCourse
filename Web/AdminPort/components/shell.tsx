@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BookOpen, Radio, Inbox, CalendarCheck,
   Receipt, MonitorPlay, Disc3, FolderOpen, MessagesSquare, Bell, Settings, LogOut, ExternalLink,
 } from "lucide-react";
-import { supabase } from "@/lib/admin";
+import { supabase, siteUrl } from "@/lib/admin";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -62,7 +62,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <button onClick={logout} className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-[11.5px] font-semibold text-slate-400 hover:text-white">
               <LogOut size={12} /> Out
             </button>
-            <a href="http://localhost:3001" target="_blank" rel="noreferrer" className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-[11.5px] font-semibold text-slate-400 hover:text-white">
+            <a href={siteUrl || "/"} target="_blank" rel="noreferrer" className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-[11.5px] font-semibold text-slate-400 hover:text-white">
               <ExternalLink size={12} /> Site
             </a>
           </div>

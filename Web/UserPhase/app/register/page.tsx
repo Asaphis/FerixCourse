@@ -13,6 +13,8 @@ export default function RegisterPage() {
   const [f, setF] = useState({ name: "", email: "", pw: "", pw2: "" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [resent, setResent] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,12 +25,41 @@ export default function RegisterPage() {
     try {
       const { error } = await supabase().auth.signUp({ email: f.email, password: f.pw, options: { data: { full_name: f.name } } });
       if (error) throw error;
-      router.push(safeNext());
+      // Email confirmation ON → no session yet: show check-email state.
+      // Confirmation OFF → session exists: continue to destination.
+      const { data } = await supabase().auth.getSession();
+      if (data.session) router.push(safeNext());
+      else setPendingEmail(f.email);
     } catch (e: any) {
       setErr(e?.message ?? "Registration failed. Please try again.");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function resend() {
+    setErr("");
+    try {
+      const { error } = await supabase().auth.resend({ type: "signup", email: pendingEmail || f.email });
+      if (error) throw error;
+      setResent(true);
+    } catch (e: any) {
+      setErr(e?.message ?? "Could not resend.");
+    }
+  }
+
+  if (pendingEmail) {
+    return (
+      <AuthFrame title="Check your email" sub={`We sent a confirmation link to ${pendingEmail}.`}>
+        <AuthError msg={err} />
+        {resent && <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">Sent again. Check inbox and spam.</p>}
+        <p className="mt-6 text-sm leading-relaxed text-slate-400">
+          Click the link to confirm your account, then log in. The link expires — request a new one if needed.
+        </p>
+        <button onClick={resend} className="btn-aurora mt-6 w-full rounded-2xl py-3.5 text-sm font-bold text-white">Resend confirmation</button>
+        <p className="mt-5 text-center text-[13px] text-slate-400">Already confirmed? <Link href={`/login${qs}`} className="font-bold text-white">Log in</Link></p>
+      </AuthFrame>
+    );
   }
 
   return (

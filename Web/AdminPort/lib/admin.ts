@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-export const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
 
 let _sb: ReturnType<typeof createClient> | null = null;
 export function supabase() {

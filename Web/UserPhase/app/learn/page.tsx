@@ -13,7 +13,7 @@ export default async function LearnPage({ searchParams }: { searchParams: { q?: 
   const [courses, rooms, cats] = await Promise.all([getCourses(params), getClassrooms(`?search=${encodeURIComponent(q)}&level=${encodeURIComponent(level)}`), getCategories()]);
 
   return (
-    <AppShell title="Catalog" sub="Live cohorts and recorded courses. Everything listed is real and enrollable.">
+    <AppShell title="Catalog" sub="Live cohorts and recorded courses. Everything listed is real and enrollable." publicPage>
       <form method="GET" className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-stone-900/70 p-3 sm:flex-row">
         <label className="flex flex-1 items-center gap-2 rounded-xl bg-black/40 px-3.5">
           <Search size={15} className="shrink-0 text-slate-500" />

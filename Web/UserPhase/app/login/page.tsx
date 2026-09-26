@@ -9,11 +9,18 @@ import { supabase } from "@/lib/supabase";
 export default function LoginPage() {
   const router = useRouter();
   const [qs, setQs] = useState("");
-  useEffect(() => { setQs(window.location.search); }, []);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    setQs(window.location.search);
+    if (new URLSearchParams(window.location.search).get("reset") === "1") {
+      setNotice("Password reset. Please log in with your new password.");
+    }
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +41,7 @@ export default function LoginPage() {
     <AuthFrame title="Welcome back" sub="Log in to rejoin your classrooms.">
       <AuthWarn />
       <AuthError msg={err} />
+      {notice && <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">{notice}</p>}
       <form onSubmit={submit} className="mt-6 space-y-3.5">
         <label className="block text-[13px] font-medium">Email<input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" placeholder="you@example.com" className={inputCls} /></label>
         <label className="block text-[13px] font-medium">Password<input value={pw} onChange={(e) => setPw(e.target.value)} required type="password" placeholder="Your password" className={inputCls} /></label>

@@ -5,21 +5,25 @@ import {
   LayoutDashboard, BookOpen, Radio, MessageSquare, User, Bell, Receipt, GraduationCap, CalendarCheck, Wand2,
 } from "lucide-react";
 
+import Protected from "./Protected";
+
 const ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/learn", label: "Catalog", icon: BookOpen },
-  { href: "/live", label: "Live classes", icon: Radio },
-  { href: "/book", label: "Book training", icon: CalendarCheck },
-  { href: "/request", label: "Request", icon: Wand2 },
+  { href: "/my-courses", label: "My Courses", icon: BookOpen },
+  { href: "/classes", label: "My Classrooms", icon: Radio },
+  { href: "/learn", label: "Browse Catalog", icon: GraduationCap },
+  { href: "/request", label: "Classroom Requests", icon: Wand2 },
+  { href: "/book", label: "One-on-One", icon: CalendarCheck },
   { href: "/messages", label: "Messages", icon: MessageSquare },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/transactions", label: "Transactions", icon: Receipt },
-  { href: "/notifications", label: "Alerts", icon: Bell },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
-export default function AppShell({ children, title, sub }: { children: React.ReactNode; title?: string; sub?: string }) {
+export default function AppShell({ children, title, sub, publicPage }: { children: React.ReactNode; title?: string; sub?: string; publicPage?: boolean }) {
   const path = usePathname();
   return (
+    <Protected disabled={publicPage}>
     <div className="relative min-h-screen bg-stone-950">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-orange-700/15 via-rose-600/5 to-transparent" />
       <div className="relative md:flex">
@@ -54,11 +58,12 @@ export default function AppShell({ children, title, sub }: { children: React.Rea
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
         <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-stone-900/95 p-1.5 backdrop-blur-2xl">
-          {[["Home", "/"], ["Catalog", "/learn"], ["Live", "/live"], ["Chat", "/messages"], ["You", "/profile"]].map(([t, h]) => (
+          {[["Board", "/dashboard"], ["Catalog", "/learn"], ["Rooms", "/classes"], ["Chat", "/messages"], ["You", "/profile"]].map(([t, h]) => (
             <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-500"}`}>{t}</Link>
           ))}
         </div>
       </nav>
     </div>
+    </Protected>
   );
 }
