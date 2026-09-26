@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Navbar, Footer, MobileNav } from "@/components/site";
+import { Navbar, Footer } from "@/components/site";
 import { Starfield, Section, Eyebrow, Reveal, DriftOrb, AuroraCanvas } from "@/components/fx";
 import { Counter, TrackTeasers, MethodTeasers, LiveTeasers, FeaturedGrid, DeskScene } from "@/components/sections";
 import ImageSlot from "@/components/ImageSlot";
@@ -12,7 +12,7 @@ export default async function Home() {
   const [featured, courses, rooms] = await Promise.all([getFeatured(), getCourses(), getClassrooms()]);
 
   return (
-    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950">
       <Navbar />
 
       {/* HERO */}
@@ -25,16 +25,9 @@ export default async function Home() {
         <DriftOrb className="right-[5%] top-[55%] h-80 w-80 bg-rose-600/20" from={40} to={-60} />
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-36 sm:px-6 sm:pt-44 lg:grid-cols-2">
           <div>
-            <Reveal>
-              <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-4 py-2 font-mono text-[12px] text-amber-200 backdrop-blur">
-                <span className="relative flex h-2 w-2"><span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
-                {rooms.length > 0 ? `${rooms.length} live cohort${rooms.length === 1 ? "" : "s"} enrolling now` : "> roll_call -- new cohorts forming"}
-              </p>
-            </Reveal>
             <Reveal delay={0.08}>
-              <h1 className="mt-6 font-display text-[13vw] font-black uppercase leading-[0.9] tracking-[-0.02em] sm:text-7xl xl:text-[92px]">
-                Stop watching.
-                <br /><span className="text-outline">Start building.</span>
+              <h1 className="font-display text-[13vw] font-black leading-[0.92] tracking-[-0.03em] sm:text-7xl xl:text-[92px]">
+                Learn technology.<br /><span className="text-outline">Build real software.</span>
               </h1>
             </Reveal>
             <Reveal delay={0.16}>
@@ -45,11 +38,11 @@ export default async function Home() {
               </p>
             </Reveal>
             <Reveal delay={0.24}>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/learn" className="btn-aurora group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-bold text-white">
+              <div className="mt-8 grid w-full max-w-md grid-cols-2 gap-2.5 sm:flex sm:max-w-none">
+                <Link href="/learn" className="btn-aurora group inline-flex min-w-0 items-center justify-center gap-1.5 rounded-2xl px-3 py-3.5 text-center text-[13px] font-bold text-white sm:px-7 sm:py-4 sm:text-[15px]">
                   Claim your seat <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
-                <Link href="/method" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[.04] px-7 py-4 text-[15px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
+                <Link href="/method" className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[.04] px-3 py-3.5 text-center text-[13px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08] sm:px-7 sm:py-4 sm:text-[15px]">
                   See how it works
                 </Link>
               </div>
@@ -178,7 +171,7 @@ export default async function Home() {
             <AuroraCanvas variant="dense" />
             <div className="relative">
               <h2 className="mx-auto max-w-3xl font-display text-4xl font-black uppercase tracking-[-0.02em] sm:text-6xl sm:leading-[0.95]">
-                Stop waiting.<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">start building.</span>
+                Learn with us.<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">build with confidence.</span>
               </h2>
               <p className="mx-auto mt-5 max-w-lg text-[15px] text-slate-300">
                 Join free. Learn with real instructors. Pay securely. Keep everything you learn.
@@ -193,7 +186,6 @@ export default async function Home() {
       </section>
 
       <Footer />
-      <MobileNav />
     </main>
   );
 }

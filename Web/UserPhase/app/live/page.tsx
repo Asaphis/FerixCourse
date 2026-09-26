@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Users, Clock } from "lucide-react";
-import { Navbar, Footer, MobileNav } from "@/components/site";
+import { Navbar, Footer } from "@/components/site";
 import { Section, Eyebrow, Reveal } from "@/components/fx";
 import { LiveTeasers } from "@/components/sections";
 import { getClassrooms, formatMoney } from "@/lib/api";
@@ -11,7 +11,7 @@ export default async function LivePage() {
   const rooms = await getClassrooms();
 
   return (
-    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950">
       <Navbar />
       <Section variant="dense" word="LIVE">
         <div className="pt-24">
@@ -62,7 +62,6 @@ export default async function LivePage() {
         </div>
       </Section>
       <Footer />
-      <MobileNav />
     </main>
   );
 }

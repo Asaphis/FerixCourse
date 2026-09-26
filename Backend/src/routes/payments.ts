@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
 import { requireUser } from '../middleware/requireUser.js';
+import { env } from '../config/env.js';
 
 const q = async (text: string, params: any[] = []) => (await pool.query(text, params)).rows;
 
@@ -35,7 +36,7 @@ paymentsRouter.post('/checkout', requireUser, async (req, res) => {
        values ($1, $2, $3, $4, $5, 'pending') returning *`,
       [(req as any).user.id, rows[0].price_kobo, rows[0].currency, product_type, product_id]);
 
-    const configured = Boolean(process.env.FLUTTERWAVE_SECRET_KEY);
+    const configured = Boolean(env.FLUTTERWAVE_SECRET_KEY);
     res.status(201).json({
       transaction: tx[0],
       checkout_url: null, // Phase 2: Flutterwave inline checkout link when keys are configured

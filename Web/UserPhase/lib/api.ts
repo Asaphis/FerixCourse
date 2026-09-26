@@ -1,6 +1,7 @@
-export const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
 async function get<T>(path: string, fallback: T): Promise<T> {
+  if (!apiUrl) return fallback;
   try {
     const r = await fetch(`${apiUrl}${path}`, { next: { revalidate: 60 } });
     if (!r.ok) return fallback;

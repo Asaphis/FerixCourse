@@ -1,9 +1,10 @@
 "use client";
 import { supabase } from "./supabase";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
 export async function apiFetch(path: string, init: RequestInit = {}, auth = true) {
+  if (!apiUrl) throw new Error("API URL is not configured. Set NEXT_PUBLIC_API_URL in .env.local.");
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (auth) {
     const { data } = await supabase().auth.getSession();

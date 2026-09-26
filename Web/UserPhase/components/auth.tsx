@@ -67,5 +67,5 @@ export function safeNext(fallback = "/dashboard"): string {
 }
 export function AuthWarn() {
   if (isSupabaseConfigured()) return null;
-  return <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-2.5 text-[12px] text-amber-200">Auth keys not set — add NEXT_PUBLIC_SUPABASE_URL / ANON_KEY to .env.local</p>;
+  return <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-2.5 text-[12px] text-amber-200">Authentication is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.</p>;
 }

@@ -102,9 +102,9 @@ export function FeaturedGrid({ items }: { items: any[] }) {
     return (
       <Reveal>
         <div className="mt-8 rounded-3xl border border-dashed border-white/15 bg-white/[.02] p-10 text-center sm:p-14">
-          <p className="font-display text-xl font-bold">First cohorts loading</p>
+          <p className="font-display text-xl font-bold">Courses coming soon</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-            The opening lineup is being prepared. Join free and get notified the moment seats open.
+            New courses will appear here as soon as they are published.
           </p>
           <Link href="/register" className="btn-aurora mt-6 inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white">
             Notify me <ArrowUpRight size={15} />
@@ -154,7 +154,7 @@ export function DeskScene({ openCohorts }: { openCohorts: number }) {
       </div>
       <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-white/12 bg-black/60 px-3.5 py-2 text-[12px] font-bold backdrop-blur">
         <span className="relative flex h-2 w-2"><span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
-        {openCohorts > 0 ? `${openCohorts} cohort${openCohorts === 1 ? "" : "s"} open` : "New cohorts forming"}
+        {openCohorts > 0 ? `${openCohorts} cohort${openCohorts === 1 ? "" : "s"} open` : "No open cohorts"}
       </div>
       <div className="absolute bottom-4 left-4 flex items-center gap-2.5 rounded-2xl border border-white/12 bg-black/60 px-4 py-2.5 backdrop-blur">
         <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500"><Play size={14} className="fill-white text-white" /></span>

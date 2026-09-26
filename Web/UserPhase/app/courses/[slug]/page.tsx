@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { PlayCircle, Users, Check, LockOpen } from "lucide-react";
-import { Navbar, Footer, MobileNav } from "@/components/site";
+import { Navbar, Footer } from "@/components/site";
 import { Section, Eyebrow, Reveal } from "@/components/fx";
 import EnrollButton from "@/components/enroll";
 import { getCourse, formatMoney } from "@/lib/api";
@@ -10,7 +10,7 @@ export default async function CoursePage({ params }: { params: { slug: string } 
   if (!c) notFound();
 
   return (
-    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950">
       <Navbar />
       <Section variant="scatter">
         <div className="grid gap-10 pt-24 lg:grid-cols-[1.4fr_.8fr]">
@@ -64,7 +64,6 @@ export default async function CoursePage({ params }: { params: { slug: string } 
         </div>
       </Section>
       <Footer />
-      <MobileNav />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Video, FolderCheck, TrendingUp } from "lucide-react";
-import { Navbar, Footer, MobileNav } from "@/components/site";
+import { Navbar, Footer } from "@/components/site";
 import { Section, Eyebrow, Reveal } from "@/components/fx";
 
 export const metadata = { title: "Our method — FerixCourse" };
@@ -14,7 +14,7 @@ const STEPS = [
 
 export default function MethodPage() {
   return (
-    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950">
       <Navbar />
       <Section variant="scatter" word="METHOD">
         <div className="pt-24">
@@ -49,7 +49,6 @@ export default function MethodPage() {
         </div>
       </Section>
       <Footer />
-      <MobileNav />
     </main>
   );
 }

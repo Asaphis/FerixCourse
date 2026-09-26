@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MonitorPlay, BookOpen, UserCheck, Wand2, ArrowRight, Check } from "lucide-react";
-import { Navbar, Footer, MobileNav } from "@/components/site";
+import { Navbar, Footer } from "@/components/site";
 import { Section, Eyebrow, Reveal } from "@/components/fx";
 
 export const metadata = { title: "Learning tracks — FerixCourse" };
@@ -30,7 +30,7 @@ const TRACKS = [
 
 export default function TracksPage() {
   return (
-    <main className="min-h-screen bg-stone-950 pb-20 md:pb-0">
+    <main className="min-h-screen bg-stone-950">
       <Navbar />
       <Section variant="dense" word="TRACKS">
         <div className="pt-24">
@@ -75,7 +75,6 @@ export default function TracksPage() {
         </div>
       </Section>
       <Footer />
-      <MobileNav />
     </main>
   );
 }

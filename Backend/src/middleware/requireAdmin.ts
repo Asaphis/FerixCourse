@@ -1,15 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { pool } from '../config/db.js';
-
-const url = process.env.SUPABASE_URL ?? '';
-const anon = process.env.SUPABASE_ANON_KEY ?? '';
+import { env } from '../config/env.js';
 
 export async function requireAdmin(req: any, res: any, next: any) {
   try {
     const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
     if (!token) return res.status(401).json({ error: 'Login required.' });
-    if (!url || !anon) return res.status(503).json({ error: 'Auth not configured on server.' });
-    const sb = createClient(url, anon);
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return res.status(503).json({ error: 'Auth not configured on server.' });
+    const sb = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
     const { data, error } = await sb.auth.getUser(token);
     if (error || !data.user) return res.status(401).json({ error: 'Invalid session. Please log in again.' });
     const { rows } = await pool.query('select role from profiles where id = $1', [data.user.id]);

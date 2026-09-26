@@ -22,7 +22,7 @@ export default function DashboardPage() {
       try {
         const [enr, feat] = await Promise.all([
           apiFetch("/api/enrollments/mine"),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/courses/featured`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+          apiFetch("/courses/featured", {}, false).catch(() => []),
         ]);
         setData(enr);
         setSuggest(feat);
