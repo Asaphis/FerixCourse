@@ -22,57 +22,59 @@ export default async function Home() {
         <div className="grain absolute inset-0" />
         <DriftOrb className="left-[8%] top-[20%] h-72 w-72 bg-orange-600/25" from={0} to={-70} />
         <DriftOrb className="right-[5%] top-[55%] h-80 w-80 bg-rose-600/20" from={40} to={-60} />
-        <div className="relative mx-auto max-w-7xl px-4 pb-14 pt-36 sm:px-6 sm:pt-44">
-          <Reveal>
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-4 py-2 font-mono text-[12px] text-amber-200 backdrop-blur">
-              <span className="relative flex h-2 w-2"><span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
-              {rooms.length > 0 ? `${rooms.length} live cohort${rooms.length === 1 ? "" : "s"} enrolling now` : "> roll_call -- new cohorts forming"}
-            </p>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <h1 className="mt-6 font-display text-[13.5vw] font-black uppercase leading-[0.88] tracking-[-0.02em] sm:text-[92px] lg:text-[124px]">
-              Stop scrolling.
-              <br /><span className="text-outline">Start shipping.</span>
-            </h1>
-          </Reveal>
-          <div className="mt-10 grid items-start gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-5">
-              <Reveal delay={0.16}>
-                <p className="max-w-md text-[16px] leading-relaxed text-stone-400">
-                  A live technology school for people done with passive videos.
-                  Train in small cohorts, keep every recording, or go private
-                  with a mentor. Joining is free — you pay only when you enroll.
-                </p>
-              </Reveal>
-              <Reveal delay={0.24}>
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Link href="/learn" className="btn-aurora group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-bold text-white">
-                    Claim your seat <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                  <Link href="/method" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[.04] px-7 py-4 text-[15px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
-                    See how it works
-                  </Link>
-                </div>
-              </Reveal>
-              <Reveal delay={0.3}>
-                <ul className="mt-7 space-y-2.5 text-[13.5px] text-stone-300">
-                  {["Access unlocks only after verified payment", "Every session recorded, yours to rewatch", "Live, recorded, or one-on-one — your call"].map((t) => (
-                    <li key={t} className="flex items-start gap-2.5"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />{t}</li>
-                  ))}
-                </ul>
-              </Reveal>
-            </div>
-            <Reveal delay={0.2} className="lg:col-span-7">
-              <DeskScene openCohorts={rooms.length} />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-36 sm:px-6 sm:pt-44 lg:grid-cols-2">
+          <div>
+            <Reveal>
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-4 py-2 font-mono text-[12px] text-amber-200 backdrop-blur">
+                <span className="relative flex h-2 w-2"><span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
+                {rooms.length > 0 ? `${rooms.length} live cohort${rooms.length === 1 ? "" : "s"} enrolling now` : "> roll_call -- new cohorts forming"}
+              </p>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <h1 className="mt-6 font-display text-[13vw] font-black uppercase leading-[0.9] tracking-[-0.02em] sm:text-7xl xl:text-[92px]">
+                Stop watching.
+                <br /><span className="text-outline">Start building.</span>
+              </h1>
+            </Reveal>
+            <Reveal delay={0.16}>
+              <p className="mt-6 max-w-md text-[16px] leading-relaxed text-stone-400">
+                Live cohorts with real instructors. Recorded courses you keep.
+                Mentors on demand. Join free, pay only when you enroll — and
+                leave every program with proof of work.
+              </p>
+            </Reveal>
+            <Reveal delay={0.24}>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/learn" className="btn-aurora group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-bold text-white">
+                  Claim your seat <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link href="/method" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[.04] px-7 py-4 text-[15px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
+                  See how it works
+                </Link>
+              </div>
+            </Reveal>
+            <Reveal delay={0.3}>
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-stone-300">
+                {["Verified payments", "Sessions recorded", "Mentors on demand"].map((t) => (
+                  <span key={t} className="inline-flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />{t}
+                  </span>
+                ))}
+              </div>
             </Reveal>
           </div>
+          <Reveal delay={0.18} className="w-full">
+            <DeskScene openCohorts={rooms.length} />
+          </Reveal>
+        </div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <Reveal delay={0.1}>
-            <div className="mt-12 grid grid-cols-2 gap-6 border-t border-white/10 pt-7 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-6 border-t border-white/10 py-7 sm:grid-cols-4">
               {[
                 [courses.length, "Courses live"],
-                [rooms.length, "Active cohorts"],
+                [rooms.length, "Cohorts open"],
                 [4, "Ways to learn"],
-                ["Free", "To join"],
+                ["Free", "Cost to join"],
               ].map(([v, l]) => (
                 <div key={l as string}>
                   <p className="font-display text-[30px] font-black">{typeof v === "number" ? <Counter to={v} /> : v}</p>

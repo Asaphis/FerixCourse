@@ -131,7 +131,7 @@ export function FeaturedGrid({ items }: { items: any[] }) {
 
 export function DeskScene({ openCohorts }: { openCohorts: number }) {
   return (
-    <div className="grain relative h-[440px] overflow-hidden rounded-[28px] border border-white/12 bg-stone-900/60 sm:h-[500px]">
+    <div className="grain relative h-[380px] overflow-hidden rounded-[28px] border border-white/12 bg-stone-900/60 sm:h-[440px] lg:h-[540px]">
       <div className="absolute inset-0"
         style={{ backgroundImage: "radial-gradient(rgba(255,255,255,.13) 1px, transparent 1.5px)", backgroundSize: "24px 24px" }} />
       <div className="obj-float absolute" style={{ left: "6%", bottom: "10%", animationDuration: "9s" }}>
