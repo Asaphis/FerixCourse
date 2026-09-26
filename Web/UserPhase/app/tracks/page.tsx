@@ -43,7 +43,7 @@ export default function TracksPage() {
           <Reveal delay={0.14}>
             <p className="mt-5 max-w-xl text-[15.5px] leading-relaxed text-slate-400">
               Every track is payment-gated, instructor-backed and project-based.
-              No format is a second-class citizen.
+              Same bar, different doors — real instructors, project work and proof of progress in all four.
             </p>
           </Reveal>
           <div className="mt-12 grid gap-5 lg:grid-cols-2">

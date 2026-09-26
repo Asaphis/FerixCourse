@@ -25,10 +25,10 @@ export function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
 }
 
 const TRACKS = [
-  { icon: MonitorPlay, title: "Live training", desc: "Cohorts with HD video, screen share and automatic recordings.", href: "/live", cta: "Explore live" },
-  { icon: BookOpen, title: "Self-paced courses", desc: "Recorded lessons and resources with progress tracking.", href: "/learn", cta: "Browse catalog" },
-  { icon: UserCheck, title: "One-on-one", desc: "Private online or in-person mentorship on your schedule.", href: "/book", cta: "Book training" },
-  { icon: Wand2, title: "Custom training", desc: "Need something unlisted? We build a classroom for you.", href: "/request", cta: "Request training" },
+  { icon: MonitorPlay, title: "Live training", desc: "Fixed schedules, capped seats, cameras on. Miss nothing — every session is recorded.", href: "/live", cta: "See live classes" },
+  { icon: BookOpen, title: "Self-paced courses", desc: "Start tonight, finish on your terms. Progress tracked, resources included.", href: "/learn", cta: "Browse courses" },
+  { icon: UserCheck, title: "One-on-one", desc: "One instructor, entirely focused on you. Online or in person.", href: "/book", cta: "Book a session" },
+  { icon: Wand2, title: "Custom training", desc: "Your stack, your schedule. We design the classroom around your goal.", href: "/request", cta: "Request it" },
 ];
 
 export function TrackTeasers() {
@@ -51,10 +51,10 @@ export function TrackTeasers() {
 }
 
 const STEPS = [
-  ["Choose", "Pick a live cohort, a recorded course, or private mentorship."],
-  ["Enroll", "Pay through verified checkout. Access unlocks on confirmation."],
-  ["Build", "Attend live, rewatch recordings, ask questions, ship projects."],
-  ["Prove", "Progress tracked lesson by lesson. Keep every recording."],
+  ["Pick your path", "Live cohort, recorded course, or mentor — filter by level, topic and schedule."],
+  ["Lock your seat", "Verified checkout, instant confirmation. Free programs enroll on the spot."],
+  ["Do the work", "Attend live, rewatch recordings, ask anything, ship projects."],
+  ["Show receipts", "Lesson progress, attendance and recordings document exactly what you can do."],
 ];
 
 export function MethodTeasers() {
@@ -80,7 +80,7 @@ export function LiveTeasers() {
     { icon: MonitorUp, t: "Screen sharing" },
     { icon: MessageSquare, t: "Live chat + Q&A" },
     { icon: InfinityIcon, t: "Recordings you keep" },
-    { icon: ShieldCheck, t: "Payment-gated access" },
+    { icon: ShieldCheck, t: "Secure enrollment" },
     { icon: Radio, t: "Instructor controls" },
   ];
   return (
@@ -102,9 +102,9 @@ export function FeaturedGrid({ items }: { items: any[] }) {
     return (
       <Reveal>
         <div className="mt-8 rounded-3xl border border-dashed border-white/15 bg-white/[.02] p-10 text-center sm:p-14">
-          <p className="font-display text-xl font-bold">Cohorts are being prepared</p>
+          <p className="font-display text-xl font-bold">First cohorts loading</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-            Nothing published yet. Create a free account and get notified the moment training opens.
+            The opening lineup is being prepared. Join free and get notified the moment seats open.
           </p>
           <Link href="/register" className="btn-aurora mt-6 inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white">
             Notify me <ArrowUpRight size={15} />

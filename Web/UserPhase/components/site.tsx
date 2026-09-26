@@ -78,7 +78,7 @@ export function Footer() {
             <span className="font-display text-lg font-bold">FerixCourse</span>
           </p>
           <p className="mt-4 max-w-xs text-[13.5px] leading-relaxed text-slate-500">
-            Practical technology training — live classrooms, recorded courses, and private mentorship.
+            The live-first technology school. Small cohorts, real instructors, proof of skill.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">

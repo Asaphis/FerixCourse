@@ -23,8 +23,7 @@ export default async function LivePage() {
           </Reveal>
           <Reveal delay={0.14}>
             <p className="mt-5 max-w-xl text-[15.5px] leading-relaxed text-slate-400">
-              Fixed schedules, capped seats, live instructors. Miss a session?
-              The recording is waiting for you.
+              Capped seats, fixed schedules, live humans. Miss a session and the recording covers you.
             </p>
           </Reveal>
           <LiveTeasers />
@@ -34,8 +33,8 @@ export default async function LivePage() {
           {rooms.length === 0 ? (
             <Reveal>
               <div className="mt-6 rounded-3xl border border-dashed border-white/15 bg-white/[.02] p-10 text-center">
-                <p className="font-display text-lg font-bold">No open cohorts right now</p>
-                <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">New cohorts open regularly — register and we will notify you.</p>
+                <p className="font-display text-lg font-bold">Cohorts open soon</p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">New lineups drop regularly — register free and grab your seat early.</p>
                 <Link href="/register" className="btn-aurora mt-5 inline-block rounded-xl px-5 py-2.5 text-sm font-bold text-white">Notify me</Link>
               </div>
             </Reveal>
