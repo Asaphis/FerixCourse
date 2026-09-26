@@ -329,6 +329,17 @@ adminRouter.post('/announcements', async (req, res) => {
 });
 
 // ---- Admin: assignments + feedback ----
+adminRouter.get('/assignments', async (req, res) => {
+  try {
+    const cid = String(req.query.classroom_id ?? '');
+    const rows = cid
+      ? await q(`select a.*, (select count(*)::int from submissions s where s.assignment_id = a.id) as submissions from assignments a where a.classroom_id = $1 order by a.created_at desc`, [cid])
+      : await q(`select a.*, c.title as classroom_title, (select count(*)::int from submissions s where s.assignment_id = a.id) as submissions from assignments a left join classrooms c on c.id = a.classroom_id order by a.created_at desc limit 100`);
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load assignments.', detail: e?.message });
+  }
+});
 adminRouter.post('/assignments', async (req, res) => {
   try {
     const b = req.body ?? {};

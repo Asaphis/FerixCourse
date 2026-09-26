@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Shell } from "@/components/shell";
 import { adminFetch } from "@/lib/admin";
 
@@ -66,9 +67,12 @@ export default function ClassroomsPage() {
               <p className="font-semibold">{c.title} <span className="text-xs text-slate-400">• {c.enrolled ?? 0}/{c.capacity} enrolled</span></p>
               <p className="text-xs text-slate-400">{c.slug} • {(c.price_kobo / 100).toLocaleString()} {c.currency} • {c.schedule_text}</p>
             </div>
-            <button onClick={() => toggle(c)} className="btn-ghost ml-auto text-xs">
-              {c.is_published ? "Unpublish" : "Publish"}
-            </button>
+            <div className="ml-auto flex gap-1.5">
+              <Link href={`/classrooms/${c.id}`} className="btn-ghost text-xs">Manage</Link>
+              <button onClick={() => toggle(c)} className="btn-ghost text-xs">
+                {c.is_published ? "Unpublish" : "Publish"}
+              </button>
+            </div>
           </div>
         ))}
         {!rooms.length && <p className="card text-sm text-slate-400">No classrooms yet.</p>}

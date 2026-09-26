@@ -10,15 +10,42 @@ export default function RequestsPage() {
   const [filter, setFilter] = useState("");
   const [err, setErr] = useState("");
   const [note, setNote] = useState<Record<string, string>>({});
+  const [queues, setQueues] = useState<Record<string, any[]>>({});
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [convertRoom, setConvertRoom] = useState<Record<string, string>>({});
+  const [msg, setMsg] = useState("");
 
   async function load() {
     try {
       setItems(await adminFetch(`/admin/requests${filter ? `?status=${filter}` : ""}`));
+      setRooms(await adminFetch("/admin/classrooms").catch(() => []));
     } catch (e: any) {
       setErr(e.message);
     }
   }
   useEffect(() => { load(); }, [filter]);
+
+  async function showQueue(id: string) {
+    try {
+      const rows = await adminFetch(`/admin/requests/${id}/queue`);
+      setQueues((p) => ({ ...p, [id]: rows }));
+    } catch (e: any) {
+      setErr(e.message);
+    }
+  }
+
+  async function convert(id: string) {
+    setErr(""); setMsg("");
+    const classroom_id = convertRoom[id];
+    if (!classroom_id) return setErr("Pick the classroom to convert this request into.");
+    try {
+      const r = await adminFetch(`/admin/requests/${id}/convert`, { method: "POST", body: JSON.stringify({ classroom_id }) });
+      setMsg(`Converted. ${r.notified} people notified to enroll.`);
+      load();
+    } catch (e: any) {
+      setErr(e.message);
+    }
+  }
 
   async function setStatus(id: string, status: string) {
     setErr("");
@@ -44,6 +71,7 @@ export default function RequestsPage() {
         </select>
       </div>
       {err && <p className="card mt-4 text-sm text-rose-200">{err}</p>}
+      {msg && <p className="card mt-4 text-sm text-emerald-200">{msg}</p>}
       <div className="mt-4 grid gap-3">
         {items.map((r) => (
           <div key={r.id} className="card">
@@ -61,6 +89,21 @@ export default function RequestsPage() {
               {STATES.filter((s) => s !== r.status).map((s) => (
                 <button key={s} onClick={() => setStatus(r.id, s)} className="btn-ghost text-xs">{s}</button>
               ))}
+              <button onClick={() => showQueue(r.id)} className="btn-ghost text-xs">
+                Queue ({(queues[r.id] ?? []).length || "…"})
+              </button>
+            </div>
+            {(queues[r.id] ?? []).length > 0 && (
+              <p className="mt-2 text-xs text-slate-400">
+                Waiting: {(queues[r.id] ?? []).map((w: any) => w.email).join(", ")}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap gap-2 rounded-xl bg-black/30 p-2.5">
+              <select value={convertRoom[r.id] ?? ""} onChange={(e) => setConvertRoom({ ...convertRoom, [r.id]: e.target.value })} className="input flex-1 min-w-[200px]">
+                <option value="">Convert into classroom…</option>
+                {rooms.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+              <button onClick={() => convert(r.id)} className="btn text-xs">Convert + notify queue</button>
             </div>
           </div>
         ))}
