@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { AuthFrame, AuthError, AuthWarn, inputCls, safeNext } from "@/components/auth";
-import { supabase } from "@/lib/supabase";
+import { apiLogin } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +20,9 @@ export default function LoginPage() {
     if (new URLSearchParams(window.location.search).get("reset") === "1") {
       setNotice("Password reset. Please log in with your new password.");
     }
+    if (new URLSearchParams(window.location.search).get("verified") === "1") {
+      setNotice("Email verified. Welcome — please log in.");
+    }
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -27,8 +30,7 @@ export default function LoginPage() {
     setErr("");
     setBusy(true);
     try {
-      const { error } = await supabase().auth.signInWithPassword({ email, password: pw });
-      if (error) throw error;
+      await apiLogin(email, pw);
       router.push(safeNext());
     } catch (e: any) {
       setErr(e?.message ?? "Login failed. Please try again.");

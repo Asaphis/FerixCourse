@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/admin";
+import { adminLogin } from "@/lib/admin";
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -15,8 +15,7 @@ export default function AdminLogin() {
     setErr("");
     setBusy(true);
     try {
-      const { error } = await supabase().auth.signInWithPassword({ email, password: pw });
-      if (error) throw error;
+      await adminLogin(email, pw);
       router.push("/");
     } catch (e: any) {
       setErr(e?.message ?? "Login failed.");
@@ -30,7 +29,7 @@ export default function AdminLogin() {
       <form onSubmit={submit} className="card w-full max-w-md">
         <p className="font-display font-extrabold text-lg">Ferix<span className="text-brand-400">Admin</span></p>
         <h1 className="font-display text-xl font-bold mt-3">Admin sign in</h1>
-        <p className="text-xs text-slate-400 mt-1">Requires a Supabase user whose profile role is ADMIN.</p>
+        <p className="text-xs text-slate-400 mt-1">Restricted area. Admin accounts only.</p>
         {err && <p className="mt-4 text-sm px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-400/30 text-rose-200">{err}</p>}
         <input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" placeholder="admin@example.com" className="input mt-5" />
         <input value={pw} onChange={(e) => setPw(e.target.value)} required type="password" placeholder="Password" className="input mt-3" />

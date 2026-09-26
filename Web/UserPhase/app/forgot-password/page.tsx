@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AuthFrame, AuthError, AuthOk, AuthWarn, inputCls } from "@/components/auth";
-import { supabase } from "@/lib/supabase";
+import { apiForgot } from "@/lib/auth";
 
 export default function ForgotPage() {
   const [email, setEmail] = useState("");
@@ -14,11 +14,8 @@ export default function ForgotPage() {
     e.preventDefault();
     setErr(""); setOk(""); setBusy(true);
     try {
-      const { error } = await supabase().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      setOk("Reset link sent. Check your inbox.");
+      await apiForgot(email);
+      setOk("If that email is registered, a reset link is on its way.");
     } catch (e: any) {
       setErr(e?.message ?? "Could not send reset link.");
     } finally {

@@ -97,7 +97,7 @@ export function Footer() {
       <div className="relative border-t border-white/8">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-[12px] text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>© 2026 FerixCourse. Learn technology. Ship real software.</span>
-          <span className="flex gap-5"><a href="#" className="hover:text-slate-300">Terms</a><a href="#" className="hover:text-slate-300">Privacy</a><a href="#" className="hover:text-slate-300">Support</a></span>
+          <span className="flex gap-5"><Link href="/about" className="hover:text-slate-300">About</Link><Link href="/terms" className="hover:text-slate-300">Terms</Link><Link href="/privacy" className="hover:text-slate-300">Privacy</Link><Link href="/contact" className="hover:text-slate-300">Contact</Link></span>
         </div>
       </div>
     </footer>

@@ -1,27 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
 import { pool } from '../config/db.js';
-import { notify } from '../lib/notify.js';
 import { env } from '../config/env.js';
 
-// Any logged-in user (student or admin). Attaches req.user = { id, email }.
+// Backend-owned sessions: Authorization: Bearer <JWT from /auth/login>.
 export async function requireUser(req: any, res: any, next: any) {
   try {
     const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
     if (!token) return res.status(401).json({ error: 'Login required.' });
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return res.status(503).json({ error: 'Auth not configured on server.' });
-    const sb = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
-    const { data, error } = await sb.auth.getUser(token);
-    if (error || !data.user) return res.status(401).json({ error: 'Invalid session. Please log in again.' });
-    // Ensure a profile row exists for FK integrity (welcome exactly once).
-    const ins = await pool.query(
-      `insert into profiles(id, email, full_name) values ($1, $2, $3)
-       on conflict (id) do nothing returning id`,
-      [data.user.id, data.user.email ?? '', String(data.user.user_metadata?.full_name ?? data.user.email ?? 'Student')]
-    ).catch(() => ({ rows: [] as any[] }));
-    if (ins.rows[0]) {
-      await notify(data.user.id, 'welcome', 'Welcome to FerixCourse', 'Your account is ready. Browse the catalog, join a live cohort, or request custom training.');
+    let payload: any;
+    try {
+      payload = jwt.verify(token, env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Session expired. Please log in again.' });
     }
-    (req as any).user = { id: data.user.id, email: data.user.email };
+    const { rows } = await pool.query('select id, email, role, is_active from profiles where id = $1', [payload.sub]);
+    if (!rows[0]) return res.status(401).json({ error: 'Account not found.' });
+    if (!rows[0].is_active) return res.status(403).json({ error: 'Account disabled. Contact support.' });
+    (req as any).user = { id: rows[0].id, email: rows[0].email, role: rows[0].role };
     next();
   } catch (e) {
     console.error(e);

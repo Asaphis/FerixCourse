@@ -6,6 +6,8 @@ const schema = z.object({
   APP_URL: z.string().min(1),
   CORS_ORIGIN: z.string().min(1),
   DATABASE_URL: z.string().min(1),
+  JWT_SECRET: z.string().min(16),
+  JWT_EXPIRES_DAYS: z.coerce.number().default(7),
   SUPABASE_URL: z.string().optional().default(''),
   SUPABASE_ANON_KEY: z.string().optional().default(''),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional().default(''),

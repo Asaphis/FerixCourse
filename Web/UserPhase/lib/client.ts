@@ -1,24 +1,29 @@
 "use client";
-import { supabase } from "./supabase";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+import { apiBase, authToken, clearAuthToken, apiMe } from "./auth";
 
 export async function apiFetch(path: string, init: RequestInit = {}, auth = true) {
-  if (!apiUrl) throw new Error("API URL is not configured. Set NEXT_PUBLIC_API_URL in .env.local.");
+  if (!apiBase) throw new Error("API URL is not configured. Set NEXT_PUBLIC_API_URL in .env.local.");
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (auth) {
-    const { data } = await supabase().auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) throw new Error("Please log in first.");
+    const token = authToken();
+    if (!token) {
+      if (typeof window !== "undefined") window.location.href = "/login";
+      throw new Error("Please log in first.");
+    }
     headers.Authorization = `Bearer ${token}`;
   }
-  const r = await fetch(`${apiUrl}${path}`, { ...init, headers: { ...headers, ...(init.headers as any) } });
+  const r = await fetch(`${apiBase}${path}`, { ...init, headers: { ...headers, ...(init.headers as any) } });
+  if (r.status === 401 && auth && typeof window !== "undefined") {
+    clearAuthToken();
+    const next = encodeURIComponent(window.location.pathname);
+    window.location.href = `/login?next=${next}`;
+    throw new Error("Session expired. Please log in again.");
+  }
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body?.error ?? `Request failed (${r.status})`);
   return body;
 }
 
 export async function currentUser() {
-  const { data } = await supabase().auth.getSession();
-  return data.session?.user ?? null;
+  return apiMe();
 }

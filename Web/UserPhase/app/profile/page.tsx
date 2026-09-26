@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/shell";
 import { currentUser, apiFetch } from "@/lib/client";
-import { supabase } from "@/lib/supabase";
+import { apiLogout } from "@/lib/auth";
 import { formatMoney } from "@/lib/api";
 
 export default function ProfilePage() {
@@ -23,7 +23,7 @@ export default function ProfilePage() {
   }, [router]);
 
   async function logout() {
-    await supabase().auth.signOut();
+    apiLogout();
     router.push("/");
   }
 

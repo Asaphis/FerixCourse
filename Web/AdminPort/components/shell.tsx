@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, BookOpen, Radio, Inbox, CalendarCheck,
   Receipt, MonitorPlay, Disc3, FolderOpen, MessagesSquare, Bell, Settings, LogOut, ExternalLink,
 } from "lucide-react";
-import { supabase, siteUrl } from "@/lib/admin";
+import { siteUrl, adminLogout, adminToken } from "@/lib/admin";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -29,12 +29,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   useEffect(() => {
-    supabase().auth.getSession().then(({ data }) => setEmail(data.session?.user?.email ?? ""));
-  }, []);
+    if (!adminToken()) router.push("/login");
+    else setEmail("");
+  }, [router]);
   const current = nav.find((i) => i.href === path);
 
   async function logout() {
-    await supabase().auth.signOut();
+    adminLogout();
     router.push("/login");
   }
 

@@ -1,13 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { AuthFrame, AuthError, AuthWarn, inputCls, safeNext } from "@/components/auth";
-import { supabase } from "@/lib/supabase";
+import { AuthFrame, AuthError, AuthWarn, inputCls } from "@/components/auth";
+import { apiRegister, apiResend } from "@/lib/auth";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [qs, setQs] = useState("");
   useEffect(() => { setQs(window.location.search); }, []);
   const [f, setF] = useState({ name: "", email: "", pw: "", pw2: "" });
@@ -23,13 +21,9 @@ export default function RegisterPage() {
     if (f.pw.length < 8) return setErr("Password must be at least 8 characters.");
     setBusy(true);
     try {
-      const { error } = await supabase().auth.signUp({ email: f.email, password: f.pw, options: { data: { full_name: f.name } } });
-      if (error) throw error;
-      // Email confirmation ON → no session yet: show check-email state.
-      // Confirmation OFF → session exists: continue to destination.
-      const { data } = await supabase().auth.getSession();
-      if (data.session) router.push(safeNext());
-      else setPendingEmail(f.email);
+      await apiRegister(f.name, f.email, f.pw);
+      // Accounts start unverified: show check-email state, never the dashboard.
+      setPendingEmail(f.email);
     } catch (e: any) {
       setErr(e?.message ?? "Registration failed. Please try again.");
     } finally {
@@ -40,8 +34,7 @@ export default function RegisterPage() {
   async function resend() {
     setErr("");
     try {
-      const { error } = await supabase().auth.resend({ type: "signup", email: pendingEmail || f.email });
-      if (error) throw error;
+      await apiResend(pendingEmail || f.email);
       setResent(true);
     } catch (e: any) {
       setErr(e?.message ?? "Could not resend.");
@@ -50,14 +43,14 @@ export default function RegisterPage() {
 
   if (pendingEmail) {
     return (
-      <AuthFrame title="Check your email" sub={`We sent a confirmation link to ${pendingEmail}.`}>
+      <AuthFrame title="Check your email" sub={`We sent a verification link to ${pendingEmail}.`}>
         <AuthError msg={err} />
         {resent && <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">Sent again. Check inbox and spam.</p>}
         <p className="mt-6 text-sm leading-relaxed text-slate-400">
-          Click the link to confirm your account, then log in. The link expires — request a new one if needed.
+          Click the link to verify your account, then log in. The link expires — request a new one if needed.
         </p>
-        <button onClick={resend} className="btn-aurora mt-6 w-full rounded-2xl py-3.5 text-sm font-bold text-white">Resend confirmation</button>
-        <p className="mt-5 text-center text-[13px] text-slate-400">Already confirmed? <Link href={`/login${qs}`} className="font-bold text-white">Log in</Link></p>
+        <button onClick={resend} className="btn-aurora mt-6 w-full rounded-2xl py-3.5 text-sm font-bold text-white">Resend verification</button>
+        <p className="mt-5 text-center text-[13px] text-slate-400">Already verified? <Link href={`/login${qs}`} className="font-bold text-white">Log in</Link></p>
       </AuthFrame>
     );
   }

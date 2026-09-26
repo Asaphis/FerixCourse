@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { ArrowLeft, GraduationCap, ShieldCheck, Video, Infinity as InfinityIcon } from "lucide-react";
 import { AuroraCanvas } from "./fx";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { apiConfigured } from "@/lib/auth";
 
 export const inputCls = "mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-rose-400/60";
 
@@ -66,6 +66,6 @@ export function safeNext(fallback = "/dashboard"): string {
   return n && n.startsWith("/") && !n.startsWith("//") ? n : fallback;
 }
 export function AuthWarn() {
-  if (isSupabaseConfigured()) return null;
-  return <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-2.5 text-[12px] text-amber-200">Authentication is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.</p>;
+  if (apiConfigured()) return null;
+  return <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-2.5 text-[12px] text-amber-200">API URL is not configured. Add NEXT_PUBLIC_API_URL to .env.local.</p>;
 }

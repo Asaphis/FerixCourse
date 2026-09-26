@@ -3,25 +3,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AuthFrame, AuthError, inputCls } from "@/components/auth";
-import { supabase } from "@/lib/supabase";
+import { apiReset } from "@/lib/auth";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [token, setToken] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // Recovery link establishes a session; wait for it before accepting input.
-    supabase().auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
-    const { data: sub } = supabase().auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
-    });
-    return () => sub.subscription.unsubscribe();
+    setToken(new URLSearchParams(window.location.search).get("token") ?? "");
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -31,9 +24,7 @@ export default function ResetPasswordPage() {
     if (pw.length < 8) return setErr("Password must be at least 8 characters.");
     setBusy(true);
     try {
-      const { error } = await supabase().auth.updateUser({ password: pw });
-      if (error) throw error;
-      await supabase().auth.signOut();
+      await apiReset(token, pw);
       router.push("/login?reset=1");
     } catch (e: any) {
       setErr(e?.message ?? "Could not reset password.");
@@ -45,9 +36,9 @@ export default function ResetPasswordPage() {
   return (
     <AuthFrame title="Set new password" sub="Choose a fresh password for your account.">
       <AuthError msg={err} />
-      {!ready ? (
+      {!token ? (
         <p className="mt-6 rounded-xl border border-white/10 bg-white/[.03] px-4 py-3.5 text-sm text-slate-400">
-          Verifying your reset link… If you opened this page directly, request a new link from{" "}
+          This page needs a reset link. Request a new one from{" "}
           <Link href="/forgot-password" className="font-bold text-white">forgot password</Link>.
         </p>
       ) : (

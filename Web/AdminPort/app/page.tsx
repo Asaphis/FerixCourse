@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Shell } from "@/components/shell";
-import { adminFetch, supabase } from "@/lib/admin";
+import { adminFetch, adminToken } from "@/lib/admin";
 
 type Stats = {
   students: number; publishedCourses: number; activeClassrooms: number;
@@ -16,10 +16,8 @@ export default function AdminDashboard() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    supabase().auth.getSession().then(({ data }) => {
-      if (!data.session) router.push("/login");
-      else adminFetch("/admin/stats").then(setStats).catch((e) => setErr(e.message));
-    });
+    if (!adminToken()) router.push("/login");
+    else adminFetch("/admin/stats").then(setStats).catch((e) => setErr(e.message));
   }, [router]);
 
   const cards: [string, number | string][] = stats

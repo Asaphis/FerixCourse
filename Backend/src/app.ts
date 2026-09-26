@@ -12,6 +12,7 @@ import { paymentsRouter } from './routes/payments.js';
 import { liveRouter } from './routes/live.js';
 import { filesRouter } from './routes/files.js';
 import { scopeRouter } from './routes/scope.js';
+import { authRouter } from './routes/auth.js';
 
 export function createApp() {
   const app = express();
@@ -32,6 +33,7 @@ export function createApp() {
   app.use('/live', liveRouter);
   app.use('/files', filesRouter);
   app.use('/scope', scopeRouter);
+  app.use('/auth', authRouter);
 
   // Phase 2+ modules mount here, one router per business function:
   // app.use('/courses', coursesRouter);

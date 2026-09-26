@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
-  LayoutDashboard, BookOpen, Radio, MessageSquare, User, Bell, Receipt, GraduationCap, CalendarCheck, Wand2,
+  LayoutDashboard, BookOpen, Radio, MessageSquare, User, Bell, Receipt, GraduationCap, CalendarCheck, Wand2, LayoutGrid, X, Compass, ArrowRight,
 } from "lucide-react";
 
 import Protected from "./Protected";
@@ -22,6 +23,7 @@ const ITEMS = [
 
 export default function AppShell({ children, title, sub, publicPage }: { children: React.ReactNode; title?: string; sub?: string; publicPage?: boolean }) {
   const path = usePathname();
+  const [more, setMore] = useState(false);
   return (
     <Protected disabled={publicPage}>
     <div className="relative min-h-screen bg-stone-950">
@@ -57,11 +59,28 @@ export default function AppShell({ children, title, sub, publicPage }: { childre
         </div>
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
-        <div className="m-3 grid grid-cols-5 gap-1 rounded-2xl border border-white/10 bg-stone-900/95 p-1.5 backdrop-blur-2xl">
+        <div className="m-3 grid grid-cols-6 gap-1 rounded-2xl border border-white/10 bg-stone-900/95 p-1.5 backdrop-blur-2xl">
           {[["Board", "/dashboard"], ["Catalog", "/learn"], ["Rooms", "/classes"], ["Chat", "/messages"], ["You", "/profile"]].map(([t, h]) => (
             <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-500"}`}>{t}</Link>
           ))}
+          <button onClick={() => setMore(!more)} className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10.5px] font-semibold transition ${more ? "bg-white/10 text-white" : "text-slate-500"}`}>
+            {more ? <X size={15} /> : <LayoutGrid size={15} />} More
+          </button>
         </div>
+        {more && (
+          <div className="mx-3 mb-1 rounded-2xl border border-white/10 bg-stone-900/98 p-2 shadow-2xl backdrop-blur-2xl">
+            {[
+              ["Live schedule", "/live", Radio], ["Tracks", "/tracks", Compass], ["Method", "/method", BookOpen],
+              ["Book training", "/book", CalendarCheck], ["Request training", "/request", Wand2],
+              ["Transactions", "/transactions", Receipt], ["Notifications", "/notifications", Bell],
+            ].map(([t, h, Icon]: any) => (
+              <Link key={t as string} href={h as string} onClick={() => setMore(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white">
+                <Icon size={16} /> {t} <ArrowRight size={13} className="ml-auto text-slate-600" />
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
     </div>
     </Protected>
