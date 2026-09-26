@@ -5,8 +5,11 @@ import Link from "next/link";
 import {
   ArrowUpRight, BookOpen, CalendarCheck, MonitorPlay, UserCheck, Wand2,
   Check, Mic, MonitorUp, Video, MessageSquare, Radio, ShieldCheck, Infinity as InfinityIcon,
+  Users, Play,
 } from "lucide-react";
 import { Reveal } from "./fx";
+import { Die, OrbBall, Ring3D } from "./fx";
+import { Laptop3D, Rocket3D, Bulb3D } from "./objects3d";
 import { formatMoney } from "@/lib/api";
 
 export function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
@@ -126,41 +129,40 @@ export function FeaturedGrid({ items }: { items: any[] }) {
   );
 }
 
-export function ClassroomMock() {
+export function DeskScene({ openCohorts }: { openCohorts: number }) {
   return (
-    <div className="relative">
-      <div className="absolute -inset-8 rounded-[40px] bg-gradient-to-br from-orange-600/25 via-transparent to-amber-400/15 blur-3xl" />
-      <div className="grain relative overflow-hidden rounded-[28px] border border-white/12 bg-stone-900/90 shadow-[0_50px_120px_-30px_rgba(2,4,10,.95)]">
-        <div className="flex items-center gap-2.5 border-b border-white/8 px-5 py-4">
-          <span className="relative flex h-2.5 w-2.5"><span className="absolute h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" /><span className="h-2.5 w-2.5 rounded-full bg-rose-400" /></span>
-          <p className="text-[13px] font-semibold">Advanced JavaScript <span className="font-normal text-slate-500">— live now</span></p>
-          <span className="ml-auto rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">12 in class</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2 p-4">
-          {[{ n: "Instructor", live: true, tag: "Presenting" }, { n: "You", live: true, tag: null }, { n: "Ada", live: false, tag: null }].map((p) => (
-            <div key={p.n} className="relative flex h-28 flex-col justify-end overflow-hidden rounded-2xl border border-white/8 bg-gradient-to-b from-white/[.06] to-transparent p-2">
-              {p.tag && <span className="absolute left-2 top-2 rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-rose-200">{p.tag}</span>}
-              <div className="flex items-center justify-between">
-                <span className="rounded-md bg-black/60 px-1.5 py-0.5 text-[10.5px] text-slate-300">{p.n}</span>
-                {p.live ? <Mic size={11} className="text-emerald-300" /> : <span className="h-1.5 w-1.5 rounded-full bg-slate-600" />}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mx-4 rounded-2xl border border-white/8 bg-black/50 p-3.5 font-mono text-[12px] leading-relaxed">
-          <p className="text-slate-600">// verified enrollment only</p>
-          <p><span className="text-orange-300">await</span> <span className="text-slate-100">join</span><span className="text-slate-500">(</span><span className="text-amber-200">"js-live-cohort"</span><span className="text-slate-500">)</span></p>
-        </div>
-        <div className="flex items-center gap-2 p-4">
-          {[Mic, Video, MonitorUp, MessageSquare].map((Icon, i) => (
-            <span key={i} className="flex h-10 flex-1 items-center justify-center rounded-xl border border-white/10 bg-white/[.05]"><Icon size={15} className="text-slate-300" /></span>
-          ))}
-          <span className="flex h-10 items-center rounded-xl bg-rose-500/90 px-5 text-[12.5px] font-bold">Leave</span>
-        </div>
+    <div className="grain relative h-[440px] overflow-hidden rounded-[28px] border border-white/12 bg-stone-900/60 sm:h-[500px]">
+      <div className="absolute inset-0"
+        style={{ backgroundImage: "radial-gradient(rgba(255,255,255,.13) 1px, transparent 1.5px)", backgroundSize: "24px 24px" }} />
+      <div className="obj-float absolute" style={{ left: "6%", bottom: "10%", animationDuration: "9s" }}>
+        <Laptop3D scale={1.2} />
       </div>
-      <div className="absolute -bottom-6 -right-3 animate-floaty rounded-2xl border border-white/12 bg-stone-900/95 px-4 py-3 shadow-2xl backdrop-blur sm:-right-6">
-        <p className="flex items-center gap-1.5 text-[12.5px] font-bold"><CalendarCheck size={14} className="text-emerald-300" /> Recording saved</p>
-        <p className="mt-0.5 text-[11px] text-slate-400">Rewatch anytime</p>
+      <div className="obj-float absolute" style={{ right: "8%", top: "6%", animationDuration: "7s", animationDelay: "1s" }}>
+        <Die size={104} />
+      </div>
+      <div className="obj-float absolute" style={{ right: "30%", bottom: "4%", animationDuration: "8s", animationDelay: "0.5s" }}>
+        <Rocket3D scale={0.95} />
+      </div>
+      <div className="obj-float absolute" style={{ left: "40%", top: "5%", animationDuration: "7.5s", animationDelay: "2s" }}>
+        <Bulb3D scale={0.8} />
+      </div>
+      <div className="absolute" style={{ left: "56%", top: "32%", opacity: 0.65 }}>
+        <Ring3D size={120} thick={11} />
+      </div>
+      <div className="obj-float absolute" style={{ right: "4%", bottom: "26%", animationDuration: "9s", animationDelay: "1.4s" }}>
+        <OrbBall size={64} />
+      </div>
+      <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-white/12 bg-black/60 px-3.5 py-2 text-[12px] font-bold backdrop-blur">
+        <span className="relative flex h-2 w-2"><span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
+        {openCohorts > 0 ? `${openCohorts} cohort${openCohorts === 1 ? "" : "s"} open` : "New cohorts forming"}
+      </div>
+      <div className="absolute bottom-4 left-4 flex items-center gap-2.5 rounded-2xl border border-white/12 bg-black/60 px-4 py-2.5 backdrop-blur">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-500"><Play size={14} className="fill-white text-white" /></span>
+        <span><span className="block text-[12.5px] font-bold">Every session recorded</span><span className="block text-[11px] text-stone-400">Rewatch forever</span></span>
+      </div>
+      <div className="absolute bottom-4 right-4 hidden items-center gap-2 rounded-2xl border border-white/12 bg-black/60 px-4 py-2.5 backdrop-blur sm:flex">
+        <Users size={15} className="text-amber-300" />
+        <span className="text-[12.5px] font-bold">Small cohorts, real humans</span>
       </div>
     </div>
   );

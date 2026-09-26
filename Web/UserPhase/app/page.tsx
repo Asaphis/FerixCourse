@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Play, CalendarCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Navbar, Footer, MobileNav } from "@/components/site";
 import { Starfield, Section, Eyebrow, Reveal, DriftOrb, AuroraCanvas } from "@/components/fx";
-import { Counter, TrackTeasers, MethodTeasers, LiveTeasers, FeaturedGrid, ClassroomMock } from "@/components/sections";
+import { Counter, TrackTeasers, MethodTeasers, LiveTeasers, FeaturedGrid, DeskScene } from "@/components/sections";
 import { getFeatured, getCourses, getClassrooms } from "@/lib/api";
 
 const SKILLS = ["React", "TypeScript", "Next.js", "Node.js", "PostgreSQL", "REST APIs", "React Native", "Python", "AI Engineering", "DevOps", "Docker", "Git"];
@@ -22,57 +22,64 @@ export default async function Home() {
         <div className="grain absolute inset-0" />
         <DriftOrb className="left-[8%] top-[20%] h-72 w-72 bg-orange-600/25" from={0} to={-70} />
         <DriftOrb className="right-[5%] top-[55%] h-80 w-80 bg-rose-600/20" from={40} to={-60} />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-16 pt-36 sm:px-6 sm:pt-44">
-          <div className="lg:col-span-1">
-            <Reveal><Eyebrow>Live cohorts · Courses · Mentorship</Eyebrow></Reveal>
-            <Reveal delay={0.08}>
-              <h1 className="mt-6 font-display text-[54px] font-black uppercase leading-[0.9] tracking-[-0.02em] sm:text-7xl lg:text-[88px]">
-                <span className="text-stone-100">Learn</span>
-                <br /><span className="text-outline">out loud</span>
-                <br /><span className="relative inline-block pb-4">ship real.
-                  <svg className="absolute -bottom-1 left-0 h-[0.32em] w-full" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden>
-                    <defs><linearGradient id="swg" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0" stopColor="#EA580C" /><stop offset=".6" stopColor="#F43F5E" /><stop offset="1" stopColor="#FBBF24" />
-                    </linearGradient></defs>
-                    <path className="swash-draw" d="M6 17 C 80 7, 220 7, 294 13" stroke="url(#swg)" strokeWidth="8" fill="none" strokeLinecap="round" />
-                  </svg>
-                </span>
-              </h1>
-            </Reveal>
-            <Reveal delay={0.16}>
-              <p className="mt-6 max-w-xl text-[16.5px] leading-relaxed text-slate-400">
-                FerixCourse is a live-first technology school. Join real instructor-led
-                classrooms, learn at your pace with recorded courses, or go private
-                with one-on-one mentorship.
-              </p>
-            </Reveal>
-            <Reveal delay={0.24}>
-              <div className="mt-9 flex flex-wrap gap-3">
-                <Link href="/learn" className="btn-aurora group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-bold text-white">
-                  <Play size={17} className="fill-white" /> Start learning
-                </Link>
-                <Link href="/book" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[.04] px-7 py-4 text-[15px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
-                  <CalendarCheck size={17} /> Book mentorship
-                </Link>
-              </div>
-            </Reveal>
-            <Reveal delay={0.32}>
-              <div className="mt-10 flex gap-9">
-                {[
-                  [courses.length, "Courses live"],
-                  [rooms.length, "Active cohorts"],
-                  [4, "Ways to learn"],
-                ].map(([v, l]) => (
-                  <div key={l as string}>
-                    <p className="font-display text-[28px] font-bold"><Counter to={v as number} /></p>
-                    <p className="mt-0.5 text-[12px] font-medium uppercase tracking-[0.14em] text-slate-500">{l}</p>
-                  </div>
-                ))}
-              </div>
+        <div className="relative mx-auto max-w-7xl px-4 pb-14 pt-36 sm:px-6 sm:pt-44">
+          <Reveal>
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-4 py-2 font-mono text-[12px] text-amber-200 backdrop-blur">
+              <span className="relative flex h-2 w-2"><span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="h-2 w-2 rounded-full bg-emerald-400" /></span>
+              {rooms.length > 0 ? `${rooms.length} live cohort${rooms.length === 1 ? "" : "s"} enrolling now` : "> admissions_open -- new cohorts forming"}
+            </p>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <h1 className="mt-6 font-display text-[13.5vw] font-black uppercase leading-[0.88] tracking-[-0.02em] sm:text-[92px] lg:text-[124px]">
+              Stop scrolling.
+              <br /><span className="text-outline">Start shipping.</span>
+            </h1>
+          </Reveal>
+          <div className="mt-10 grid items-start gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <Reveal delay={0.16}>
+                <p className="max-w-md text-[16px] leading-relaxed text-stone-400">
+                  FerixCourse is a live technology school. Small cohorts with real
+                  instructors, recorded courses you keep forever, and private
+                  mentorship when you need it. Free to join — pay only when you enroll.
+                </p>
+              </Reveal>
+              <Reveal delay={0.24}>
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link href="/learn" className="btn-aurora group inline-flex items-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-bold text-white">
+                    Claim your seat <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                  <Link href="/method" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/[.04] px-7 py-4 text-[15px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
+                    See how it works
+                  </Link>
+                </div>
+              </Reveal>
+              <Reveal delay={0.3}>
+                <ul className="mt-7 space-y-2.5 text-[13.5px] text-stone-300">
+                  {["Verified payments — access unlocks on confirmation", "Every live session recorded automatically", "Learn live, self-paced, or one-on-one"].map((t) => (
+                    <li key={t} className="flex items-start gap-2.5"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />{t}</li>
+                  ))}
+                </ul>
+              </Reveal>
+            </div>
+            <Reveal delay={0.2} className="lg:col-span-7">
+              <DeskScene openCohorts={rooms.length} />
             </Reveal>
           </div>
-          <Reveal delay={0.2} className="lg:col-span-1">
-            <ClassroomMock />
+          <Reveal delay={0.1}>
+            <div className="mt-12 grid grid-cols-2 gap-6 border-t border-white/10 pt-7 sm:grid-cols-4">
+              {[
+                [courses.length, "Courses live"],
+                [rooms.length, "Active cohorts"],
+                [4, "Ways to learn"],
+                ["Free", "To join"],
+              ].map(([v, l]) => (
+                <div key={l as string}>
+                  <p className="font-display text-[30px] font-black">{typeof v === "number" ? <Counter to={v} /> : v}</p>
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">{l}</p>
+                </div>
+              ))}
+            </div>
           </Reveal>
         </div>
         <div className="relative overflow-hidden border-y border-white/8 bg-black/30">
