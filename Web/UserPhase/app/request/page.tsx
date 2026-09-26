@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AppShell from "@/components/shell";
 import { apiFetch } from "@/lib/client";
 
@@ -8,13 +9,35 @@ const input = "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 te
 export default function RequestPage() {
   const [f, setF] = useState({ topic: "", current_level: "Beginner", background: "", goals: "", preferred_days: "", preferred_time: "", preferred_schedule: "", mode: "online", audience: "individual", budget_kobo: 0, message: "" });
   const [mine, setMine] = useState<any[]>([]);
+  const [queue, setQueue] = useState<any[]>([]);
+  const [status, setStatus] = useState<any>({ mine: [], joined: [], sla_hours: 48 });
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    apiFetch("/requests/mine").then(setMine).catch(() => {});
-  }, []);
+  async function refresh() {
+    try {
+      const [m, q, s] = await Promise.all([
+        apiFetch("/requests/mine").catch(() => []),
+        apiFetch("/scope/requests/open").catch(() => []),
+        apiFetch("/scope/requests/status").catch(() => ({ mine: [], joined: [], sla_hours: 48 })),
+      ]);
+      setMine(m); setQueue(q); setStatus(s);
+    } catch {}
+  }
+
+  useEffect(() => { refresh(); }, []);
+
+  async function join(id: string) {
+    setErr(""); setOk("");
+    try {
+      const r = await apiFetch(`/scope/requests/${id}/join`, { method: "POST" });
+      setOk(`You are #${r.position} in the queue. We will notify you.`);
+      refresh();
+    } catch (e: any) {
+      setErr(e.message);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +45,7 @@ export default function RequestPage() {
     try {
       await apiFetch("/requests", { method: "POST", body: JSON.stringify(f) });
       setOk("Request sent. We review every request personally.");
-      setMine(await apiFetch("/requests/mine"));
+      refresh();
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -48,14 +71,56 @@ export default function RequestPage() {
         <button disabled={busy} className="btn-aurora rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-2">{busy ? "Sending…" : "Send request"}</button>
       </form>
 
-      {mine.length > 0 && (
+      {(status.joined ?? []).length > 0 && (
+        <>
+          <h2 className="mb-3 mt-8 font-display text-lg font-bold">Queues you joined</h2>
+          <div className="grid max-w-2xl gap-2.5">
+            {(status.joined ?? []).map((r: any) => (
+              <div key={r.id} className="rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold">{r.topic}</span>
+                  <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[11px]">{r.status}</span>
+                </div>
+                {r.classroom_slug ? (
+                  <Link href={`/classrooms/${r.classroom_slug}`} className="mt-2 inline-block text-[13px] font-bold text-emerald-300">Classroom ready — enroll now →</Link>
+                ) : (
+                  <p className="mt-1.5 text-xs text-slate-400">Position #{r.position} of {r.waiting} waiting · typically reviewed within {status.sla_hours}h</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {(status.mine?.length > 0 || mine.length > 0) && (
         <>
           <h2 className="mb-3 mt-8 font-display text-lg font-bold">Your requests</h2>
           <div className="grid max-w-2xl gap-2.5">
-            {mine.map((r: any) => (
+            {(status.mine?.length ? status.mine : mine).map((r: any) => (
+              <div key={r.id} className="rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold">{r.topic}</span>
+                  <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[11px]">{r.status}</span>
+                </div>
+                <p className="mt-1.5 text-xs text-slate-400">{r.waiting ?? 0} waiting · typically reviewed within {status.sla_hours}h</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {queue.length > 0 && (
+        <>
+          <h2 className="mb-3 mt-8 font-display text-lg font-bold">Open requests — join the queue</h2>
+          <p className="mb-3 max-w-2xl text-[13px] text-slate-400">Requests from learners like you. Join a queue and we will notify you the moment it becomes a classroom.</p>
+          <div className="grid max-w-2xl gap-2.5">
+            {queue.map((r: any) => (
               <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
-                <span className="font-semibold">{r.topic}</span>
-                <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[11px]">{r.status}</span>
+                <div>
+                  <p className="font-semibold">{r.topic}</p>
+                  <p className="text-xs text-slate-500">{r.current_level} · {r.mode} · {r.waiting} waiting</p>
+                </div>
+                <button onClick={() => join(r.id)} className="ml-auto shrink-0 rounded-xl border border-white/15 px-4 py-2 text-[12.5px] font-bold hover:bg-white/10">Join queue</button>
               </div>
             ))}
           </div>

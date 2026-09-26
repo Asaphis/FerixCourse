@@ -212,6 +212,205 @@ adminRouter.get('/notifications', async (_req, res) => {
     res.status(500).json({ error: 'Could not load notifications.', detail: e?.message });
   }
 });
+
+// ---- Admin: sessions (pick which classroom trains, start live) ----
+adminRouter.get('/sessions', async (req, res) => {
+  try {
+    const cid = String(req.query.classroom_id ?? '');
+    const rows = cid
+      ? await q('select * from classroom_sessions where classroom_id = $1 order by starts_at asc', [cid])
+      : await q(`select s.*, c.title as classroom_title from classroom_sessions s left join classrooms c on c.id = s.classroom_id order by s.starts_at asc limit 100`);
+    res.json(rows);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load sessions.', detail: e?.message });
+  }
+});
+
+adminRouter.post('/sessions', async (req, res) => {
+  try {
+    const b = req.body ?? {};
+    if (!b.classroom_id || !b.title) return res.status(400).json({ error: 'Classroom and title are required.' });
+    const c = await q('select livekit_room from classrooms where id = $1', [b.classroom_id]);
+    if (!c[0]) return res.status(404).json({ error: 'Classroom not found.' });
+    const rows = await q(
+      `insert into classroom_sessions(classroom_id, title, starts_at, ends_at, livekit_room)
+       values ($1,$2,$3,$4,$5) returning *`,
+      [b.classroom_id, b.title, b.starts_at ?? null, b.ends_at ?? null, c[0].livekit_room]);
+    res.status(201).json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not create session.', detail: e?.message });
+  }
+});
+
+// PATCH /admin/sessions/:id { status: scheduled|live|ended } — going live notifies members only.
+adminRouter.patch('/sessions/:id', async (req, res) => {
+  try {
+    const s = await q('select * from classroom_sessions where id = $1', [req.params.id]);
+    if (!s[0]) return res.status(404).json({ error: 'Session not found.' });
+    const status = req.body?.status;
+    if (!['scheduled', 'live', 'ended'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status.' });
+    }
+    await pool.query('update classroom_sessions set status = $1 where id = $2', [status, req.params.id]);
+    if (status === 'live') {
+      const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [s[0].classroom_id]);
+      const c = await q('select title from classrooms where id = $1', [s[0].classroom_id]);
+      for (const m of members) {
+        await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'live', $2, $3)`,
+          [m.user_id, `Live now: ${c[0]?.title ?? 'classroom'}`, `${s[0].title} started. Join from your classroom.`]).catch(() => {});
+      }
+    }
+    if (status === 'ended') {
+      await pool.query(`update classroom_sessions set ends_at = coalesce(ends_at, now()), recording_status = case when recording_status = 'recording' then 'processing' else recording_status end where id = $1`, [req.params.id]);
+    }
+    res.json({ id: req.params.id, status });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not update session.', detail: e?.message });
+  }
+});
+
+// ---- Admin: materials with explicit destination (course XOR classroom) ----
+adminRouter.post('/materials', async (req, res) => {
+  try {
+    const b = req.body ?? {};
+    if (!b.title || !b.storage_key) return res.status(400).json({ error: 'Title and storage key are required.' });
+    if (b.classroom_id && b.course_id) {
+      return res.status(400).json({ error: 'Pick ONE destination: a classroom or a course, never both.' });
+    }
+    if (b.classroom_id) {
+      const rows = await q(
+        `insert into classroom_materials(classroom_id, title, storage_key, mime, size_bytes) values ($1,$2,$3,$4,$5) returning *`,
+        [b.classroom_id, b.title, b.storage_key, b.mime ?? 'application/octet-stream', b.size_bytes ?? 0]);
+      return res.status(201).json({ scope: 'classroom', ...rows[0] });
+    }
+    if (b.course_id) {
+      const rows = await q(
+        `insert into course_materials(course_id, lesson_id, title, storage_key, mime, size_bytes) values ($1,$2,$3,$4,$5,$6) returning *`,
+        [b.course_id, b.lesson_id ?? null, b.title, b.storage_key, b.mime ?? 'application/octet-stream', b.size_bytes ?? 0]);
+      return res.status(201).json({ scope: 'course', ...rows[0] });
+    }
+    return res.status(400).json({ error: 'Pick a destination classroom or course.' });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not save material.', detail: e?.message });
+  }
+});
+
+adminRouter.post('/materials/classroom/:id/notify', async (req, res) => {
+  try {
+    const m = await q(`select m.*, c.title as classroom_title from classroom_materials m join classrooms c on c.id = m.classroom_id where m.id = $1`, [req.params.id]);
+    if (!m[0]) return res.status(404).json({ error: 'Material not found.' });
+    const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [m[0].classroom_id]);
+    for (const u of members) {
+      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'material', $2, $3)`,
+        [u.user_id, `New material: ${m[0].classroom_title}`, m[0].title]).catch(() => {});
+    }
+    res.json({ notified: members.length });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not notify.' });
+  }
+});
+
+// ---- Admin: announcements ----
+adminRouter.post('/announcements', async (req, res) => {
+  try {
+    const b = req.body ?? {};
+    if (!b.classroom_id || !b.title) return res.status(400).json({ error: 'Classroom and title are required.' });
+    const rows = await q('insert into announcements(classroom_id, author_id, title, body) values ($1,$2,$3,$4) returning *',
+      [b.classroom_id, (req as any).admin.id, b.title, b.body ?? '']);
+    const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [b.classroom_id]);
+    for (const m of members) {
+      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'announcement', $2, $3)`,
+        [m.user_id, rows[0].title, rows[0].body.slice(0, 140)]).catch(() => {});
+    }
+    res.status(201).json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not post announcement.', detail: e?.message });
+  }
+});
+
+// ---- Admin: assignments + feedback ----
+adminRouter.post('/assignments', async (req, res) => {
+  try {
+    const b = req.body ?? {};
+    if (!b.classroom_id || !b.title) return res.status(400).json({ error: 'Classroom and title are required.' });
+    const rows = await q('insert into assignments(classroom_id, title, description, due_at) values ($1,$2,$3,$4) returning *',
+      [b.classroom_id, b.title, b.description ?? '', b.due_at ?? null]);
+    res.status(201).json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not create assignment.', detail: e?.message });
+  }
+});
+
+adminRouter.get('/assignments/:id/submissions', async (req, res) => {
+  try {
+    res.json(await q(
+      `select s.*, p.full_name, p.email from submissions s left join profiles p on p.id = s.user_id where s.assignment_id = $1 order by s.created_at desc`,
+      [req.params.id]));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load submissions.', detail: e?.message });
+  }
+});
+
+adminRouter.patch('/submissions/:uid/:aid', async (req, res) => {
+  try {
+    await pool.query('update submissions set feedback = $1 where user_id = $2 and assignment_id = $3',
+      [req.body?.feedback ?? '', req.params.uid, req.params.aid]);
+    await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'feedback', 'Feedback on your submission', $2)`,
+      [req.params.uid, String(req.body?.feedback ?? '').slice(0, 140)]).catch(() => {});
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not save feedback.' });
+  }
+});
+
+// ---- Admin: convert request → classroom, pull the queue in ----
+adminRouter.post('/requests/:id/convert', async (req, res) => {
+  try {
+    const r = await q('select * from training_requests where id = $1', [req.params.id]);
+    if (!r[0]) return res.status(404).json({ error: 'Request not found.' });
+    const { classroom_id } = req.body ?? {};
+    if (!classroom_id) return res.status(400).json({ error: 'classroom_id is required.' });
+    await pool.query(`update training_requests set status = 'converted', converted_classroom_id = $1 where id = $2`,
+      [classroom_id, req.params.id]);
+    const c = await q('select title, slug, price_kobo, currency from classrooms where id = $1', [classroom_id]);
+    const queue = await q('select user_id from request_queue where request_id = $1', [req.params.id]);
+    const targets = new Set<string>([r[0].user_id, ...queue.map((w: any) => w.user_id)]);
+    for (const uid of targets) {
+      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'request_converted', $2, $3)`,
+        [uid, `Your requested training is ready: ${c[0]?.title ?? ''}`,
+         `Enroll now${c[0] ? ` — ${(c[0].price_kobo / 100).toLocaleString()} ${c[0].currency}` : ''}.`]).catch(() => {});
+    }
+    res.json({ converted: true, notified: targets.size, classroom: c[0] ?? null });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not convert request.', detail: e?.message });
+  }
+});
+
+adminRouter.get('/requests/:id/queue', async (req, res) => {
+  try {
+    res.json(await q(
+      `select w.user_id, w.created_at, p.email from request_queue w left join profiles p on p.id = w.user_id where w.request_id = $1 order by w.created_at asc`,
+      [req.params.id]));
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load queue.', detail: e?.message });
+  }
+});
+
+// ---- Admin: set booking price (agreed after discussion) ----
+adminRouter.patch('/bookings/:id/price', async (req, res) => {
+  try {
+    const price = Number(req.body?.price_kobo ?? NaN);
+    if (!Number.isFinite(price) || price < 0) return res.status(400).json({ error: 'Valid price_kobo required.' });
+    await pool.query('update bookings set price_kobo = $1 where id = $2', [price, req.params.id]);
+    const b = await q('select * from bookings where id = $1', [req.params.id]);
+    if (!b[0]) return res.status(404).json({ error: 'Booking not found.' });
+    await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'booking_price', $2, $3)`,
+      [b[0].user_id, `Price set: ${(price / 100).toLocaleString()}`, `Your booking "${b[0].topic}" is priced. Confirm to proceed to payment.`]).catch(() => {});
+    res.json({ ok: true, price_kobo: price });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not set price.' });
+  }
+});
 adminRouter.get('/courses', async (_req, res) => {
   try {
     res.json(await q('select * from courses order by created_at desc'));

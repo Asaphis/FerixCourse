@@ -4,6 +4,7 @@ import { CalendarDays, Users, BarChart3, Clock, Check } from "lucide-react";
 import { Navbar, Footer } from "@/components/site";
 import { Section, Eyebrow, Reveal } from "@/components/fx";
 import EnrollButton from "@/components/enroll";
+import ClassroomWorkspace from "@/components/workspace";
 import { getClassroom, formatMoney } from "@/lib/api";
 
 export default async function ClassroomPage({ params }: { params: { slug: string } }) {
@@ -45,16 +46,12 @@ export default async function ClassroomPage({ params }: { params: { slug: string
                 </div>
               )}
             </Reveal>
-            {(c.materials ?? []).length > 0 && (
-              <>
-                <h2 className="mt-8 font-display text-xl font-bold">Included materials</h2>
-                <div className="mt-4 grid gap-2.5">
-                  {c.materials.map((m: any) => (
-                    <p key={m.id} className="rounded-2xl border border-white/10 px-4 py-3 text-sm">{m.title} <span className="text-xs text-slate-500">· {m.mime}</span></p>
-                  ))}
-                </div>
-              </>
+            {(c.material_count ?? 0) > 0 && (
+              <p className="mt-8 rounded-2xl border border-white/10 p-5 text-sm text-slate-400">
+                Includes {c.material_count} private file{c.material_count === 1 ? "" : "s"} — visible to members after enrollment.
+              </p>
             )}
+            <ClassroomWorkspace classroomId={c.id} />
           </div>
           <Reveal delay={0.15}>
             <div className="h-fit rounded-[28px] border border-white/12 bg-stone-900/85 p-7 backdrop-blur lg:sticky lg:top-28">

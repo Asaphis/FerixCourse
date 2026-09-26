@@ -30,6 +30,10 @@ export default function EnrollButton({ productType, productId, priceKobo, curren
         setMsg("Enrolled — free program. See it on your dashboard.");
         return;
       }
+      if (r.checkout_url) {
+        window.location.href = r.checkout_url;
+        return;
+      }
       setMsg(r.message ?? "Reservation recorded.");
     } catch (e: any) {
       setMsg(e.message);

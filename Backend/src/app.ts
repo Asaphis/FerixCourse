@@ -9,6 +9,9 @@ import { adminRouter } from './routes/admin.js';
 import { requestsRouter, bookingsRouter, messagesRouter, notificationsRouter } from './routes/student.js';
 import { publicRouter } from './routes/public.js';
 import { paymentsRouter } from './routes/payments.js';
+import { liveRouter } from './routes/live.js';
+import { filesRouter } from './routes/files.js';
+import { scopeRouter } from './routes/scope.js';
 
 export function createApp() {
   const app = express();
@@ -26,6 +29,9 @@ export function createApp() {
   app.use('/notifications', notificationsRouter);
   app.use('/api', publicRouter);
   app.use('/payments', paymentsRouter);
+  app.use('/live', liveRouter);
+  app.use('/files', filesRouter);
+  app.use('/scope', scopeRouter);
 
   // Phase 2+ modules mount here, one router per business function:
   // app.use('/courses', coursesRouter);

@@ -61,12 +61,13 @@ publicRouter.get('/classrooms', async (req, res) => {
 publicRouter.get('/classrooms/:slug', async (req, res) => {
   try {
     const rows = await q(
-      `select c.*, (select count(*)::int from enrollments e where e.product_type = 'classroom' and e.product_id = c.id) as enrolled
+      `select c.*, (select count(*)::int from enrollments e where e.product_type = 'classroom' and e.product_id = c.id) as enrolled,
+              (select count(*)::int from classroom_materials m where m.classroom_id = c.id) as material_count
        from classrooms c where c.slug = $1 and c.is_published = true`, [req.params.slug]);
     if (!rows[0]) return res.status(404).json({ error: 'Classroom not found.' });
     const sessions = await q('select id, title, starts_at, ends_at, recording_status from classroom_sessions where classroom_id = $1 order by starts_at asc', [rows[0].id]).catch(() => []);
-    const materials = await q('select id, title, mime, size_bytes from classroom_materials where classroom_id = $1 order by created_at asc', [rows[0].id]).catch(() => []);
-    res.json({ ...rows[0], sessions, materials });
+    // Materials stay private: members load them via the workspace endpoint.
+    res.json({ ...rows[0], sessions });
   } catch (e: any) {
     res.status(500).json({ error: 'Could not load classroom.' });
   }

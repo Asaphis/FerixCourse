@@ -3,6 +3,7 @@ import { PlayCircle, Users, Check, LockOpen } from "lucide-react";
 import { Navbar, Footer } from "@/components/site";
 import { Section, Eyebrow, Reveal } from "@/components/fx";
 import EnrollButton from "@/components/enroll";
+import CourseLearn from "@/components/course-learn";
 import { getCourse, formatMoney } from "@/lib/api";
 
 export default async function CoursePage({ params }: { params: { slug: string } }) {
@@ -46,6 +47,7 @@ export default async function CoursePage({ params }: { params: { slug: string } 
                 </div>
               )}
             </Reveal>
+            <CourseLearn courseId={c.id} />
           </div>
           <Reveal delay={0.15}>
             <div className="h-fit rounded-[28px] border border-white/12 bg-stone-900/85 p-7 backdrop-blur lg:sticky lg:top-28">
