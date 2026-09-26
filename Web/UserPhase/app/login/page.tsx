@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { AuthFrame, AuthError, AuthWarn, inputCls } from "@/components/auth";
+import { AuthFrame, AuthError, AuthWarn, inputCls, safeNext } from "@/components/auth";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [qs, setQs] = useState("");
+  useEffect(() => { setQs(window.location.search); }, []);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -20,7 +22,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabase().auth.signInWithPassword({ email, password: pw });
       if (error) throw error;
-      router.push("/dashboard");
+      router.push(safeNext());
     } catch (e: any) {
       setErr(e?.message ?? "Login failed. Please try again.");
     } finally {
@@ -42,7 +44,7 @@ export default function LoginPage() {
           {busy ? "Logging in…" : <>Log in <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" /></>}
         </button>
       </form>
-      <p className="mt-5 text-center text-[13px] text-slate-400">No account? <Link href="/register" className="font-bold text-white">Create one</Link></p>
+      <p className="mt-5 text-center text-[13px] text-slate-400">No account? <Link href={`/register${qs}`} className="font-bold text-white">Create one</Link></p>
     </AuthFrame>
   );
 }

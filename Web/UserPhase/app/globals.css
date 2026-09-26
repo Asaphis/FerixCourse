@@ -45,6 +45,14 @@ body { @apply bg-stone-950 text-stone-100 font-body antialiased overflow-x-hidde
   mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
 }
 
+/* Highlighter marker swipe behind headline words */
+.hl-marker { position: relative; display: inline-block; padding: 0 0.08em; }
+.hl-marker::before {
+  content: ""; position: absolute; inset: 12% -3% 2% -3%; z-index: -1;
+  background: linear-gradient(94deg, rgba(234,88,12,.6), rgba(244,63,94,.5));
+  transform: skewX(-10deg) rotate(-1.2deg);
+  border-radius: 0.12em;
+}
 /* Giant outlined backdrop words */
 .outline-word {
   font-family: "Archivo", system-ui, sans-serif;

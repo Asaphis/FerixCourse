@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, GraduationCap, Menu, X } from "lucide-react";
 
 const LINKS = [
   { href: "/tracks", label: "Tracks" },
@@ -12,30 +13,50 @@ const LINKS = [
 
 export function Navbar() {
   const path = usePathname();
+  const [open, setOpen] = useState(false);
   return (
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-stone-900/75 py-3 pl-4 pr-3 shadow-[0_24px_70px_-24px_rgba(2,4,10,.9)] backdrop-blur-2xl">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 shadow-[0_0_30px_-6px_rgba(217,70,239,.7)] transition group-hover:rotate-6">
-              <GraduationCap size={18} className="text-white" />
-            </span>
-            <span className="font-display text-[17px] font-bold tracking-tight">FerixCourse</span>
-          </Link>
-          <nav className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/[.03] p-1 lg:flex">
-            {LINKS.map((l) => (
-              <Link key={l.href} href={l.href}
-                className={`rounded-full px-4 py-1.5 text-[13.5px] font-medium transition ${path === l.href ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden px-3.5 py-2 text-[13.5px] font-medium text-slate-300 transition hover:text-white sm:inline">Log in</Link>
-            <Link href="/register" className="group inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-bold text-white btn-aurora">
-              Start learning <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+        <div className="mt-4 rounded-2xl border border-white/10 bg-stone-950/85 shadow-[0_24px_70px_-24px_rgba(2,4,10,.9)] backdrop-blur-2xl">
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <Link href="/" className="group flex items-center gap-2.5" onClick={() => setOpen(false)}>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 shadow-[0_0_30px_-6px_rgba(249,115,22,.7)] transition group-hover:rotate-6">
+                <GraduationCap size={18} className="text-white" />
+              </span>
+              <span className="leading-none">
+                <span className="block font-display text-[16px] font-black tracking-tight">FERIXCOURSE</span>
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-200/70">Tech school</span>
+              </span>
             </Link>
+            <nav className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/[.03] p-1 lg:flex">
+              {LINKS.map((l) => (
+                <Link key={l.href} href={l.href}
+                  className={`relative rounded-full px-4 py-1.5 text-[13.5px] font-medium transition ${path === l.href ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
+                  {l.label}
+                  {path === l.href && <span className="absolute -bottom-[1px] left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-500 to-amber-400" />}
+                </Link>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2">
+              <Link href="/login" className="hidden px-3.5 py-2 text-[13.5px] font-medium text-slate-300 transition hover:text-white sm:inline">Log in</Link>
+              <Link href="/register" className="group hidden items-center gap-1.5 rounded-xl px-4 py-2 text-[13.5px] font-bold text-white btn-aurora sm:inline-flex">
+                Start learning <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <button onClick={() => setOpen(!open)} aria-label="Menu" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 lg:hidden">
+                {open ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            </div>
           </div>
+          {open && (
+            <nav className="grid gap-1 border-t border-white/8 p-3 lg:hidden">
+              {[...LINKS, { href: "/login", label: "Log in" }, { href: "/register", label: "Start learning" }].map((l) => (
+                <Link key={l.href} href={l.href} onClick={() => setOpen(false)}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${path === l.href ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"}`}>
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
     </header>

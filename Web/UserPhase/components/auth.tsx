@@ -1,11 +1,17 @@
 "use client";
-import { GraduationCap, ShieldCheck, Video, Infinity as InfinityIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, GraduationCap, ShieldCheck, Video, Infinity as InfinityIcon } from "lucide-react";
 import { AuroraCanvas } from "./fx";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const inputCls = "mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-rose-400/60";
 
 export function AuthFrame({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+  const router = useRouter();
+  const back = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/");
+  };
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-950 px-4 py-10">
       <AuroraCanvas variant="hero" />
@@ -32,6 +38,9 @@ export function AuthFrame({ title, sub, children }: { title: string; sub: string
           <p className="relative text-[12px] text-slate-500">Learn technology. Ship real software.</p>
         </div>
         <div className="relative p-8 sm:p-10">
+          <button onClick={back} className="group mb-5 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-[12.5px] font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">
+            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" /> Back
+          </button>
           <h1 className="font-display text-[26px] font-bold tracking-tight">{title}</h1>
           <p className="mt-1.5 text-sm text-slate-400">{sub}</p>
           {children}
@@ -51,6 +60,11 @@ export function AuthOk({ msg }: { msg: string }) {
   return <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">{msg}</p>;
 }
 
+export function safeNext(fallback = "/dashboard"): string {
+  if (typeof window === "undefined") return fallback;
+  const n = new URLSearchParams(window.location.search).get("next");
+  return n && n.startsWith("/") && !n.startsWith("//") ? n : fallback;
+}
 export function AuthWarn() {
   if (isSupabaseConfigured()) return null;
   return <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-2.5 text-[12px] text-amber-200">Auth keys not set — add NEXT_PUBLIC_SUPABASE_URL / ANON_KEY to .env.local</p>;

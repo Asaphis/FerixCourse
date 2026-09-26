@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Lock } from "lucide-react";
 import { apiFetch, currentUser } from "@/lib/client";
 import { formatMoney } from "@/lib/api";
@@ -9,6 +9,7 @@ export default function EnrollButton({ productType, productId, priceKobo, curren
   productType: "classroom" | "course"; productId: string; priceKobo: number; currency: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -16,7 +17,7 @@ export default function EnrollButton({ productType, productId, priceKobo, curren
   async function enroll() {
     setMsg("");
     const u = await currentUser().catch(() => null);
-    if (!u) return router.push("/login");
+    if (!u) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
     setBusy(true);
     try {
       const r = await apiFetch("/payments/checkout", {

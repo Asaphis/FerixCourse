@@ -28,7 +28,7 @@ export default async function Home() {
             <Reveal delay={0.08}>
               <h1 className="mt-6 font-display text-[52px] font-black uppercase leading-[0.92] tracking-[-0.02em] sm:text-7xl lg:text-[86px]">
                 Learn
-                <br />out loud.
+                <br /><span className="hl-marker">out loud.</span>
                 <br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">Ship for real.</span>
               </h1>
             </Reveal>

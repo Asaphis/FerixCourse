@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { AuthFrame, AuthError, AuthWarn, inputCls } from "@/components/auth";
+import { AuthFrame, AuthError, AuthWarn, inputCls, safeNext } from "@/components/auth";
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [qs, setQs] = useState("");
+  useEffect(() => { setQs(window.location.search); }, []);
   const [f, setF] = useState({ name: "", email: "", pw: "", pw2: "" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,7 +23,7 @@ export default function RegisterPage() {
     try {
       const { error } = await supabase().auth.signUp({ email: f.email, password: f.pw, options: { data: { full_name: f.name } } });
       if (error) throw error;
-      router.push("/dashboard");
+      router.push(safeNext());
     } catch (e: any) {
       setErr(e?.message ?? "Registration failed. Please try again.");
     } finally {
@@ -44,7 +46,7 @@ export default function RegisterPage() {
           {busy ? "Creating account…" : <>Create account <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" /></>}
         </button>
       </form>
-      <p className="mt-5 text-center text-[13px] text-slate-400">Have an account? <Link href="/login" className="font-bold text-white">Log in</Link></p>
+      <p className="mt-5 text-center text-[13px] text-slate-400">Have an account? <Link href={`/login${qs}`} className="font-bold text-white">Log in</Link></p>
     </AuthFrame>
   );
 }
