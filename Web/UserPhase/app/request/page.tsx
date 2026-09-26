@@ -30,8 +30,6 @@ export default function RequestPage() {
     }
   }
 
-  const set = (k: string, v: any) => setF({ ...f, [k]: v });
-
   return (
     <AppShell title="Request custom training" sub="Can't find your topic? Describe it — we build a classroom around you.">
       {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}

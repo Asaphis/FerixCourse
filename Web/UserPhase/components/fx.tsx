@@ -74,7 +74,7 @@ type ObjSpec =
   | { k: "orb"; x: string; y: string; size: number; d: number; dur: number; o?: number }
   | { k: "ring"; x: string; y: string; size: number; d: number; dur: number; o?: number }
   | { k: "cap"; x: string; y: string; w: number; d: number; dur: number; o?: number }
-  | { k: "plus"; x: string; y: string; size: number; d: number; dur: number }
+  | { k: "plus"; x: string; y: string; size: number; d: number; dur: number; o?: number }
   | { k: "3d"; x: string; y: string; what: "brackets" | "braces" | "laptop" | "rocket" | "gradcap" | "bulb" | "gear" | "target" | "play" | "lock" | "db" | "cloud"; scale: number; d: number; dur: number; o?: number };
 
 const SETS: Record<string, ObjSpec[]> = {
@@ -143,7 +143,6 @@ function renderObj(o: ObjSpec, i: number) {
     animationDelay: `${o.d}s`, animationDuration: `${o.dur}s`,
     opacity: o.o ?? 1,
   };
-  const C = o.k === "3d" ? D3[o.what] : null;
   return (
     <div key={i} className="obj-float" style={style}>
       {o.k === "die" && <Die size={o.size} dark={o.dark} spin={o.spin} />}
@@ -151,7 +150,10 @@ function renderObj(o: ObjSpec, i: number) {
       {o.k === "ring" && <Ring3D size={o.size} />}
       {o.k === "cap" && <Capsule w={o.w} />}
       {o.k === "plus" && <Plus size={o.size} />}
-      {C && <C scale={o.scale} />}
+      {o.k === "3d" && (() => {
+        const C = D3[o.what];
+        return <C scale={o.scale} />;
+      })()}
     </div>
   );
 }
