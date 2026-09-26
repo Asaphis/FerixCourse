@@ -8,19 +8,14 @@ function resend(): Resend | null {
   return client;
 }
 
-export async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
-  try {
-    const r = resend();
-    if (!r || !to) return false;
-    await r.emails.send({
-      from: process.env.EMAIL_FROM ?? 'no-reply@ferixcourse.com',
-      to,
-      subject: `[FerixCourse] ${subject}`,
-      html: `<div style="font-family:sans-serif;max-width:560px"><h2>${subject}</h2><p>${body}</p><hr/><p style="color:#888;font-size:12px">FerixCourse — practical technology training</p></div>`,
-    });
-    return true;
-  } catch (e) {
-    console.error('[email] failed:', (e as any)?.message);
-    return false;
-  }
+export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
+  const r = resend();
+  if (!r || !to) throw new Error('Email not configured or missing recipient.');
+  const res = await r.emails.send({
+    from: process.env.EMAIL_FROM ?? 'no-reply@ferixcourse.com',
+    to,
+    subject: `[FerixCourse] ${subject}`,
+    html: `<div style="font-family:sans-serif;max-width:560px"><h2>${subject}</h2><p>${body}</p><hr/><p style="color:#888;font-size:12px">FerixCourse — practical technology training</p></div>`,
+  });
+  if (res.error) throw new Error(`Resend error: ${res.error.message ?? 'unknown'}`);
 }
