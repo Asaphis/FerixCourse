@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
 import { requireUser } from '../middleware/requireUser.js';
+import { notify } from '../lib/notify.js';
 
 const q = async (text: string, params: any[] = []) => (await pool.query(text, params)).rows;
 const FW = 'https://api.flutterwave.com/v3';
@@ -23,9 +24,7 @@ async function grantAccess(userId: string, productType: string, productId: strin
     const rows = await q(`select title from ${table} where id = $1`, [productId]).catch(() => []);
     if (rows[0]) name = rows[0].title;
   }
-  await pool.query(
-    `insert into notifications(user_id, type, title, body) values ($1, 'enrollment', $2, $3)`,
-    [userId, `Enrolled: ${name}`, `Payment confirmed (ref ${txId}). Your content is unlocked.`]).catch(() => {});
+  await notify(userId, 'enrollment', `Enrolled: ${name}`, `Payment confirmed (ref ${txId}). Your content is unlocked.`);
 }
 
 export const paymentsRouter = Router();
@@ -137,8 +136,7 @@ paymentsRouter.post('/flutterwave-webhook', async (req, res) => {
       return res.json({ ok: true });
     }
     await pool.query(`update transactions set status = 'failed', completed_at = now() where id = $1`, [t.id]);
-    await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'payment_failed', $2, $3)`,
-      [t.user_id, 'Payment failed', `Your payment of ${t.amount_kobo / 100} ${t.currency} did not complete.`]).catch(() => {});
+    await notify(t.user_id, 'payment_failed', 'Payment failed', `Your payment of ${t.amount_kobo / 100} ${t.currency} did not complete.`);
     return res.json({ ok: true, failed: true });
   } catch (e: any) {
     res.status(500).json({ error: 'Webhook error.' });

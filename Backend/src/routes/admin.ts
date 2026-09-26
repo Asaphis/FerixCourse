@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
+import { notify } from '../lib/notify.js';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -104,8 +105,7 @@ adminRouter.patch('/requests/:id', async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Request not found.' });
     // Notify student of status change
     if (req.body?.status) {
-      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'request_update', $2, $3)`,
-        [rows[0].user_id, `Training request ${req.body.status}`, rows[0].topic]).catch(() => {});
+      await notify(rows[0].user_id, 'request_update', `Training request ${req.body.status}`, rows[0].topic);
     }
     res.json(rows[0]);
   } catch (e: any) {
@@ -139,8 +139,7 @@ adminRouter.patch('/bookings/:id', async (req, res) => {
     const rows = await q(`update bookings set ${sets.join(', ')} where id = $${vals.length} returning *`, vals);
     if (!rows[0]) return res.status(404).json({ error: 'Booking not found.' });
     if (req.body?.status) {
-      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'booking_update', $2, $3)`,
-        [rows[0].user_id, `Booking ${req.body.status}`, rows[0].topic]).catch(() => {});
+      await notify(rows[0].user_id, 'booking_update', `Booking ${req.body.status}`, rows[0].topic);
     }
     res.json(rows[0]);
   } catch (e: any) {
@@ -256,8 +255,7 @@ adminRouter.patch('/sessions/:id', async (req, res) => {
       const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [s[0].classroom_id]);
       const c = await q('select title from classrooms where id = $1', [s[0].classroom_id]);
       for (const m of members) {
-        await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'live', $2, $3)`,
-          [m.user_id, `Live now: ${c[0]?.title ?? 'classroom'}`, `${s[0].title} started. Join from your classroom.`]).catch(() => {});
+        await notify(m.user_id, 'live', `Live now: ${c[0]?.title ?? 'classroom'}`, `${s[0].title} started. Join from your classroom.`);
       }
     }
     if (status === 'ended') {
@@ -301,8 +299,7 @@ adminRouter.post('/materials/classroom/:id/notify', async (req, res) => {
     if (!m[0]) return res.status(404).json({ error: 'Material not found.' });
     const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [m[0].classroom_id]);
     for (const u of members) {
-      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'material', $2, $3)`,
-        [u.user_id, `New material: ${m[0].classroom_title}`, m[0].title]).catch(() => {});
+      await notify(u.user_id, 'material', `New material: ${m[0].classroom_title}`, m[0].title);
     }
     res.json({ notified: members.length });
   } catch (e: any) {
@@ -319,8 +316,7 @@ adminRouter.post('/announcements', async (req, res) => {
       [b.classroom_id, (req as any).admin.id, b.title, b.body ?? '']);
     const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [b.classroom_id]);
     for (const m of members) {
-      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'announcement', $2, $3)`,
-        [m.user_id, rows[0].title, rows[0].body.slice(0, 140)]).catch(() => {});
+      await notify(m.user_id, 'announcement', rows[0].title, rows[0].body.slice(0, 140));
     }
     res.status(201).json(rows[0]);
   } catch (e: any) {
@@ -366,8 +362,7 @@ adminRouter.patch('/submissions/:uid/:aid', async (req, res) => {
   try {
     await pool.query('update submissions set feedback = $1 where user_id = $2 and assignment_id = $3',
       [req.body?.feedback ?? '', req.params.uid, req.params.aid]);
-    await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'feedback', 'Feedback on your submission', $2)`,
-      [req.params.uid, String(req.body?.feedback ?? '').slice(0, 140)]).catch(() => {});
+    await notify(req.params.uid, 'feedback', 'Feedback on your submission', String(req.body?.feedback ?? '').slice(0, 140));
     res.json({ ok: true });
   } catch (e: any) {
     res.status(500).json({ error: 'Could not save feedback.' });
@@ -387,9 +382,8 @@ adminRouter.post('/requests/:id/convert', async (req, res) => {
     const queue = await q('select user_id from request_queue where request_id = $1', [req.params.id]);
     const targets = new Set<string>([r[0].user_id, ...queue.map((w: any) => w.user_id)]);
     for (const uid of targets) {
-      await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'request_converted', $2, $3)`,
-        [uid, `Your requested training is ready: ${c[0]?.title ?? ''}`,
-         `Enroll now${c[0] ? ` — ${(c[0].price_kobo / 100).toLocaleString()} ${c[0].currency}` : ''}.`]).catch(() => {});
+      await notify(uid, 'request_converted', `Your requested training is ready: ${c[0]?.title ?? ''}`,
+        `Enroll now${c[0] ? ` — ${(c[0].price_kobo / 100).toLocaleString()} ${c[0].currency}` : ''}.`);
     }
     res.json({ converted: true, notified: targets.size, classroom: c[0] ?? null });
   } catch (e: any) {
@@ -407,6 +401,29 @@ adminRouter.get('/requests/:id/queue', async (req, res) => {
   }
 });
 
+// ---- Admin: session reminders (run before training day; cron-ready) ----
+adminRouter.post('/reminders/sessions', async (_req, res) => {
+  try {
+    const soon = await q(
+      `select s.*, c.title as classroom_title from classroom_sessions s
+       join classrooms c on c.id = s.classroom_id
+       where s.status = 'scheduled' and s.starts_at is not null
+         and s.starts_at > now() and s.starts_at < now() + interval '24 hours'`);
+    let notified = 0;
+    for (const s of soon) {
+      const members = await q(`select user_id from enrollments where product_type = 'classroom' and product_id = $1`, [s.classroom_id]);
+      const when = new Date(s.starts_at).toLocaleString();
+      for (const m of members) {
+        await notify(m.user_id, 'reminder', `Reminder: ${s.classroom_title}`, `${s.title} starts ${when}. See you in class.`);
+        notified++;
+      }
+    }
+    res.json({ sessions: soon.length, notified });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not send reminders.', detail: e?.message });
+  }
+});
+
 // ---- Admin: set booking price (agreed after discussion) ----
 adminRouter.patch('/bookings/:id/price', async (req, res) => {
   try {
@@ -415,8 +432,7 @@ adminRouter.patch('/bookings/:id/price', async (req, res) => {
     await pool.query('update bookings set price_kobo = $1 where id = $2', [price, req.params.id]);
     const b = await q('select * from bookings where id = $1', [req.params.id]);
     if (!b[0]) return res.status(404).json({ error: 'Booking not found.' });
-    await pool.query(`insert into notifications(user_id, type, title, body) values ($1, 'booking_price', $2, $3)`,
-      [b[0].user_id, `Price set: ${(price / 100).toLocaleString()}`, `Your booking "${b[0].topic}" is priced. Confirm to proceed to payment.`]).catch(() => {});
+    await notify(b[0].user_id, 'booking_price', `Price set: ${(price / 100).toLocaleString()}`, `Your booking "${b[0].topic}" is priced. Confirm to proceed to payment.`);
     res.json({ ok: true, price_kobo: price });
   } catch (e: any) {
     res.status(500).json({ error: 'Could not set price.' });
