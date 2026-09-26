@@ -12,7 +12,7 @@ const TABS = [
   { id: "record", label: "Recordings", icon: Disc3 },
 ] as const;
 
-export default function ClassroomWorkspace({ classroomId }: { classroomId: string }) {
+export default function ClassroomWorkspace({ classroomId, slug }: { classroomId: string; slug: string }) {
   const [tab, setTab] = useState<string>("sessions");
   const [data, setData] = useState<any>(null);
   const [err, setErr] = useState("");
@@ -39,8 +39,8 @@ export default function ClassroomWorkspace({ classroomId }: { classroomId: strin
   async function joinLive() {
     setLiveMsg("Checking your access…");
     try {
-      const r = await apiFetch("/live/token", { method: "POST", body: JSON.stringify({ classroom_id: classroomId }) });
-      setLiveMsg(`Access verified for room "${r.room}". Live video opens here in the next release — you will be notified the second it starts.`);
+      await apiFetch("/live/token", { method: "POST", body: JSON.stringify({ classroom_id: classroomId }) });
+      window.location.href = `/classrooms/${slug}/live`;
     } catch (e: any) {
       setLiveMsg(e.message);
     }
