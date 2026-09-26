@@ -26,10 +26,17 @@ export default async function Home() {
           <div className="lg:col-span-1">
             <Reveal><Eyebrow>Live cohorts · Courses · Mentorship</Eyebrow></Reveal>
             <Reveal delay={0.08}>
-              <h1 className="mt-6 font-display text-[52px] font-black uppercase leading-[0.92] tracking-[-0.02em] sm:text-7xl lg:text-[86px]">
-                Learn
-                <br /><span className="hl-marker">out loud.</span>
-                <br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">Ship for real.</span>
+              <h1 className="mt-6 font-display text-[54px] font-black uppercase leading-[0.9] tracking-[-0.02em] sm:text-7xl lg:text-[88px]">
+                <span className="text-stone-100">Learn</span>
+                <br /><span className="text-outline">out loud</span>
+                <br /><span className="relative inline-block pb-4">ship real.
+                  <svg className="absolute -bottom-1 left-0 h-[0.32em] w-full" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden>
+                    <defs><linearGradient id="swg" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stopColor="#EA580C" /><stop offset=".6" stopColor="#F43F5E" /><stop offset="1" stopColor="#FBBF24" />
+                    </linearGradient></defs>
+                    <path className="swash-draw" d="M6 17 C 80 7, 220 7, 294 13" stroke="url(#swg)" strokeWidth="8" fill="none" strokeLinecap="round" />
+                  </svg>
+                </span>
               </h1>
             </Reveal>
             <Reveal delay={0.16}>
