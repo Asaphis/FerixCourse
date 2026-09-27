@@ -28,7 +28,10 @@ export function createApp() {
   app.use('/bookings', bookingsRouter);
   app.use('/messages', messagesRouter);
   app.use('/notifications', notificationsRouter);
+  // Public catalog and authenticated learner summaries. Keep /public as a
+  // compatibility alias for older deployments while the frontend uses /api.
   app.use('/api', publicRouter);
+  app.use('/public', publicRouter);
   app.use('/payments', paymentsRouter);
   app.use('/live', liveRouter);
   app.use('/files', filesRouter);
