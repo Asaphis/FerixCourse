@@ -14,15 +14,22 @@ import { Chip, EmptyState, LoadingGrid, timeAgo } from "@/components/ui/primitiv
   faked: the list, titles, bodies and timestamps are all server data.
 */
 
+/* Keys are the real `type` values written by Backend/src/lib/notify.ts. */
 const KIND_ICON: Record<string, IconName> = {
   enrollment: "bookOpen",
   welcome: "sparkles",
   payment_failed: "alertCircle",
   payment: "wallet",
   live: "video",
-  recording: "monitorPlay",
-  message: "messageSquare",
-  booking: "calendarCheck",
+  recorded: "monitorPlay",
+  material: "monitorPlay",
+  announcement: "bell",
+  feedback: "messageSquare",
+  request_converted: "sparkles",
+  request_update: "sparkles",
+  reminder: "clock",
+  booking_update: "calendarCheck",
+  booking_price: "wallet",
 };
 
 const READ_KEY = "fc_notif_read";
@@ -118,12 +125,12 @@ export default function NotificationsPage() {
                     <span
                       className="fc-notif-ico"
                       style={
-                        n.kind === "payment_failed"
+                        n.type === "payment_failed"
                           ? { background: "var(--fc-danger-bg)", color: "var(--fc-danger-fg)" }
                           : { background: "var(--fc-brand-soft)", color: "var(--fc-brand)" }
                       }
                     >
-                      <Icon name={KIND_ICON[n.kind] ?? "bell"} size={17} />
+                      <Icon name={KIND_ICON[n.type] ?? "bell"} size={17} />
                     </span>
                     <div className="fc-notif-body">
                       <h2 className="fc-notif-title">{n.title}</h2>

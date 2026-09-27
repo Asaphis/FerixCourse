@@ -379,7 +379,8 @@ export default function OverviewPage() {
               <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>Nothing yet — payments, recordings and reminders land here.</p>
             ) : (
               recentActivity.map((n) => {
-                const tone = n.kind.includes("fail") ? "danger" : n.kind.includes("enroll") || n.kind.includes("welcome") ? "ok" : "info";
+                const kind = (n.type ?? "").toLowerCase();
+                const tone = kind.includes("fail") ? "danger" : kind.includes("enroll") || kind.includes("welcome") ? "ok" : "info";
                 return (
                   <div key={n.id} className="fc-act-item">
                     <span className={`fc-act-ico ${tone}`}>

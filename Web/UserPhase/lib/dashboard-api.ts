@@ -105,7 +105,12 @@ export type Transaction = {
 export type Notification = {
   id: string;
   user_id: string;
-  kind: string;
+  /**
+   * The backend column is `type` (see Backend/src/lib/notify.ts and
+   * migrations/002_phase5.sql: `type text not null`). Reading a `kind`
+   * field here crashed the Overview — the API never sends it.
+   */
+  type: string;
   title: string;
   body: string | null;
   is_read: boolean;

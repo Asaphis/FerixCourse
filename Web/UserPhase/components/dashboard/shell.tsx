@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { Avatar } from "@/components/ui/primitives";
-import { ToastProvider, usePrefs, useToast } from "./preferences";
+import { PrefsProvider, ToastProvider, usePrefs, useToast } from "./preferences";
 import { DashboardProvider, useDashboard } from "./dashboard-context";
 import { apiLogout } from "@/lib/auth";
 
@@ -607,10 +607,19 @@ function ShellBody({
 }
 
 /**
- * Preferences are read here and handed to ShellBody, which renders the one and
- * only .fc-dash root carrying the theme attribute.
+ * One PrefsProvider for the whole dashboard, so the header toggle, the profile
+ * switch and the themed root all read the SAME preference state.
  */
 function PrefsShell({ children }: { children: ReactNode }) {
+  return (
+    <PrefsProvider>
+      <ThemedShell>{children}</ThemedShell>
+    </PrefsProvider>
+  );
+}
+
+/** Renders the single .fc-dash root carrying the theme attribute. */
+function ThemedShell({ children }: { children: ReactNode }) {
   const { prefs } = usePrefs();
   return (
     <ShellBody theme={prefs.theme} reduceMotion={prefs.reduceMotion}>

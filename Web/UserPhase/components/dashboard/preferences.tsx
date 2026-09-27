@@ -51,7 +51,19 @@ const PREFS_KEY = "fc_dash_prefs";
 
 const defaultPrefs: Prefs = { theme: "dark", reduceMotion: false };
 
-export function usePrefs() {
+/*
+  Preferences live in a CONTEXT, not in per-caller state.
+
+  `usePrefs` used to be a bare hook with its own useState, so the Header toggle,
+  the Profile switch and the shell root each held a separate copy. Flipping the
+  toggle persisted to localStorage but never re-rendered the root, so the theme
+  did not change until a reload. One provider keeps a single source of truth.
+*/
+type PrefsValue = { prefs: Prefs; update: (patch: Partial<Prefs>) => void; ready: boolean };
+
+const PrefsContext = createContext<PrefsValue | null>(null);
+
+export function PrefsProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [ready, setReady] = useState(false);
 
@@ -83,5 +95,13 @@ export function usePrefs() {
     });
   }, []);
 
-  return { prefs, update, ready };
+  const value = useMemo<PrefsValue>(() => ({ prefs, update, ready }), [prefs, update, ready]);
+
+  return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>;
+}
+
+export function usePrefs(): PrefsValue {
+  const ctx = useContext(PrefsContext);
+  if (!ctx) throw new Error("usePrefs must be used inside <PrefsProvider>");
+  return ctx;
 }
