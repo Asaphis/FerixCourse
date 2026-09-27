@@ -12,11 +12,11 @@ async function get<T>(path: string, fallback: T): Promise<T> {
 }
 
 export const getFeatured = () => get<any[]>("/courses/featured", []);
-export const getCourses = (params = "") => get<any[]>(`/api/courses${params}`, []);
-export const getClassrooms = (params = "") => get<any[]>(`/api/classrooms${params}`, []);
-export const getCategories = () => get<any[]>("/api/categories", []);
-export const getClassroom = (slug: string) => get<any>(`/api/classrooms/${slug}`, null);
-export const getCourse = (slug: string) => get<any>(`/api/courses/${slug}`, null);
+export const getCourses = (params = "") => get<any[]>(`/public/courses${params}`, []);
+export const getClassrooms = (params = "") => get<any[]>(`/public/classrooms${params}`, []);
+export const getCategories = () => get<any[]>("/public/categories", []);
+export const getClassroom = (slug: string) => get<any>(`/public/classrooms/${slug}`, null);
+export const getCourse = (slug: string) => get<any>(`/public/courses/${slug}`, null);
 
 export function formatMoney(kobo: number, currency = "NGN") {
   const major = kobo / 100;

@@ -271,8 +271,8 @@ export const api = {
   me: () => apiFetch<Profile>("/auth/me"),
 
   /* public.ts — logged-in student views */
-  myEnrollments: () => apiFetch<MyEnrollments>("/api/enrollments/mine"),
-  myTransactions: () => apiFetch<Transaction[]>("/api/transactions/mine"),
+  myEnrollments: () => apiFetch<MyEnrollments>("/public/enrollments/mine"),
+  myTransactions: () => apiFetch<Transaction[]>("/public/transactions/mine"),
 
   /* public.ts — catalog */
   courses: (params?: { search?: string; category?: string; level?: string }) => {
@@ -281,18 +281,18 @@ export const api = {
     if (params?.category) qs.set("category", params.category);
     if (params?.level) qs.set("level", params.level);
     const s = qs.toString();
-    return apiFetch<CatalogCourse[]>(`/api/courses${s ? `?${s}` : ""}`, {}, false);
+    return apiFetch<CatalogCourse[]>(`/public/courses${s ? `?${s}` : ""}`, {}, false);
   },
   classrooms: (params?: { search?: string; level?: string }) => {
     const qs = new URLSearchParams();
     if (params?.search) qs.set("search", params.search);
     if (params?.level) qs.set("level", params.level);
     const s = qs.toString();
-    return apiFetch<CatalogClassroom[]>(`/api/classrooms${s ? `?${s}` : ""}`, {}, false);
+    return apiFetch<CatalogClassroom[]>(`/public/classrooms${s ? `?${s}` : ""}`, {}, false);
   },
-  categories: () => apiFetch<Category[]>("/api/categories", {}, false),
-  classroom: (slug: string) => apiFetch<CatalogClassroom & { sessions: ClassroomSession[]; material_count: number }>(`/api/classrooms/${encodeURIComponent(slug)}`, {}, false),
-  course: (slug: string) => apiFetch<CatalogCourse & { sections: CourseSection[] }>(`/api/courses/${encodeURIComponent(slug)}`, {}, false),
+  categories: () => apiFetch<Category[]>("/public/categories", {}, false),
+  classroom: (slug: string) => apiFetch<CatalogClassroom & { sessions: ClassroomSession[]; material_count: number }>(`/public/classrooms/${encodeURIComponent(slug)}`, {}, false),
+  course: (slug: string) => apiFetch<CatalogCourse & { sections: CourseSection[] }>(`/public/courses/${encodeURIComponent(slug)}`, {}, false),
 
   /* scope.ts */
   requestStatus: () => apiFetch<RequestStatus>("/scope/requests/status"),
