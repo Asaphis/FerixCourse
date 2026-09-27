@@ -8,3 +8,6 @@ Web/AdminPort/node_modules/
 Web/AdminPort/.next/
 **/.env
 **/.env.local
+
+# TypeScript incremental build info
+**/*.tsbuildinfo

@@ -1,20 +1,40 @@
 "use client";
 import { useEffect, useState } from "react";
-import { PlayCircle, Check, FileText, LockOpen } from "lucide-react";
+import { PlayCircle, Check, FileText, LockOpen, AlertCircle } from "lucide-react";
 import { apiFetch } from "@/lib/client";
 
 export default function CourseLearn({ courseId }: { courseId: string }) {
   const [data, setData] = useState<any>(null);
+  const [err, setErr] = useState("");
 
   async function load() {
+    setErr("");
     try {
       setData(await apiFetch(`/scope/courses/${courseId}/learn`));
-    } catch {
-      setData(null); // not enrolled → public curriculum stands
+    } catch (e: any) {
+      /* An access refusal is normal here — the public curriculum stands in its
+         place. Any other failure is a real error and must be visible, or a
+         broken request would be presented to the learner as "not enrolled". */
+      setData(null);
+      const msg = e?.message ?? "Could not load your progress.";
+      setErr(/don'?t have access|not enrolled|forbidden|no access/i.test(msg) ? "" : msg);
     }
   }
   useEffect(() => { load(); }, [courseId]);
 
+  if (err) {
+    return (
+      <div className="mt-10 rounded-3xl border border-rose-400/30 bg-rose-500/10 p-6" role="alert">
+        <p className="flex items-center gap-2 font-bold text-rose-100">
+          <AlertCircle size={17} /> Could not load your progress
+        </p>
+        <p className="mt-1.5 text-[13.5px] text-rose-100/80">{err}</p>
+        <button onClick={load} className="mt-4 rounded-xl border border-rose-300/40 px-4 py-2.5 text-sm font-bold text-rose-50 hover:bg-rose-500/15">
+          Try again
+        </button>
+      </div>
+    );
+  }
   if (!data) return null;
   const pct = data.total ? Math.round((data.completed / data.total) * 100) : 0;
 

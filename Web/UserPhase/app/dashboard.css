@@ -54,7 +54,7 @@
   --fc-border-strong: #463e37;
   --fc-text: #faf8f5;
   --fc-muted: #b6ada3;
-  --fc-faint: #8f8578;
+  --fc-faint: #9d9385;
 
   /* semantic */
   --fc-ok-fg: #86efac;
@@ -1013,7 +1013,8 @@
     border-radius: var(--fc-r-sm);
     position: relative;
   }
-  .fc-mobile-nav a[aria-current="page"] { color: var(--fc-brand-text); }
+  /* Class-driven for the same reason: aria-current lives on the rail only. */
+  .fc-mobile-nav a.is-active { color: var(--fc-brand-text); }
   .fc-mobile-nav .fc-nav-count { position: absolute; top: 6px; right: 50%; transform: translateX(16px); margin: 0; min-width: 16px; height: 16px; font-size: 9.5px; }
   .fc-band { grid-template-columns: 1fr; }
 }

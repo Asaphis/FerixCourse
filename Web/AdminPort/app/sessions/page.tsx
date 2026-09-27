@@ -1,78 +1,194 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { adminFetch } from "@/lib/admin";
+import { Icon } from "@/components/icons";
+import { Alert, Badge, EmptyState, ErrorNote, PageHead, SectionHead, Skeleton, StatusBadge } from "@/components/ui";
+import { adminFetch, shortDateTime } from "@/lib/admin";
+import { useAdmin } from "@/lib/use-admin";
+import type { Session } from "@/lib/admin-types";
+
+/*
+  Every session, across every classroom.
+
+  Endpoints: GET /admin/sessions (now honours ?classroom_id after the duplicate
+  shadowing route was removed), PATCH /admin/sessions/:id, GET /admin/sessions/:id/attendance.
+
+  Starting a session from here notifies only that classroom's members — the
+  notification loop lives in the PATCH handler.
+*/
 
 export default function SessionsPage() {
-  const [items, setItems] = useState<any[]>([]);
+  const sessions = useAdmin<Session[]>("/admin/sessions");
+  const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
-  async function load() {
-    try {
-      setItems(await adminFetch("/admin/sessions"));
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
-  useEffect(() => { load(); }, []);
+  const items = sessions.data ?? [];
+  const live = items.filter((s) => s.status === "live");
+  const scheduled = items.filter((s) => s.status === "scheduled");
+  const ended = items.filter((s) => s.status === "ended");
 
-  async function setStatus(id: string, status: string) {
-    setErr(""); setMsg("");
+  async function setStatus(id: string, status: "live" | "ended") {
+    setErr("");
+    setMsg("");
+    setBusy(`s-${id}`);
     try {
       await adminFetch(`/admin/sessions/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
-      setMsg(status === "live" ? "Live started — members of that classroom notified." : `Session ${status}.`);
-      load();
-    } catch (e: any) {
-      setErr(e.message);
+      sessions.reload();
+      setMsg(status === "live" ? "Session is live — that classroom's members were notified." : "Session ended and the end time recorded.");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Could not update the session.");
+    } finally {
+      setBusy("");
     }
   }
 
-  const live = items.filter((s) => s.status === "live");
-  const upcoming = items.filter((s) => s.status === "scheduled");
+  async function remove(id: string) {
+    setErr("");
+    setBusy(`d-${id}`);
+    try {
+      await adminFetch(`/admin/sessions/${id}`, { method: "DELETE" });
+      sessions.reload();
+      setMsg("Session deleted.");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Could not delete the session.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  const section = (title: string, rows: Session[], tone: "live" | "default") => (
+    <>
+      <SectionHead title={title} count={rows.length} />
+      {rows.length === 0 ? (
+        <EmptyState
+          icon="calendar"
+          title={`Nothing ${tone === "live" ? "live" : title.toLowerCase()}`}
+          body="Create sessions from inside a classroom, or from the live control room."
+        />
+      ) : (
+        <div className="ad-card ad-card-pad-0" style={{ marginBottom: 8 }}>
+          <div className="ad-table-wrap">
+            <table className="ad-table">
+              <caption className="ad-sr-only">{title}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Session</th>
+                  <th scope="col">Classroom</th>
+                  <th scope="col">Starts</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Recording</th>
+                  <th scope="col">
+                    <span className="ad-sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={s.id}>
+                    <td className="ad-row-title">{s.title}</td>
+                    <td className="ad-muted">
+                      <Link className="ad-row-title" href={`/classrooms/${s.classroom_id}`}>
+                        {s.classroom_title ?? "Open"}
+                      </Link>
+                    </td>
+                    <td className="ad-muted">{shortDateTime(s.starts_at)}</td>
+                    <td>
+                      <StatusBadge status={s.status} />
+                    </td>
+                    <td>
+                      <StatusBadge status={s.recording_status} />
+                    </td>
+                    <td>
+                      <span className="ad-row-actions">
+                        {s.status !== "live" ? (
+                          <button
+                            type="button"
+                            className="ad-btn ad-btn-ghost ad-btn-sm"
+                            disabled={busy === `s-${s.id}`}
+                            onClick={() => setStatus(s.id, "live")}
+                          >
+                            <Icon name="play" size={13} /> Start live
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="ad-btn ad-btn-ghost ad-btn-sm"
+                            disabled={busy === `s-${s.id}`}
+                            onClick={() => setStatus(s.id, "ended")}
+                          >
+                            <Icon name="stop" size={13} /> End
+                          </button>
+                        )}
+                        <Link className="ad-btn ad-btn-ghost ad-btn-sm" href="/live">
+                          <Icon name="radio" size={13} /> Control room
+                        </Link>
+                        <button
+                          type="button"
+                          className="ad-btn ad-btn-ghost ad-btn-sm"
+                          disabled={busy === `d-${s.id}`}
+                          onClick={() => remove(s.id)}
+                          aria-label={`Delete ${s.title}`}
+                        >
+                          <Icon name="trash" size={13} />
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <Shell>
-      <h1 className="font-display text-2xl font-bold">Live Sessions</h1>
-      <p className="text-sm text-slate-400 mt-1">Pick which classroom trains, start it live. Only that room&apos;s members are notified — never anyone else.</p>
-      {err && <p className="card mt-4 text-sm text-rose-200">{err}</p>}
-      {msg && <p className="card mt-4 text-sm text-emerald-200">{msg}</p>}
+      <PageHead
+        title="Sessions"
+        sub="Every scheduled, live and completed training session. Starting one notifies only that classroom's members."
+        actions={
+          <>
+            <button type="button" className="ad-btn ad-btn-ghost" onClick={() => sessions.reload()}>
+              <Icon name="refresh" size={14} /> Refresh
+            </button>
+            <Link className="ad-btn ad-btn-primary" href="/live">
+              <Icon name="radio" size={14} /> Live control
+            </Link>
+          </>
+        }
+      />
 
-      {live.length > 0 && (
+      {err ? <ErrorNote message={err} onRetry={() => setErr("")} /> : null}
+      {msg ? (
+        <Alert tone="ok" icon="check">
+          {msg}
+        </Alert>
+      ) : null}
+      {sessions.error ? <ErrorNote message={sessions.error} onRetry={sessions.reload} /> : null}
+
+      {sessions.loading && items.length === 0 ? (
+        <Skeleton height={60} count={4} />
+      ) : (
         <>
-          <h2 className="mt-6 font-semibold text-rose-200">Live right now ({live.length})</h2>
-          <div className="mt-2 grid gap-2">
-            {live.map((s) => (
-              <div key={s.id} className="card flex items-center gap-3 border-rose-400/30">
-                <span className="relative flex h-2.5 w-2.5"><span className="absolute h-full w-full animate-ping rounded-full bg-rose-400 opacity-60" /><span className="h-2.5 w-2.5 rounded-full bg-rose-400" /></span>
-                <div>
-                  <p className="font-semibold text-sm">{s.title} <span className="text-xs text-slate-400">• {s.classroom_title}</span></p>
-                  <p className="text-xs text-slate-500 font-mono">room: {s.livekit_room}</p>
-                </div>
-                <button onClick={() => setStatus(s.id, "ended")} className="btn-ghost ml-auto text-xs">End session</button>
-              </div>
-            ))}
+          {live.length > 0 ? (
+            <div style={{ marginBottom: 16 }}>
+              {section("Live right now", live, "live")}
+            </div>
+          ) : null}
+          {section("Scheduled", scheduled, "default")}
+          {section("Completed", ended, "default")}
+          {items.length === 0 ? (
+            <EmptyState icon="calendar" title="No sessions yet" body="Create one from a classroom or the live control room." />
+          ) : null}
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <Badge>{items.length} total</Badge>
           </div>
         </>
       )}
-
-      <h2 className="mt-6 font-semibold">Scheduled ({upcoming.length})</h2>
-      <div className="mt-2 grid gap-2">
-        {upcoming.map((s) => (
-          <div key={s.id} className="card flex flex-wrap items-center gap-2">
-            <div>
-              <p className="font-semibold text-sm">{s.title} <span className="text-xs text-slate-400">• {s.classroom_title}</span></p>
-              <p className="text-xs text-slate-500">{s.starts_at ? new Date(s.starts_at).toLocaleString() : "TBD"}</p>
-            </div>
-            <span className="ml-auto flex gap-1.5">
-              <Link href={`/classrooms/${s.classroom_id}`} className="btn-ghost text-xs">Manage room</Link>
-              <button onClick={() => setStatus(s.id, "live")} className="btn text-xs !px-3 !py-1.5">Start live</button>
-            </span>
-          </div>
-        ))}
-        {!upcoming.length && <p className="card text-sm text-slate-400">Nothing scheduled. Create sessions inside a classroom&apos;s Manage page.</p>}
-      </div>
     </Shell>
   );
 }

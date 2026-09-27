@@ -1,0 +1,1129 @@
+/* ==========================================================================
+   FerixCourse — Admin console design system.
+
+   Shares the learner dashboard's structure: 248px rail, 76px topbar, 24px
+   gutters, 20px card radius, one type ramp, one spacing rhythm. The accent is
+   deliberately the admin console's own indigo — the same product family, a
+   different role — so an operator never mistakes the console for the storefront.
+
+   SCOPE: every rule is rooted at `.ad` so this sheet cannot reach any other
+   surface in the project.
+   ========================================================================== */
+
+.ad {
+  --ad-font-display: "Sora", system-ui, sans-serif;
+  --ad-font-body: "Inter", system-ui, sans-serif;
+  --ad-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* geometry — mirror of the learner dashboard */
+  --ad-rail-w: 248px;
+  --ad-topbar-h: 76px;
+  --ad-gutter: 24px;
+
+  /* radii */
+  --ad-r-xs: 6px;
+  --ad-r-sm: 10px;
+  --ad-r: 12px;
+  --ad-r-md: 16px;
+  --ad-r-lg: 20px;
+  --ad-r-full: 999px;
+
+  --ad-dur: 0.2s;
+  --ad-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* brand — console indigo */
+  --ad-brand: #818cf8;
+  --ad-brand-strong: #4a41d6;
+  --ad-brand-ink: #ffffff;
+  --ad-brand-text: #a5b4fc;
+  --ad-brand-soft: rgba(129, 140, 248, 0.14);
+  --ad-brand-line: rgba(129, 140, 248, 0.4);
+
+  /* dark surface ramp */
+  --ad-bg: #07090f;
+  --ad-rail: #0b0e18;
+  --ad-surface: #111524;
+  --ad-surface-2: #171c2e;
+  --ad-surface-3: #1f2539;
+  --ad-border: #262d45;
+  --ad-border-strong: #38415e;
+  --ad-text: #f3f5fb;
+  --ad-muted: #aab3c8;
+  --ad-faint: #8d97b0;
+
+  /* semantic */
+  --ad-ok-fg: #86efac;
+  --ad-ok-bg: rgba(74, 222, 128, 0.14);
+  --ad-warn-fg: #fcd34d;
+  --ad-warn-bg: rgba(251, 191, 36, 0.14);
+  --ad-info-fg: #93c5fd;
+  --ad-info-bg: rgba(96, 165, 250, 0.14);
+  --ad-danger-fg: #fda4af;
+  --ad-danger-bg: rgba(251, 113, 133, 0.14);
+  --ad-live-fg: #fda4af;
+  --ad-neutral-fg: #d6dbe8;
+  --ad-neutral-bg: rgba(255, 255, 255, 0.07);
+
+  --ad-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ad-shadow-2: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
+  --ad-scrim: rgba(4, 6, 12, 0.66);
+  --ad-focus: #a5b4fc;
+  --ad-halo: rgba(129, 140, 248, 0.16);
+
+  color-scheme: dark;
+  font-family: var(--ad-font-body);
+  background: var(--ad-bg);
+  color: var(--ad-text);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.ad[data-theme="light"] {
+  --ad-brand: #6d63e8;
+  --ad-brand-strong: #4338ca;
+  --ad-brand-ink: #ffffff;
+  --ad-brand-text: #4338ca;
+  --ad-brand-soft: #eceafe;
+  --ad-brand-line: rgba(79, 70, 229, 0.32);
+
+  --ad-bg: #f6f7fb;
+  --ad-rail: #ffffff;
+  --ad-surface: #ffffff;
+  --ad-surface-2: #f1f3f9;
+  --ad-surface-3: #e6e9f2;
+  --ad-border: #dfe3ee;
+  --ad-border-strong: #c2c8d8;
+  --ad-text: #131728;
+  --ad-muted: #4d5568;
+  --ad-faint: #5f687e;
+
+  --ad-ok-fg: #15803d;
+  --ad-ok-bg: #dcfce7;
+  --ad-warn-fg: #854d0e;
+  --ad-warn-bg: #fef3c7;
+  --ad-info-fg: #1d4ed8;
+  --ad-info-bg: #dbeafe;
+  --ad-danger-fg: #b91c1c;
+  --ad-danger-bg: #fee2e2;
+  --ad-live-fg: #be123c;
+  --ad-neutral-fg: #3f4759;
+  --ad-neutral-bg: rgba(19, 23, 40, 0.06);
+
+  --ad-shadow-1: 0 1px 2px rgba(19, 23, 40, 0.06);
+  --ad-shadow-2: 0 18px 40px -24px rgba(19, 23, 40, 0.22);
+  --ad-scrim: rgba(19, 23, 40, 0.42);
+  --ad-focus: #4338ca;
+  --ad-halo: rgba(79, 70, 229, 0.14);
+
+  color-scheme: light;
+}
+
+/* The hidden attribute must always win, even over a display:flex rule. */
+.ad [hidden] { display: none !important; }
+
+/* ---------- reset (low specificity so component classes always win) ---------- */
+.ad :where(*, *::before, *::after) { box-sizing: border-box; }
+.ad :where(h1, h2, h3, h4, p, figure, blockquote, dl, dd) { margin: 0; }
+.ad :where(ul, ol) { margin: 0; padding: 0; list-style: none; }
+.ad :where(a) { color: inherit; text-decoration: none; }
+.ad :where(button) { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.ad :where(input, select, textarea) { font: inherit; color: inherit; }
+.ad :where(img, svg) { display: block; max-width: 100%; }
+.ad :where(table) { border-collapse: collapse; width: 100%; }
+
+/* Focus: preflight removes outlines, so the console draws its own. */
+.ad :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ad-focus);
+  outline-offset: 2px;
+  border-radius: var(--ad-r-sm);
+}
+
+.ad .ad-skip {
+  position: absolute;
+  left: -9999px;
+  top: 10px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: var(--ad-r-sm);
+  /* Pinned rather than tokenised: this chip sits on the indigo brand colour,
+     and white on --ad-brand-strong (#6366f1) measures 4.47:1 — fractionally
+     under the 4.5:1 AA floor for small bold text. #4338ca measures 7.0:1. */
+  background: #4338ca;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+}
+.ad .ad-skip:focus { left: 12px; }
+
+.ad .ad-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- layout ---------- */
+.ad-layout { display: flex; min-height: 100vh; }
+
+.ad-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.ad-content { flex: 1; padding: var(--ad-gutter); }
+.ad-content-inner { max-width: 1560px; margin: 0 auto; }
+
+/* ---------- rail ---------- */
+.ad-rail {
+  width: var(--ad-rail-w);
+  flex-shrink: 0;
+  background: var(--ad-rail);
+  border-right: 1px solid var(--ad-border);
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.ad-brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px; }
+.ad-brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--ad-r);
+  background: linear-gradient(140deg, var(--ad-brand), var(--ad-brand-strong));
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.ad-brand-name {
+  display: block;
+  font-family: var(--ad-font-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.ad-brand-tag {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ad-faint);
+}
+
+.ad-nav { display: flex; flex-direction: column; gap: 18px; }
+.ad-nav-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ad-faint);
+  padding: 0 10px 7px;
+}
+.ad-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: var(--ad-r);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ad-muted);
+  transition: background var(--ad-dur) var(--ad-ease), color var(--ad-dur) var(--ad-ease);
+}
+.ad-nav-link:hover { background: var(--ad-neutral-bg); color: var(--ad-text); }
+.ad-nav-link[aria-current="page"] {
+  background: var(--ad-brand-soft);
+  color: var(--ad-text);
+}
+.ad-nav-link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ad-brand);
+}
+.ad-nav-link svg { flex-shrink: 0; }
+.ad-nav-link span:first-of-type { flex: 1; min-width: 0; }
+.ad-nav-count {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--ad-r-full);
+  background: var(--ad-neutral-bg);
+  color: var(--ad-neutral-fg);
+  font-variant-numeric: tabular-nums;
+}
+.ad-nav-count.is-alert { background: var(--ad-danger-bg); color: var(--ad-danger-fg); }
+
+/* On the CURRENT item the badge sits on --ad-brand-soft over the rail, so the
+   translucent neutral chip resolved to a mid-indigo and its light text measured
+   1.97:1 (and 1.60:1 for the alert tone). A solid chip gives both tones a
+   measurable, theme-independent contrast. */
+.ad-nav-link[aria-current="page"] .ad-nav-count {
+  background: #4f46e5;
+  color: #ffffff;
+}
+.ad-nav-link[aria-current="page"] .ad-nav-count.is-alert {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.ad-rail-foot {
+  margin-top: auto;
+  border-top: 1px solid var(--ad-border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ad-rail-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ad-rail-user-text { min-width: 0; }
+.ad-rail-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ad-rail-user-mail {
+  font-size: 11px;
+  color: var(--ad-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ad-rail-actions { display: flex; gap: 8px; }
+
+/* ---------- topbar ---------- */
+.ad-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--ad-topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 var(--ad-gutter);
+  background: color-mix(in srgb, var(--ad-bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--ad-border);
+}
+.ad-topbar-title {
+  font-family: var(--ad-font-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.015em;
+}
+.ad-topbar-sub { font-size: 12px; color: var(--ad-faint); margin-top: -2px; }
+.ad-topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+
+.ad-search-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: min(340px, 38vw);
+  padding: 9px 13px;
+  border-radius: var(--ad-r-full);
+  background: var(--ad-surface-2);
+  border: 1px solid var(--ad-border);
+  color: var(--ad-faint);
+  font-size: 13px;
+  text-align: left;
+}
+.ad-search-trigger:hover { border-color: var(--ad-border-strong); color: var(--ad-muted); }
+.ad-search-trigger span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ad-kbd {
+  font-family: var(--ad-font-mono);
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: var(--ad-r-xs);
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-muted);
+}
+
+.ad-icon-btn {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ad-r);
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface-2);
+  color: var(--ad-muted);
+  position: relative;
+  transition: color var(--ad-dur) var(--ad-ease), border-color var(--ad-dur) var(--ad-ease);
+}
+.ad-icon-btn:hover { color: var(--ad-text); border-color: var(--ad-border-strong); }
+
+.ad-dot-alert {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ad-danger-fg);
+  border: 2px solid var(--ad-surface-2);
+}
+
+.ad-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: var(--ad-r-full);
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface-2);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ad-muted);
+}
+.ad-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ad-ok-fg); }
+.ad-status-pill.is-ok .ad-status-dot { background: var(--ad-ok-fg); }
+.ad-status-pill.is-down .ad-status-dot { background: var(--ad-danger-fg); }
+
+/* ---------- menus ---------- */
+.ad-menu-wrap { position: relative; }
+.ad-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 260px;
+  max-width: 340px;
+  padding: 7px;
+  border-radius: var(--ad-r-md);
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  box-shadow: var(--ad-shadow-2);
+  z-index: 40;
+}
+.ad-menu-head {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--ad-border);
+  margin-bottom: 6px;
+}
+.ad-menu-head p { font-size: 13px; font-weight: 700; }
+.ad-menu-head span { font-size: 11.5px; color: var(--ad-faint); }
+.ad-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--ad-r-sm);
+  font-size: 13px;
+  text-align: left;
+  color: var(--ad-muted);
+}
+.ad-menu-item:hover { background: var(--ad-neutral-bg); color: var(--ad-text); }
+.ad-menu-item-danger { color: var(--ad-danger-fg); }
+.ad-menu-sep { height: 1px; background: var(--ad-border); margin: 6px 0; }
+
+/* ---------- typography blocks ---------- */
+.ad-page-head { margin-bottom: 20px; }
+.ad-page-title {
+  font-family: var(--ad-font-display);
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.ad-page-sub { font-size: 13.5px; color: var(--ad-muted); margin-top: 5px; max-width: 76ch; }
+.ad-page-head-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.ad-page-actions { margin-left: auto; display: flex; gap: 9px; flex-wrap: wrap; }
+
+.ad-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 12px;
+  flex-wrap: wrap;
+}
+.ad-sec-title {
+  font-family: var(--ad-font-display);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.ad-muted { color: var(--ad-muted); }
+.ad-faint { color: var(--ad-faint); }
+.ad-mono { font-family: var(--ad-font-mono); font-size: 11.5px; }
+.ad-sm { font-size: 12.5px; }
+.ad-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- buttons ---------- */
+.ad-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: var(--ad-r);
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: opacity var(--ad-dur) var(--ad-ease), background var(--ad-dur) var(--ad-ease);
+  white-space: nowrap;
+}
+.ad-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/*  Primary button contrast.
+
+    --ad-brand-strong carries white label text, so it has to clear AA on the
+    fill itself:
+
+      dark   #4a41d6 + #fff = 6.61:1   (was #6366f1 at 4.47:1 — failed)
+      light  #4338ca + #fff = 7.02:1   (was #4f46e5 at 4.87:1 — only just passed)
+
+    The dark value is a deeper indigo than the brand hue on purpose: a lighter
+    violet cannot hold white text at this size. The brand colour itself is
+    unchanged for fills that do not carry text. */
+.ad-btn-primary { background: var(--ad-brand-strong); color: var(--ad-brand-ink); }
+.ad-btn-primary:hover:not(:disabled) { opacity: 0.9; }
+.ad-btn-ghost { border-color: var(--ad-border-strong); color: var(--ad-text); background: var(--ad-surface-2); }
+.ad-btn-ghost:hover:not(:disabled) { background: var(--ad-surface-3); }
+.ad-btn-danger { background: var(--ad-danger-bg); color: var(--ad-danger-fg); border-color: transparent; }
+.ad-btn-danger:hover:not(:disabled) { opacity: 0.85; }
+.ad-btn-sm { padding: 6px 11px; font-size: 12px; border-radius: var(--ad-r-sm); }
+.ad-btn-block { width: 100%; }
+
+/* ---------- forms ---------- */
+.ad-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ad-label { font-size: 12px; font-weight: 700; color: var(--ad-muted); }
+.ad-input,
+.ad-select,
+.ad-textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: var(--ad-r);
+  background: var(--ad-surface-2);
+  border: 1px solid var(--ad-border);
+  font-size: 13.5px;
+  transition: border-color var(--ad-dur) var(--ad-ease);
+}
+.ad-input::placeholder, .ad-textarea::placeholder { color: var(--ad-faint); }
+.ad-input:focus, .ad-select:focus, .ad-textarea:focus { border-color: var(--ad-brand); }
+.ad-textarea { resize: vertical; min-height: 78px; }
+.ad-select { appearance: none; padding-right: 34px; }
+.ad-hint { font-size: 11.5px; color: var(--ad-faint); }
+
+.ad-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+/* ---------- cards ---------- */
+.ad-card {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-r-lg);
+  padding: 18px;
+}
+.ad-card-pad-0 { padding: 0; overflow: hidden; }
+.ad-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--ad-border);
+  flex-wrap: wrap;
+}
+.ad-card-title { font-family: var(--ad-font-display); font-size: 14.5px; font-weight: 700; }
+
+.ad-grid { display: grid; gap: 16px; }
+.ad-grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.ad-grid-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.ad-grid-4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.ad-split { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.ad-split-even { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+/* ---------- stat tile ---------- */
+.ad-stat { display: flex; align-items: flex-start; gap: 13px; }
+.ad-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--ad-r);
+  display: grid;
+  place-items: center;
+  background: var(--ad-brand-soft);
+  color: var(--ad-brand-text);
+  flex-shrink: 0;
+}
+.ad-stat-label { font-size: 12px; color: var(--ad-muted); font-weight: 600; }
+.ad-stat-value {
+  font-family: var(--ad-font-display);
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.ad-stat-foot { font-size: 11.5px; color: var(--ad-faint); margin-top: 3px; }
+
+/* ---------- badges ---------- */
+.ad-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--ad-r-full);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  background: var(--ad-neutral-bg);
+  color: var(--ad-neutral-fg);
+  white-space: nowrap;
+}
+.ad-badge-ok { background: var(--ad-ok-bg); color: var(--ad-ok-fg); }
+.ad-badge-warn { background: var(--ad-warn-bg); color: var(--ad-warn-fg); }
+.ad-badge-info { background: var(--ad-info-bg); color: var(--ad-info-fg); }
+.ad-badge-danger { background: var(--ad-danger-bg); color: var(--ad-danger-fg); }
+.ad-badge-brand { background: var(--ad-brand-soft); color: var(--ad-brand-text); }
+
+.ad-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--ad-r-full);
+  background: var(--ad-danger-bg);
+  color: var(--ad-live-fg);
+  font-size: 11px;
+  font-weight: 800;
+}
+.ad-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ad-pulse 1.8s ease-in-out infinite;
+}
+@keyframes ad-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------- table ---------- */
+.ad-table-wrap { overflow-x: auto; }
+.ad-table { font-size: 13px; }
+.ad-table caption { text-align: left; padding: 13px 18px; font-size: 12.5px; color: var(--ad-faint); }
+.ad-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ad-faint);
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--ad-border);
+  white-space: nowrap;
+  background: var(--ad-surface-2);
+}
+.ad-table td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--ad-border);
+  vertical-align: middle;
+}
+.ad-table tbody tr:last-child td { border-bottom: 0; }
+.ad-table tbody tr:hover { background: var(--ad-surface-2); }
+.ad-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- list rows ---------- */
+.ad-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--ad-border);
+  flex-wrap: wrap;
+}
+.ad-row:last-child { border-bottom: 0; }
+.ad-row-title { font-weight: 700; font-size: 13.5px; }
+.ad-row-meta { font-size: 12px; color: var(--ad-faint); }
+.ad-row-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+.ad-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--ad-font-display);
+  font-weight: 800;
+  font-size: 13px;
+  background: var(--ad-brand-soft);
+  color: var(--ad-brand-text);
+  flex-shrink: 0;
+}
+
+/* ---------- tabs ---------- */
+.ad-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--ad-border);
+  padding-bottom: 2px;
+  margin-bottom: 18px;
+}
+.ad-tab {
+  padding: 9px 14px;
+  border-radius: var(--ad-r) var(--ad-r) 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ad-muted);
+  border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.ad-tab:hover { color: var(--ad-text); background: var(--ad-neutral-bg); }
+.ad-tab[aria-selected="true"] {
+  color: var(--ad-brand-text);
+  border-bottom-color: var(--ad-brand);
+}
+
+/* ---------- progress ---------- */
+.ad-bar {
+  height: 7px;
+  border-radius: var(--ad-r-full);
+  background: var(--ad-surface-3);
+  overflow: hidden;
+}
+.ad-bar-fill { height: 100%; background: var(--ad-brand); border-radius: var(--ad-r-full); }
+
+/* ---------- alerts ---------- */
+.ad-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: var(--ad-r-md);
+  border: 1px solid transparent;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.ad-alert svg { flex-shrink: 0; margin-top: 1px; }
+.ad-alert span { flex: 1; }
+.ad-alert-danger { background: var(--ad-danger-bg); color: var(--ad-danger-fg); border-color: var(--ad-danger-fg); }
+.ad-alert-ok { background: var(--ad-ok-bg); color: var(--ad-ok-fg); border-color: var(--ad-ok-fg); }
+.ad-alert-warn { background: var(--ad-warn-bg); color: var(--ad-warn-fg); border-color: var(--ad-warn-fg); }
+.ad-alert-info { background: var(--ad-info-bg); color: var(--ad-info-fg); border-color: var(--ad-info-fg); }
+.ad-alert .ad-btn { border-color: currentColor; color: inherit; background: transparent; }
+
+/* ---------- empty state ---------- */
+.ad-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 46px 22px;
+  border: 1px dashed var(--ad-border-strong);
+  border-radius: var(--ad-r-lg);
+  background: var(--ad-surface);
+}
+.ad-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ad-r-md);
+  display: grid;
+  place-items: center;
+  background: var(--ad-neutral-bg);
+  color: var(--ad-muted);
+}
+.ad-empty h3 { font-family: var(--ad-font-display); font-size: 15px; font-weight: 700; }
+.ad-empty p { font-size: 13px; color: var(--ad-muted); max-width: 46ch; }
+
+/* ---------- skeleton ---------- */
+.ad-skel {
+  border-radius: var(--ad-r-md);
+  background: linear-gradient(90deg, var(--ad-surface-2) 25%, var(--ad-surface-3) 37%, var(--ad-surface-2) 63%);
+  background-size: 400% 100%;
+  animation: ad-shimmer 1.4s ease infinite;
+}
+@keyframes ad-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* ---------- chat ---------- */
+.ad-chat { display: flex; flex-direction: column; height: 460px; }
+.ad-chat-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ad-chat-msg { max-width: 88%; }
+.ad-chat-msg.is-mine { align-self: flex-end; }
+.ad-chat-meta { font-size: 11.5px; color: var(--ad-faint); margin-bottom: 3px; }
+.ad-chat-msg.is-mine .ad-chat-meta { text-align: right; }
+.ad-bubble {
+  display: inline-block;
+  padding: 9px 13px;
+  border-radius: var(--ad-r-md);
+  background: var(--ad-surface-2);
+  border: 1px solid var(--ad-border);
+  font-size: 13.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ad-chat-msg.is-mine .ad-bubble {
+  background: var(--ad-brand-strong);
+  color: var(--ad-brand-ink);
+  border-color: transparent;
+}
+.ad-chat-compose {
+  display: flex;
+  gap: 9px;
+  padding: 13px 18px;
+  border-top: 1px solid var(--ad-border);
+  align-items: center;
+}
+
+/* ---------- conversation list ---------- */
+.ad-conv {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--ad-r);
+  text-align: left;
+  border: 1px solid transparent;
+}
+.ad-conv:hover { background: var(--ad-surface-2); }
+.ad-conv[aria-selected="true"] { background: var(--ad-brand-soft); border-color: var(--ad-brand-line); }
+.ad-conv-title { display: block; font-size: 13px; font-weight: 700; }
+.ad-conv-preview { display: block; font-size: 11.5px; color: var(--ad-faint); }
+.ad-unread {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--ad-r-full);
+  background: var(--ad-brand-strong);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- live room ---------- */
+/*
+  The stage keeps its near-black fill in both themes on purpose — it frames
+  video, and a white frame would wash out the picture. Because that surface does
+  not follow the theme, anything printed on it must use a light colour rather
+  than the theme's muted token: in light mode --ad-muted is a dark slate
+  (#4d5568) and measured 2.7:1 against #05070d.
+*/
+.ad-live-stage { color: #e2e8f0; }
+.ad-live-stage .ad-muted,
+.ad-live-stage .ad-faint { color: #94a3b8; }
+
+.ad-live-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #05070d;
+  border-radius: var(--ad-r-lg);
+  border: 1px solid var(--ad-border);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.ad-live-stage video { width: 100%; height: 100%; object-fit: contain; background: #05070d; }
+.ad-live-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  /* Fixed rather than --ad-muted: the stage keeps its near-black fill in both
+     themes, and in light mode the muted token is a dark slate (#4d5568) that
+     measured 2.7:1 on #05070d. */
+  color: #cbd5e1;
+  text-align: center;
+  padding: 24px;
+}
+.ad-tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.ad-tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #05070d;
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-r-md);
+  overflow: hidden;
+}
+.ad-tile video { width: 100%; height: 100%; object-fit: cover; }
+.ad-tile-tag {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: var(--ad-r-full);
+  background: rgba(4, 6, 12, 0.78);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ad-control-bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  padding: 13px 16px;
+  border-radius: var(--ad-r-md);
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  margin-top: 14px;
+}
+.ad-ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: var(--ad-r);
+  border: 1px solid var(--ad-border-strong);
+  background: var(--ad-surface-2);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ad-text);
+}
+.ad-ctrl[aria-pressed="true"] { border-color: var(--ad-brand); background: var(--ad-brand-soft); color: var(--ad-brand-text); }
+.ad-ctrl.is-off { color: var(--ad-danger-fg); border-color: var(--ad-danger-fg); }
+.ad-ctrl:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- palette ---------- */
+.ad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--ad-scrim);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 24px;
+}
+.ad-palette {
+  width: min(600px, 100%);
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-r-lg);
+  box-shadow: var(--ad-shadow-2);
+  overflow: hidden;
+}
+.ad-palette-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ad-border);
+}
+.ad-palette-input input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  outline: none;
+}
+.ad-palette-list { max-height: 340px; overflow-y: auto; padding: 7px; }
+.ad-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--ad-r-sm);
+  font-size: 13.5px;
+  text-align: left;
+  color: var(--ad-muted);
+}
+.ad-palette-item span:first-of-type { flex: 1; }
+.ad-palette-item .kind { font-size: 11px; color: var(--ad-faint); font-weight: 700; }
+.ad-palette-item[aria-selected="true"] { background: var(--ad-brand-soft); color: var(--ad-text); }
+.ad-palette-foot {
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--ad-border);
+  font-size: 11.5px;
+  color: var(--ad-faint);
+}
+
+/* ---------- mobile ---------- */
+.ad-scrim { position: fixed; inset: 0; background: var(--ad-scrim); z-index: 45; }
+.ad-only-mobile { display: none; }
+.ad-mobile-nav { display: none; }
+
+@media (max-width: 1080px) {
+  .ad-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .ad-only-mobile { display: inline-flex; }
+  .ad-rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform var(--ad-dur) var(--ad-ease);
+    height: 100dvh;
+  }
+  .ad-rail.is-open { transform: none; box-shadow: var(--ad-shadow-2); }
+  .ad-search-trigger { width: auto; }
+  .ad-search-trigger span, .ad-search-trigger .ad-kbd { display: none; }
+  .ad-content { padding-bottom: 92px; }
+  .ad-topbar { padding: 0 16px; gap: 10px; }
+  .ad-mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--ad-rail);
+    border-top: 1px solid var(--ad-border);
+    padding: 7px 4px calc(7px + env(safe-area-inset-bottom));
+  }
+  .ad-mobile-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 2px;
+    border-radius: var(--ad-r-sm);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ad-muted);
+    position: relative;
+  }
+  /* The bar no longer carries aria-current — the rail is the single source of
+     truth for the current destination — so the active state is class-driven. */
+  .ad-mobile-nav a.is-active { color: var(--ad-brand-text); background: var(--ad-brand-soft); }
+  .ad-mobile-nav .ad-nav-count { position: absolute; top: 2px; right: 12px; }
+}
+
+@media (max-width: 560px) {
+  .ad-page-title { font-size: 21px; }
+  .ad-topbar-title { font-size: 15px; }
+  .ad-content { padding: 16px; }
+  .ad-card { padding: 15px; border-radius: var(--ad-r-md); }
+}
+
+/* Motion preference: honour both the OS setting and the in-app switch. */
+@media (prefers-reduced-motion: reduce) {
+  .ad *, .ad *::before, .ad *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.ad.ad-reduce-motion *, .ad.ad-reduce-motion *::before, .ad.ad-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ==========================================================================
+   Bridge for legacy classes
+
+   Overview, sessions, materials, requests, bookings, settings, transactions and
+   recordings still use the original `.card` / `.input` / `.btn` utilities from
+   globals.css. Those are hard-wired to the pre-console dark palette
+   (`bg-ink-900/70`, near-white text), which was fine when the console was
+   dark-only. Now that the shell renders a light theme on a light background,
+   they produced a mid-grey panel (#525766) carrying near-white text — about
+   2.5:1, well under AA.
+
+   Rather than rewrite every legacy page, the utilities are re-pointed at the
+   console tokens. They are scoped to `.ad` (the console root) and declared in
+   the `components` layer so Tailwind utilities still win where they are applied
+   — e.g. an error line's `border-rose-400/30` keeps its colour.
+
+   These pages are still visually plainer than the redesigned ones; the bridge
+   fixes correctness (contrast, theming) without pretending to be the redesign.
+
+   Plain CSS, not a Tailwind `@layer`: this file is imported directly rather than
+   through an entry that has `@tailwind components`, and the directive is a hard
+   build error without it. Import order (globals.css first, this file second)
+   plus the `.ad` ancestor keeps these rules from leaking to the public side.
+   ========================================================================== */
+.ad .card {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: var(--ad-r-lg);
+  padding: 20px;
+  box-shadow: var(--ad-shadow-1);
+}
+.ad .input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--ad-r-sm);
+  background: var(--ad-surface-2);
+  border: 1px solid var(--ad-border-strong);
+  color: var(--ad-text);
+  font-size: 13.5px;
+  outline: none;
+}
+.ad .input:focus-visible { border-color: var(--ad-focus); box-shadow: 0 0 0 3px var(--ad-halo); }
+.ad .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: var(--ad-r-sm);
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--ad-brand-strong);
+  color: var(--ad-brand-ink);
+}
+.ad .btn:disabled { opacity: 0.5; }
+.ad .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: var(--ad-r-sm);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--ad-border-strong);
+  background: var(--ad-surface-2);
+  color: var(--ad-text);
+}
+
+/*  Legacy body-text mapping.
+
+    What the earlier bridge missed: the *text* utilities. Tailwind's
+    `text-slate-400` is a fixed light grey chosen for a dark page; on the light
+    console surface it measured 2.4:1. The pages that still use it are exactly
+    the ones not yet migrated to the ad- classes, and they appear 26 times
+    across them.
+
+    This is not cosmetic work on the new screens — every redesigned page uses
+    the token classes, so nothing there is affected. It exists so the console is
+    legible in both themes while those pages await their own redesign.
+
+    Selectors deliberately match the literal utility name that Tailwind itself
+    generates. `@apply` produces `.ad .text-slate-400` inside the same
+    components layer, and these two-class selectors (0,2,0) beat it (0,2,0 by
+    order, declared later in the file) and beat `!important`-free utilities. The
+    intent is simply that a stray colour utility cannot reintroduce a
+    theme-blind grey. */
+.ad .text-slate-400,
+.ad .text-slate-500 { color: var(--ad-muted); }
+.ad .text-slate-300 { color: var(--ad-text); }
+.ad .text-slate-100 { color: var(--ad-text); }

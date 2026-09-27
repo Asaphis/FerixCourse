@@ -51,7 +51,7 @@ export default function ClassroomsPage() {
       <form onSubmit={create} className="card mt-5 grid sm:grid-cols-2 gap-3">
         <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="Title" className="input" />
         <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required placeholder="slug-like-this" className="input" />
-        <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="input">
+        <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="input" aria-label="Level" title="Level">
           <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
         </select>
         <input value={form.price_kobo} onChange={(e) => setForm({ ...form, price_kobo: Number(e.target.value) })} type="number" min={0} placeholder="Price (kobo)" className="input" />

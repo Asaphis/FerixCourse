@@ -77,14 +77,14 @@ export function Footer() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400"><GraduationCap size={18} className="text-white" /></span>
             <span className="font-display text-lg font-bold">FerixCourse</span>
           </p>
-          <p className="mt-4 max-w-xs text-[13.5px] leading-relaxed text-slate-500">
+          <p className="mt-4 max-w-xs text-[13.5px] leading-relaxed text-slate-400">
             The live-first technology school. Small cohorts, real instructors, proof of skill.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
           {cols.map(([h, links]) => (
             <div key={h}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{h}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{h}</p>
               <ul className="mt-4 space-y-2.5">
                 {links.map(([t, href]) => (
                   <li key={t}><Link href={href} className="text-[13.5px] text-slate-400 transition hover:text-white">{t}</Link></li>
@@ -95,7 +95,7 @@ export function Footer() {
         </div>
       </div>
       <div className="relative border-t border-white/8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-[12px] text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-[12px] text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>© 2026 FerixCourse. Learn technology. Ship real software.</span>
           <span className="flex gap-5"><Link href="/about" className="hover:text-slate-300">About</Link><Link href="/terms" className="hover:text-slate-300">Terms</Link><Link href="/privacy" className="hover:text-slate-300">Privacy</Link><Link href="/contact" className="hover:text-slate-300">Contact</Link></span>
         </div>

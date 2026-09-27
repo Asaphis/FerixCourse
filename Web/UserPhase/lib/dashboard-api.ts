@@ -325,8 +325,12 @@ export const api = {
     apiFetch<Message>(`/messages/conversations/${encodeURIComponent(id)}`, { method: "POST", body: JSON.stringify({ body }) }),
   notifications: () => apiFetch<Notification[]>("/notifications/mine"),
 
-  /* files.ts — authenticated download URL for a private material */
-  materialUrl: (id: string) => `${apiBase}/files/${encodeURIComponent(id)}`,
+  /* files.ts — authenticated download URL for a private material.
+     The route is /files/:scope/:id, so the scope segment is required; the old
+     single-segment form resolved to no route at all. Prefer the `download()`
+     helper, which fetches the signed URL instead of opening a 404. */
+  materialUrl: (id: string, scope: "classroom-material" | "course-material" | "recording" = "classroom-material") =>
+    `${apiBase}/files/${scope}/${encodeURIComponent(id)}`,
 
   /* live.ts */
   liveToken: (payload: { classroom_id?: string; booking_id?: string }) =>

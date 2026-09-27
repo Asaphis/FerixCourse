@@ -35,7 +35,7 @@ export function AuthFrame({ title, sub, children }: { title: string; sub: string
               ))}
             </ul>
           </div>
-          <p className="relative text-[12px] text-slate-500">Learn technology. Ship real software.</p>
+          <p className="relative text-[12px] text-slate-400">Learn technology. Ship real software.</p>
         </div>
         <div className="relative p-8 sm:p-10">
           <button onClick={back} className="group mb-5 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-[12.5px] font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">

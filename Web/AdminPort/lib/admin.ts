@@ -1,7 +1,31 @@
-// Backend-owned admin sessions (JWT in sessionStorage — admin logins don't linger).
+/*
+  Admin console data layer.
+
+  Backend-owned admin sessions. The JWT lives in sessionStorage (not
+  localStorage) so closing the tab ends the console session — this is the
+  higher-privilege surface and it should not linger.
+
+  Every call goes through adminFetch, so bearer auth, 401 handling and error
+  normalisation (including the 409 "this has learners attached" confirmation
+  used by the destructive endpoints) live in exactly one place.
+*/
+
 export const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
+
 const KEY = "ferix_admin_token";
+
+/** An API failure that preserves the HTTP status and any structured body. */
+export class AdminApiError extends Error {
+  status: number;
+  body: Record<string, unknown>;
+  constructor(message: string, status: number, body: Record<string, unknown> = {}) {
+    super(message);
+    this.name = "AdminApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
 
 export function adminToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -17,28 +41,130 @@ export async function adminLogin(email: string, password: string) {
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data?.error ?? "Login failed.");
+  /* The console refuses a session it cannot use, rather than logging in and
+     then failing every request with 403. */
   if (data.user?.role !== "ADMIN") throw new Error("This account is not an admin.");
   window.sessionStorage.setItem(KEY, data.token);
-  return data.user;
+  return data.user as { id: string; email: string; full_name: string | null; role: string };
 }
 
 export function adminLogout() {
-  window.sessionStorage.removeItem(KEY);
+  if (typeof window !== "undefined") window.sessionStorage.removeItem(KEY);
 }
 
-export async function adminFetch(path: string, init: RequestInit = {}) {
+/** Redirect to the login screen once, clearing the dead token first. */
+function handleAuthFailure() {
+  if (typeof window === "undefined") return;
+  adminLogout();
+  if (window.location.pathname !== "/login") window.location.href = "/login";
+}
+
+export async function adminFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
   const token = adminToken();
-  if (!token) throw new Error("Not logged in. Please log in as admin.");
-  const r = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
-  });
-  if (r.status === 401 && typeof window !== "undefined") {
-    adminLogout();
-    window.location.href = "/login";
-    throw new Error("Session expired. Please log in again.");
+  if (!token) throw new AdminApiError("Not logged in. Please log in as admin.", 401);
+  if (!apiUrl) throw new AdminApiError("API URL is not configured.", 0);
+
+  let r: Response;
+  try {
+    r = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new AdminApiError("Could not reach the API. Check the connection and try again.", 0);
   }
+
+  if (r.status === 401) {
+    handleAuthFailure();
+    throw new AdminApiError("Session expired. Please log in again.", 401);
+  }
+
   const body = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(body?.error ?? `Request failed (${r.status})`);
-  return body;
+  if (!r.ok) {
+    throw new AdminApiError(body?.error ?? `Request failed (${r.status})`, r.status, body ?? {});
+  }
+  return body as T;
+}
+
+/* ---------- shared shape helpers ---------- */
+
+/** Formatting helper — the API stores minor units (kobo). */
+export function money(kobo: number | null | undefined, currency = "NGN"): string {
+  const major = (Number(kobo) || 0) / 100;
+  try {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(major);
+  } catch {
+    return `${currency} ${major.toLocaleString()}`;
+  }
+}
+
+export function shortDateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function shortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const secs = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (secs < 60) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return shortDate(iso);
+}
+
+export function initials(name: string | null | undefined): string {
+  const parts = String(name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
+}
+
+export function bytes(n: number | null | undefined): string {
+  const v = Number(n) || 0;
+  if (v < 1024) return `${v} B`;
+  if (v < 1048576) return `${(v / 1024).toFixed(0)} KB`;
+  return `${(v / 1048576).toFixed(1)} MB`;
+}
+
+/** Turn "My Great Course" into a URL-safe slug suggestion. */
+export function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export function durationMin(sec: number | null | undefined): string {
+  const m = Math.round((Number(sec) || 0) / 60);
+  return m < 1 ? "< 1 min" : `${m} min`;
 }

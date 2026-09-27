@@ -20,12 +20,14 @@ adminRouter.get('/stats', async (_req, res) => {
     ]);
     const [pending] = await q(
       `select (select count(*)::int from bookings where status='pending') as bookings,
-              (select count(*)::int from training_requests where status='pending') as requests`
-    ).catch(() => [{ bookings: 0, requests: 0 }]);
+              (select count(*)::int from training_requests where status='pending') as requests,
+              (select count(*)::int from classroom_sessions where status='live') as live`
+    ).catch(() => [{ bookings: 0, requests: 0, live: 0 }]);
     res.json({
       students: s.n, publishedCourses: c.n, activeClassrooms: r.n,
       enrollments: u.n, successfulPayments: pay.n, revenueKobo: pay.revenue,
       pendingBookings: pending.bookings ?? 0, pendingRequests: pending.requests ?? 0,
+      liveSessions: pending.live ?? 0,
     });
   } catch (e: any) {
     res.status(500).json({ error: 'Could not load stats. Run database migrations first.', detail: e?.message });
@@ -37,7 +39,7 @@ adminRouter.get('/users', async (req, res) => {
   try {
     const s = `%${String(req.query.search ?? '')}%`;
     res.json(await q(
-      `select id, email, full_name, role, is_active, created_at from profiles
+      `select id, email, full_name, role, is_active, email_verified, created_at from profiles
        where email ilike $1 or full_name ilike $1 order by created_at desc limit 100`, [s]));
   } catch (e: any) {
     res.status(500).json({ error: 'Could not load users.', detail: e?.message });
@@ -147,15 +149,11 @@ adminRouter.patch('/bookings/:id', async (req, res) => {
   }
 });
 
-// ---- Sessions / recordings / materials (read views; recording pipeline lands in Phase 3) ----
-adminRouter.get('/sessions', async (_req, res) => {
-  try {
-    res.json(await q(`select s.*, c.title as classroom_title from classroom_sessions s left join classrooms c on c.id = s.classroom_id order by s.created_at desc limit 100`));
-  } catch (e: any) {
-    res.status(500).json({ error: 'Could not load sessions.', detail: e?.message });
-  }
-});
-
+// ---- Recordings / materials (read views; recording pipeline lands in Phase 3) ----
+// NOTE: the sessions list lives further down (it supports ?classroom_id).
+// A second GET /sessions used to be declared here, which Express matched first
+// and which ignored the filter — every per-classroom request came back with
+// every session in the system. There is exactly one handler now.
 adminRouter.get('/recordings', async (_req, res) => {
   try {
     res.json(await q(`select r.*, s.title as session_title from classroom_recordings r left join classroom_sessions s on s.id = r.session_id order by r.created_at desc limit 100`));

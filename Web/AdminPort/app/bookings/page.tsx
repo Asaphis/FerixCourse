@@ -49,7 +49,7 @@ export default function BookingsPage() {
       <h1 className="font-display text-2xl font-bold">Bookings</h1>
       <p className="text-sm text-slate-400 mt-1">One-on-one training bookings. Confirm, then payment and scheduling follow.</p>
       <div className="mt-4 flex gap-2">
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input max-w-xs">
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input max-w-xs" aria-label="Filter by status" title="Filter by status">
           <option value="">All statuses</option>
           {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>

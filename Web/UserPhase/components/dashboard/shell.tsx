@@ -513,7 +513,14 @@ function MobileNav() {
       {items.map((item) => {
         const active = pathname === item.href;
         return (
-          <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}>
+          <Link
+            key={item.href}
+            href={item.href}
+            /* The rail is rendered at every width, so it already publishes the
+               aria-current="page" marker. Duplicating it here gave assistive
+               tech two identically-marked current destinations. */
+            className={active ? "is-active" : undefined}
+          >
             <Icon name={item.icon} size={19} />
             <span>{item.label}</span>
             {item.count ? <span className={`fc-nav-count${item.alert ? " is-alert" : ""}`}>{item.count}</span> : null}

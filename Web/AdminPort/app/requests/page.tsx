@@ -65,7 +65,7 @@ export default function RequestsPage() {
       <h1 className="font-display text-2xl font-bold">Class Requests</h1>
       <p className="text-sm text-slate-400 mt-1">Custom training requests. Accept the good ones, convert them into classrooms.</p>
       <div className="mt-4 flex gap-2">
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input max-w-xs">
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input max-w-xs" aria-label="Filter by status" title="Filter by status">
           <option value="">All statuses</option>
           {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -99,7 +99,7 @@ export default function RequestsPage() {
               </p>
             )}
             <div className="mt-2 flex flex-wrap gap-2 rounded-xl bg-black/30 p-2.5">
-              <select value={convertRoom[r.id] ?? ""} onChange={(e) => setConvertRoom({ ...convertRoom, [r.id]: e.target.value })} className="input flex-1 min-w-[200px]">
+              <select value={convertRoom[r.id] ?? ""} onChange={(e) => setConvertRoom({ ...convertRoom, [r.id]: e.target.value })} className="input flex-1 min-w-[200px]" aria-label="Convert into classroom" title="Convert into classroom">
                 <option value="">Convert into classroom…</option>
                 {rooms.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>

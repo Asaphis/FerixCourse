@@ -42,7 +42,7 @@ export default function AppShell({ children, title, sub, publicPage }: { childre
               </Link>
             ))}
           </nav>
-          <div className="mt-auto rounded-2xl border border-white/10 bg-white/[.03] p-4 text-[12px] leading-relaxed text-slate-500">
+          <div className="mt-auto rounded-2xl border border-white/10 bg-white/[.03] p-4 text-[12px] leading-relaxed text-slate-400">
             Enrollments unlock only after verified payment. Nothing here is simulated.
           </div>
         </aside>
@@ -61,9 +61,9 @@ export default function AppShell({ children, title, sub, publicPage }: { childre
       <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
         <div className="m-3 grid grid-cols-6 gap-1 rounded-2xl border border-white/10 bg-stone-900/95 p-1.5 backdrop-blur-2xl">
           {[["Board", "/dashboard"], ["Catalog", "/learn"], ["Rooms", "/classes"], ["Chat", "/messages"], ["You", "/profile"]].map(([t, h]) => (
-            <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-500"}`}>{t}</Link>
+            <Link key={t} href={h} className={`rounded-xl py-2 text-center text-[10.5px] font-semibold transition ${path === h ? "bg-white/10 text-white" : "text-slate-400"}`}>{t}</Link>
           ))}
-          <button onClick={() => setMore(!more)} className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10.5px] font-semibold transition ${more ? "bg-white/10 text-white" : "text-slate-500"}`}>
+          <button onClick={() => setMore(!more)} className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10.5px] font-semibold transition ${more ? "bg-white/10 text-white" : "text-slate-400"}`}>
             {more ? <X size={15} /> : <LayoutGrid size={15} />} More
           </button>
         </div>

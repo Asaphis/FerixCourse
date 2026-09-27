@@ -6,6 +6,7 @@ import { corsOrigins } from './config/env.js';
 import { healthRouter } from './routes/health.js';
 import { coursesRouter } from './routes/courses.js';
 import { adminRouter } from './routes/admin.js';
+import { adminOpsRouter } from './routes/adminOps.js';
 import { requestsRouter, bookingsRouter, messagesRouter, notificationsRouter } from './routes/student.js';
 import { publicRouter } from './routes/public.js';
 import { paymentsRouter } from './routes/payments.js';
@@ -24,6 +25,10 @@ export function createApp() {
   app.use('/health', healthRouter);
   app.use('/courses', coursesRouter);
   app.use('/admin', adminRouter);
+  // Management layer (content authoring, membership, live control, deletions).
+  // Mounted after adminRouter; both are behind requireAdmin and the paths do
+  // not overlap.
+  app.use('/admin', adminOpsRouter);
   app.use('/requests', requestsRouter);
   app.use('/bookings', bookingsRouter);
   app.use('/messages', messagesRouter);

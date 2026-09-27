@@ -13,7 +13,19 @@ export default function SettingsPage() {
     adminFetch("/admin/settings").then((s) => {
       setSettings(s);
       const f = s.find((x: any) => x.key === "registration_fee");
-      if (f?.value) setFee(f.value);
+      /* The stored value round-trips as JSON, so it can arrive as a string.
+         Assigning that string straight into `fee` replaced the whole object, so
+         every field became undefined — React warned that a controlled input had
+         turned uncontrolled and the inputs rendered blank, and the next save
+         wrote the string back. Parse it into the object shape instead, and leave
+         the defaults alone when the value is not a usable object. */
+      if (!f?.value) return;
+      try {
+        const parsed = typeof f.value === "string" ? JSON.parse(f.value) : f.value;
+        if (parsed && typeof parsed === "object") setFee((prev) => ({ ...prev, ...parsed }));
+      } catch {
+        /* Legacy non-JSON value — keep the defaults rather than break the form. */
+      }
     }).catch((e) => setErr(e.message));
   }, []);
 

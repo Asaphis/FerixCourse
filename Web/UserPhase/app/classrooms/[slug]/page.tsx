@@ -32,15 +32,15 @@ export default async function ClassroomPage({ params }: { params: { slug: string
               {c.starts_at && <span className="inline-flex items-center gap-2"><Clock size={15} className="text-rose-300" /> Starts {new Date(c.starts_at).toLocaleDateString()}</span>}
             </div>
             <Reveal delay={0.1}>
-              <h2 className="mt-10 font-display text-xl font-bold">Sessions {(c.sessions ?? []).length > 0 && <span className="text-slate-500">({c.sessions.length})</span>}</h2>
+              <h2 className="mt-10 font-display text-xl font-bold">Sessions {(c.sessions ?? []).length > 0 && <span className="text-slate-400">({c.sessions.length})</span>}</h2>
               {(c.sessions ?? []).length === 0 ? (
-                <p className="mt-3 rounded-2xl border border-white/10 p-5 text-sm text-slate-500">Session schedule publishes before the cohort starts. Enrolled students get notified.</p>
+                <p className="mt-3 rounded-2xl border border-white/10 p-5 text-sm text-slate-400">Session schedule publishes before the cohort starts. Enrolled students get notified.</p>
               ) : (
                 <div className="mt-4 grid gap-2.5">
                   {c.sessions.map((s: any) => (
                     <div key={s.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
                       <Check size={14} className="text-emerald-300" /><span className="font-semibold">{s.title}</span>
-                      <span className="ml-auto text-xs text-slate-500">{s.starts_at ? new Date(s.starts_at).toLocaleDateString() : ""} · {s.recording_status}</span>
+                      <span className="ml-auto text-xs text-slate-400">{s.starts_at ? new Date(s.starts_at).toLocaleDateString() : ""} · {s.recording_status}</span>
                     </div>
                   ))}
                 </div>
@@ -55,7 +55,7 @@ export default async function ClassroomPage({ params }: { params: { slug: string
           </div>
           <Reveal delay={0.15}>
             <div className="h-fit rounded-[28px] border border-white/12 bg-stone-900/85 p-7 backdrop-blur lg:sticky lg:top-28">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Cohort access</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Cohort access</p>
               <p className="mt-2 font-display text-4xl font-bold">{formatMoney(c.price_kobo, c.currency)}</p>
               <p className="mt-1.5 text-[13px] text-slate-400">{seatsLeft} of {c.capacity} seats left</p>
               <div className="mt-6">
@@ -66,7 +66,7 @@ export default async function ClassroomPage({ params }: { params: { slug: string
                   <li key={t} className="flex items-center gap-2"><Check size={13} className="text-emerald-300" /> {t}</li>
                 ))}
               </ul>
-              <p className="mt-5 text-center text-[12.5px] text-slate-500">Not the right fit? <Link href="/request" className="font-bold text-slate-300 hover:text-white">Request custom training</Link></p>
+              <p className="mt-5 text-center text-[12.5px] text-slate-400">Not the right fit? <Link href="/request" className="font-bold text-slate-200 hover:text-white">Request custom training</Link></p>
             </div>
           </Reveal>
         </div>
