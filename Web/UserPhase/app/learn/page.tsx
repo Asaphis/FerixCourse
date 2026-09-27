@@ -1,69 +1,243 @@
 import Link from "next/link";
-import { Search, Radio, PlayCircle } from "lucide-react";
-import AppShell from "@/components/shell";
+import { Icon } from "@/components/ui/icons";
+import { EmptyState } from "@/components/ui/primitives";
 import { getCourses, getClassrooms, getCategories, formatMoney } from "@/lib/api";
+import { PageHead } from "@/components/dashboard/shell";
 
 export const metadata = { title: "Catalog — FerixCourse" };
 
-export default async function LearnPage({ searchParams }: { searchParams: { q?: string; level?: string; category?: string } }) {
+/*
+  Catalog — live cohorts and recorded courses.
+  Stays a server component: the public endpoints are the source of truth and
+  fetching them on the server keeps the first paint fast. The dashboard shell
+  comes from app/learn/layout.tsx, which allows a logged-out visitor.
+*/
+
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+
+export default async function LearnPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; level?: string; category?: string };
+}) {
   const q = searchParams.q ?? "";
   const level = searchParams.level ?? "";
   const category = searchParams.category ?? "";
-  const params = `?search=${encodeURIComponent(q)}&level=${encodeURIComponent(level)}&category=${encodeURIComponent(category)}`;
-  const [courses, rooms, cats] = await Promise.all([getCourses(params), getClassrooms(`?search=${encodeURIComponent(q)}&level=${encodeURIComponent(level)}`), getCategories()]);
+
+  const [courses, rooms, cats] = await Promise.all([
+    getCourses(`?search=${encodeURIComponent(q)}&level=${encodeURIComponent(level)}&category=${encodeURIComponent(category)}`),
+    getClassrooms(`?search=${encodeURIComponent(q)}&level=${encodeURIComponent(level)}`),
+    getCategories(),
+  ]);
+
+  const filtering = Boolean(q || level || category);
 
   return (
-    <AppShell title="Catalog" sub="Live cohorts and recorded courses. Everything listed is real and enrollable." publicPage>
-      <form method="GET" className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-stone-900/70 p-3 sm:flex-row">
-        <label className="flex flex-1 items-center gap-2 rounded-xl bg-black/40 px-3.5">
-          <Search size={15} className="shrink-0 text-slate-500" />
-          <input name="q" defaultValue={q} placeholder="Search training…" className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-slate-600" />
-        </label>
-        <select name="level" defaultValue={level} className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none">
-          <option value="">All levels</option><option>Beginner</option><option>Intermediate</option><option>Advanced</option>
-        </select>
-        <select name="category" defaultValue={category} className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none">
-          <option value="">All categories</option>
-          {cats.map((c: any) => <option key={c.id} value={c.slug}>{c.name}</option>)}
-        </select>
-        <button className="btn-aurora rounded-xl px-5 py-2.5 text-sm font-bold text-white">Filter</button>
+    <>
+      <PageHead
+        title="Catalog"
+        sub="Live cohorts and recorded courses. Everything listed is real and enrollable today."
+      />
+
+      {/* Filters are a plain GET form, so results are bookmarkable and work without JS. */}
+      <form method="GET" className="fc-card" style={{ padding: 16, marginBottom: 24 }}>
+        <div className="fc-toolbar" style={{ marginBottom: 0 }}>
+          <label className="fc-sr-only" htmlFor="cat-q">
+            Search training
+          </label>
+          <div className="fc-search-trigger" style={{ maxWidth: 380, cursor: "text" }}>
+            <Icon name="search" size={17} />
+            <input
+              id="cat-q"
+              name="q"
+              defaultValue={q}
+              placeholder="Search training…"
+              className="fc-input"
+              style={{ border: 0, background: "none", padding: 0, boxShadow: "none" }}
+            />
+          </div>
+
+          <label className="fc-sr-only" htmlFor="cat-level">
+            Level
+          </label>
+          <select id="cat-level" name="level" defaultValue={level} className="fc-select" style={{ maxWidth: 180 }}>
+            <option value="">All levels</option>
+            {LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+
+          <label className="fc-sr-only" htmlFor="cat-category">
+            Category
+          </label>
+          <select id="cat-category" name="category" defaultValue={category} className="fc-select" style={{ maxWidth: 200 }}>
+            <option value="">All categories</option>
+            {cats.map((c: { id: string; name: string; slug: string }) => (
+              <option key={c.id} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          <button type="submit" className="fc-btn fc-btn-primary">
+            <Icon name="filter" size={15} /> Apply
+          </button>
+          {filtering && (
+            <Link href="/learn" className="fc-btn fc-btn-ghost">
+              Clear
+            </Link>
+          )}
+        </div>
       </form>
 
-      {rooms.length > 0 && (
-        <>
-          <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-lg font-bold"><Radio size={17} className="text-rose-300" /> Live cohorts</h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            {rooms.map((r: any) => (
-              <Link key={r.id} href={`/classrooms/${r.slug}`} className="card-lift rounded-2xl border border-white/10 bg-stone-900/70 p-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{r.level} · {r.enrolled}/{r.capacity} seats</p>
-                <h3 className="mt-1.5 font-display text-[17px] font-bold">{r.title}</h3>
-                <p className="mt-1 text-[13px] text-slate-400">{r.schedule_text || "Schedule announced"}</p>
-                <p className="mt-3 font-display font-bold">{formatMoney(r.price_kobo, r.currency)}</p>
-              </Link>
-            ))}
-          </div>
-        </>
+      {filtering && (
+        <p className="fc-hint" style={{ marginBottom: 18 }} role="status">
+          Showing {rooms.length + courses.length} result{rooms.length + courses.length === 1 ? "" : "s"}
+          {q ? ` for “${q}”` : ""}
+          {level ? ` · ${level}` : ""}.
+        </p>
       )}
 
-      <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-lg font-bold"><PlayCircle size={17} className="text-orange-300" /> Recorded courses</h2>
-      {courses.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/15 p-10 text-center">
-          <p className="font-display font-bold">No courses match.</p>
-          <p className="mt-1 text-sm text-slate-400">Try a different search — or request this topic and we will build it.</p>
-          <Link href="/request" className="mt-4 inline-block rounded-xl border border-white/15 px-4 py-2 text-sm font-bold hover:bg-white/5">Request training</Link>
+      {/* Live cohorts */}
+      <section aria-labelledby="cat-live" style={{ marginBottom: 32 }}>
+        <div className="fc-sec-head">
+          <h2 className="fc-sec-title" id="cat-live">
+            Live cohorts
+          </h2>
+          {rooms.length > 0 && <span className="fc-badge fc-badge-info">{rooms.length}</span>}
         </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {courses.map((c: any) => (
-            <Link key={c.id} href={`/courses/${c.slug}`} className="card-lift rounded-2xl border border-white/10 bg-stone-900/70 p-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{c.category} · {c.level} · {c.students} students</p>
-              <h3 className="mt-1.5 font-display text-[17px] font-bold">{c.title}</h3>
-              <p className="mt-1 line-clamp-2 text-[13px] text-slate-400">{c.short_description}</p>
-              <p className="mt-3 font-display font-bold">{formatMoney(c.price_kobo, c.currency)}</p>
-            </Link>
-          ))}
+        {rooms.length === 0 ? (
+          <EmptyState
+            icon="monitorPlay"
+            title="No cohorts match"
+            body="Try a wider search, or ask us to build this as a custom class."
+            action={
+              <Link href="/request" className="fc-btn fc-btn-ghost fc-btn-sm">
+                Request this topic
+              </Link>
+            }
+          />
+        ) : (
+          <div className="fc-cards-grid">
+            {rooms.map((r: {
+              id: string;
+              slug: string;
+              title: string;
+              level: string | null;
+              schedule_text: string | null;
+              price_kobo: number;
+              currency: string;
+              capacity: number | null;
+              enrolled: number;
+            }) => {
+              const seatsLeft = Math.max(0, (r.capacity ?? 0) - (r.enrolled ?? 0));
+              return (
+                <article key={r.id} className="fc-course-card">
+                  <div className="fc-course-cover">
+                    <span className="fc-course-badge">
+                      <span className="fc-badge fc-badge-info">{r.level || "All levels"}</span>
+                    </span>
+                    <Icon name="monitorPlay" size={34} style={{ opacity: 0.85 }} />
+                    <span className="fc-course-dur">
+                      {r.enrolled ?? 0}/{r.capacity ?? "—"} seats
+                    </span>
+                  </div>
+                  <div className="fc-course-body">
+                    <h3 className="fc-course-title">{r.title}</h3>
+                    <p className="fc-course-meta" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="calendar" size={13} /> {r.schedule_text || "Schedule announced soon"}
+                    </p>
+                    <p className="fc-course-meta">
+                      {seatsLeft > 0 ? `${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} left` : "Cohort full"}
+                    </p>
+                    <div className="fc-course-foot">
+                      <span style={{ fontFamily: "var(--fc-font-display)", fontWeight: 800, fontSize: 17 }}>
+                        {formatMoney(r.price_kobo, r.currency)}
+                      </span>
+                      <Link
+                        href={`/classrooms/${r.slug}`}
+                        className="fc-btn fc-btn-primary fc-btn-sm"
+                        style={{ marginLeft: "auto" }}
+                      >
+                        View cohort
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Recorded courses */}
+      <section aria-labelledby="cat-courses">
+        <div className="fc-sec-head">
+          <h2 className="fc-sec-title" id="cat-courses">
+            Recorded courses
+          </h2>
+          {courses.length > 0 && <span className="fc-badge fc-badge-brand">{courses.length}</span>}
         </div>
-      )}
-    </AppShell>
+        {courses.length === 0 ? (
+          <EmptyState
+            icon="bookOpen"
+            title="No courses match"
+            body="Try a different search — or request this topic and we will build it."
+            action={
+              <Link href="/request" className="fc-btn fc-btn-primary fc-btn-sm">
+                Request training
+              </Link>
+            }
+          />
+        ) : (
+          <div className="fc-cards-grid">
+            {courses.map((c: {
+              id: string;
+              slug: string;
+              title: string;
+              level: string | null;
+              category: string | null;
+              short_description: string | null;
+              price_kobo: number;
+              currency: string;
+              students: number;
+            }) => (
+              <article key={c.id} className="fc-course-card">
+                <div className="fc-course-cover">
+                  {c.category && (
+                    <span className="fc-course-badge">
+                      <span className="fc-badge fc-badge-neutral">{c.category}</span>
+                    </span>
+                  )}
+                  <Icon name="bookOpen" size={34} style={{ opacity: 0.85 }} />
+                  <span className="fc-course-dur">{c.level || "All levels"}</span>
+                </div>
+                <div className="fc-course-body">
+                  <h3 className="fc-course-title">{c.title}</h3>
+                  {c.short_description && <p className="fc-course-meta">{c.short_description}</p>}
+                  <p className="fc-course-meta">
+                    {c.students ?? 0} student{c.students === 1 ? "" : "s"} enrolled
+                  </p>
+                  <div className="fc-course-foot">
+                    <span style={{ fontFamily: "var(--fc-font-display)", fontWeight: 800, fontSize: 17 }}>
+                      {formatMoney(c.price_kobo, c.currency)}
+                    </span>
+                    <Link
+                      href={`/courses/${c.slug}`}
+                      className="fc-btn fc-btn-primary fc-btn-sm"
+                      style={{ marginLeft: "auto" }}
+                    >
+                      View course
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   );
 }

@@ -1,47 +1,162 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Radio, ArrowRight, CalendarDays, Users } from "lucide-react";
-import AppShell from "@/components/shell";
-import { apiFetch } from "@/lib/client";
+import { useMemo } from "react";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { PageHead } from "@/components/dashboard/shell";
+import { Icon } from "@/components/ui/icons";
+import { EmptyState, LoadingGrid, initials, shortDateTime } from "@/components/ui/primitives";
+
+/*
+  My Classrooms — real enrollments, split into live / upcoming / past using the
+  real starts_at values from /api/enrollments/mine.
+*/
 
 export default function MyClassroomsPage() {
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [err, setErr] = useState("");
+  const { data, loading, failures, reload } = useDashboard();
+  const rooms = data?.classrooms ?? [];
 
-  useEffect(() => {
-    apiFetch("/api/enrollments/mine")
-      .then((d) => setRooms(d.classrooms ?? []))
-      .catch((e) => setErr(e.message));
-  }, []);
+  const { live, upcoming, past } = useMemo(() => {
+    const now = Date.now();
+    const live: typeof rooms = [];
+    const upcoming: typeof rooms = [];
+    const past: typeof rooms = [];
+    for (const r of rooms) {
+      if (!r.starts_at) {
+        upcoming.push(r);
+        continue;
+      }
+      const t = new Date(r.starts_at).getTime();
+      if (t <= now + 3 * 60 * 60 * 1000 && t >= now - 2 * 60 * 60 * 1000) live.push(r);
+      else if (t > now) upcoming.push(r);
+      else past.push(r);
+    }
+    const byStart = (a: (typeof rooms)[number], b: (typeof rooms)[number]) =>
+      new Date(a.starts_at ?? 0).getTime() - new Date(b.starts_at ?? 0).getTime();
+    return { live, upcoming: upcoming.sort(byStart), past: past.sort((a, b) => byStart(b, a)) };
+  }, [rooms]);
+
+  function RoomCard({ r, tone }: { r: (typeof rooms)[number]; tone?: "live" | "past" }) {
+    return (
+      <article className="fc-course-card">
+        <div className="fc-course-cover">
+          <span className="fc-course-badge">
+            {tone === "live" ? (
+              <span className="fc-live-pill">
+                <span className="fc-dot" /> LIVE
+              </span>
+            ) : (
+              <span className={`fc-badge ${tone === "past" ? "fc-badge-neutral" : "fc-badge-info"}`}>
+                {tone === "past" ? "Completed" : "Enrolled cohort"}
+              </span>
+            )}
+          </span>
+          <span style={{ fontFamily: "var(--fc-font-display)", fontWeight: 800, fontSize: 22 }}>{initials(r.title)}</span>
+        </div>
+        <div className="fc-course-body">
+          <h3 className="fc-course-title">{r.title}</h3>
+          <p className="fc-course-meta" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="calendar" size={13} /> {r.schedule_text || "Schedule to be confirmed"}
+          </p>
+          <p className="fc-course-meta" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name="clock" size={13} />
+            {r.starts_at ? `Starts ${shortDateTime(r.starts_at)}` : "No start date set"}
+          </p>
+          <div className="fc-course-foot">
+            <Link href={`/classrooms/${r.slug}`} className="fc-btn fc-btn-primary fc-btn-sm">
+              <Icon name="arrowRight" size={14} /> Open workspace
+            </Link>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
-    <AppShell title="My Classrooms" sub="Group cohorts you are enrolled in. Browse more on the live schedule.">
-      {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
-      {rooms.length === 0 && !err ? (
-        <div className="rounded-3xl border border-dashed border-white/15 p-10 text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5"><Radio size={19} className="text-slate-400" /></span>
-          <p className="mt-4 font-display text-lg font-bold">No classrooms yet</p>
-          <p className="mx-auto mt-1.5 max-w-sm text-sm text-slate-400">Join a live cohort and your timetable, materials and recordings appear here.</p>
-          <Link href="/live" className="btn-aurora mt-5 inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white">
-            Browse live classes <ArrowRight size={15} />
+    <>
+      <PageHead
+        title="My Classrooms"
+        sub="Group cohorts you are enrolled in. Each has its own timetable, materials and recordings."
+        actions={
+          <Link href="/learn" className="fc-btn fc-btn-ghost">
+            <Icon name="compass" size={16} /> Find a cohort
           </Link>
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {rooms.map((r: any) => (
-            <Link key={r.id} href={`/classrooms/${r.slug}`} className="card-lift rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Enrolled cohort</p>
-              <h3 className="mt-1.5 font-display text-lg font-bold">{r.title}</h3>
-              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-400">
-                <span className="inline-flex items-center gap-1.5"><CalendarDays size={13} /> {r.schedule_text || "Scheduled"}</span>
-                {r.starts_at && <span className="inline-flex items-center gap-1.5"><Users size={13} /> Starts {new Date(r.starts_at).toLocaleDateString()}</span>}
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-[13px] font-bold">Open workspace <ArrowRight size={14} /></span>
-            </Link>
-          ))}
+        }
+      />
+
+      {failures.length > 0 && (
+        <div className="fc-alert fc-alert-danger" role="alert">
+          <Icon name="alertCircle" size={17} />
+          <span style={{ flex: 1 }}>Could not load your classrooms. {failures.join(", ")}.</span>
+          <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={reload}>
+            <Icon name="refresh" size={14} /> Retry
+          </button>
         </div>
       )}
-    </AppShell>
+
+      {loading ? (
+        <LoadingGrid height={168} count={3} />
+      ) : rooms.length === 0 ? (
+        <EmptyState
+          icon="monitorPlay"
+          title="No classrooms yet"
+          body="Join a live cohort and your timetable, materials and recordings appear here."
+          action={
+            <Link href="/learn" className="fc-btn fc-btn-primary fc-btn-sm">
+              Browse live classes <Icon name="arrowRight" size={14} />
+            </Link>
+          }
+        />
+      ) : (
+        <div className="fc-stack">
+          {live.length > 0 && (
+            <section aria-labelledby="cl-live">
+              <div className="fc-sec-head">
+                <h2 className="fc-sec-title" id="cl-live">
+                  Live now
+                </h2>
+                <span className="fc-badge fc-badge-danger">{live.length}</span>
+              </div>
+              <div className="fc-cards-grid">
+                {live.map((r) => (
+                  <RoomCard key={r.id} r={r} tone="live" />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {upcoming.length > 0 && (
+            <section aria-labelledby="cl-up">
+              <div className="fc-sec-head">
+                <h2 className="fc-sec-title" id="cl-up">
+                  Upcoming
+                </h2>
+                <span className="fc-badge fc-badge-neutral">{upcoming.length}</span>
+              </div>
+              <div className="fc-cards-grid">
+                {upcoming.map((r) => (
+                  <RoomCard key={r.id} r={r} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {past.length > 0 && (
+            <section aria-labelledby="cl-past">
+              <div className="fc-sec-head">
+                <h2 className="fc-sec-title" id="cl-past">
+                  Past cohorts
+                </h2>
+                <span className="fc-badge fc-badge-neutral">{past.length}</span>
+              </div>
+              <div className="fc-cards-grid">
+                {past.map((r) => (
+                  <RoomCard key={r.id} r={r} tone="past" />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+    </>
   );
 }

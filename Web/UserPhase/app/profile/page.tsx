@@ -1,56 +1,197 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import AppShell from "@/components/shell";
-import { currentUser, apiFetch } from "@/lib/client";
-import { apiLogout } from "@/lib/auth";
-import { formatMoney } from "@/lib/api";
+import Link from "next/link";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { usePrefs } from "@/components/dashboard/preferences";
+import { PageHead } from "@/components/dashboard/shell";
+import { Icon } from "@/components/ui/icons";
+import { Avatar, LoadingGrid, StatusBadge, shortDateTime } from "@/components/ui/primitives";
+import { money } from "@/lib/dashboard-api";
+
+/*
+  Profile — real account data from GET /auth/me plus your recent payments from
+  GET /api/transactions/mine. Preferences here are genuinely applied: the theme
+  and the reduce-motion switch both change the dashboard immediately and persist.
+*/
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [tx, setTx] = useState<any[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      const u = await currentUser().catch(() => null);
-      if (!u) return router.push("/login");
-      setEmail(u.email ?? "");
-      setName(String(u.user_metadata?.full_name ?? ""));
-      apiFetch("/transactions/mine").then(setTx).catch(() => {});
-    })();
-  }, [router]);
-
-  async function logout() {
-    apiLogout();
-    router.push("/");
-  }
+  const { data, loading, failures } = useDashboard();
+  const { prefs, update } = usePrefs();
+  const profile = data?.profile;
+  const tx = (data?.transactions ?? []).slice(0, 5);
+  const name = profile?.full_name || profile?.email?.split("@")[0] || "Learner";
+  const role = profile?.role === "INSTRUCTOR" ? "Instructor" : profile?.role === "ADMIN" ? "Administrator" : "Learner";
 
   return (
-    <AppShell title="Profile" sub="Your account and recent activity.">
-      <div className="grid max-w-3xl gap-3">
-        <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400 font-display text-xl font-bold">
-            {(name || email).charAt(0).toUpperCase()}
-          </span>
-          <div>
-            <p className="font-display text-lg font-bold">{name || "Learner"}</p>
-            <p className="text-sm text-slate-400">{email}</p>
-          </div>
-          <button onClick={logout} className="ml-auto rounded-xl border border-white/15 px-4 py-2 text-[13px] font-bold hover:bg-white/5">Log out</button>
+    <>
+      <PageHead title="Profile" sub="Your account details and recent activity." />
+
+      {failures.length > 0 && failures.includes("dashboard") && (
+        <div className="fc-alert fc-alert-danger" role="alert">
+          <Icon name="alertCircle" size={17} />
+          <span>Could not load your profile right now. Refresh the page to try again.</span>
         </div>
-        <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-          <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500">Recent payments</p>
-          {tx.slice(0, 5).map((t) => (
-            <div key={t.id} className="mt-2.5 flex items-center justify-between rounded-xl bg-black/30 px-4 py-2.5 text-sm">
-              <span>{t.product_type} · {formatMoney(t.amount_kobo, t.currency)}</span>
-              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px]">{t.status}</span>
+      )}
+
+      <div className="fc-band">
+        <div className="fc-stack">
+          <section className="fc-card" aria-labelledby="pf-details">
+            <div className="fc-sec-head">
+              <h2 className="fc-sec-title" id="pf-details">
+                Account
+              </h2>
             </div>
-          ))}
-          {!tx.length && <p className="mt-2.5 text-sm text-slate-500">No payments yet.</p>}
+            {loading ? (
+              <LoadingGrid height={90} count={1} />
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+                  <Avatar name={name} large />
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontFamily: "var(--fc-font-display)", fontSize: 18, fontWeight: 800 }}>{name}</p>
+                    <p style={{ fontSize: 13, color: "var(--fc-muted)", wordBreak: "break-word" }}>{profile?.email}</p>
+                  </div>
+                </div>
+                <dl style={{ margin: 0 }}>
+                  <div className="fc-def-row">
+                    <dt>Role</dt>
+                    <dd>{role}</dd>
+                  </div>
+                  <div className="fc-def-row">
+                    <dt>Email status</dt>
+                    <dd>
+                      {profile?.email_verified ? (
+                        <span className="fc-badge fc-badge-ok">
+                          <Icon name="check" size={12} /> Verified
+                        </span>
+                      ) : (
+                        <span className="fc-badge fc-badge-warn">Not verified</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="fc-def-row">
+                    <dt>Member since</dt>
+                    <dd>{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "—"}</dd>
+                  </div>
+                  <div className="fc-def-row">
+                    <dt>Account state</dt>
+                    <dd>
+                      {profile?.is_active ? (
+                        <span className="fc-badge fc-badge-ok">Active</span>
+                      ) : (
+                        <span className="fc-badge fc-badge-danger">Disabled</span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </>
+            )}
+          </section>
+
+          <section className="fc-card" aria-labelledby="pf-payments">
+            <div className="fc-sec-head">
+              <h2 className="fc-sec-title" id="pf-payments">
+                Recent payments
+              </h2>
+              <Link href="/transactions" className="fc-btn-quiet fc-btn">
+                All transactions <Icon name="arrowRight" size={14} />
+              </Link>
+            </div>
+            {loading ? (
+              <LoadingGrid height={60} count={2} />
+            ) : tx.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>No payments yet.</p>
+            ) : (
+              <div className="fc-table-wrap">
+                <table className="fc-tbl">
+                  <caption className="fc-sr-only">Your five most recent payments</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Product</th>
+                      <th scope="col">Date</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" className="num">
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tx.map((t) => (
+                      <tr key={t.id}>
+                        <td style={{ textTransform: "capitalize", fontWeight: 600 }}>{t.product_type}</td>
+                        <td style={{ whiteSpace: "nowrap" }}>{shortDateTime(t.created_at)}</td>
+                        <td>
+                          <StatusBadge status={t.status} />
+                        </td>
+                        <td className="num" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                          {money(t.amount_kobo, t.currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="fc-stack">
+          <section className="fc-card" aria-labelledby="pf-prefs">
+            <div className="fc-sec-head">
+              <h2 className="fc-sec-title" id="pf-prefs">
+                Display
+              </h2>
+            </div>
+
+            <div className="fc-set-row">
+              <div className="fc-row-main">
+                <p className="fc-row-title">Light theme</p>
+                <p className="fc-row-meta">Switch between the dark and light palettes.</p>
+              </div>
+              <label className="fc-switch">
+                <input
+                  type="checkbox"
+                  aria-label="Use light theme"
+                  checked={prefs.theme === "light"}
+                  onChange={(e) => update({ theme: e.target.checked ? "light" : "dark" })}
+                />
+                <span className="fc-switch-track" />
+              </label>
+            </div>
+
+            <div className="fc-set-row">
+              <div className="fc-row-main">
+                <p className="fc-row-title">Reduce motion</p>
+                <p className="fc-row-meta">Turn off the animated page transitions and pulsing live indicator.</p>
+              </div>
+              <label className="fc-switch">
+                <input
+                  type="checkbox"
+                  aria-label="Reduce motion"
+                  checked={prefs.reduceMotion}
+                  onChange={(e) => update({ reduceMotion: e.target.checked })}
+                />
+                <span className="fc-switch-track" />
+              </label>
+            </div>
+
+            <p className="fc-hint">Saved on this device and applied straight away.</p>
+          </section>
+
+          <section className="fc-card" aria-labelledby="pf-support">
+            <div className="fc-sec-head">
+              <h2 className="fc-sec-title" id="pf-support">
+                Support
+              </h2>
+            </div>
+            <p style={{ fontSize: 13, color: "var(--fc-muted)", marginBottom: 14 }}>
+              Need your data exported or your account changed? Message the team and we will handle it.
+            </p>
+            <Link href="/messages" className="fc-btn fc-btn-primary fc-btn-block fc-btn-sm">
+              <Icon name="messageSquare" size={15} /> Open messages
+            </Link>
+          </section>
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }

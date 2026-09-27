@@ -1,136 +1,273 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import AppShell from "@/components/shell";
-import { apiFetch } from "@/lib/client";
+import { useState } from "react";
+import { PageHead } from "@/components/dashboard/shell";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { useToast } from "@/components/dashboard/preferences";
+import { Icon } from "@/components/ui/icons";
+import { Alert, EmptyState, Field, LoadingGrid, StatusBadge, shortDate } from "@/components/ui/primitives";
+import { api } from "@/lib/dashboard-api";
+import { useAsync, useMutation } from "@/lib/use-dashboard";
 
-const input = "w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none placeholder:text-slate-600 focus:border-rose-400/60";
+/*
+  Class Requests — the real "request a topic" flow.
+  Writes POST /requests with the exact payload the backend expects; queues come
+  from GET /scope/requests/open and POST /scope/requests/:id/join.
+*/
+
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+
+const EMPTY = {
+  topic: "",
+  current_level: "Beginner",
+  background: "",
+  goals: "",
+  preferred_days: "",
+  preferred_time: "",
+  preferred_schedule: "",
+  mode: "online",
+  audience: "individual",
+  budget_kobo: 0,
+  message: "",
+};
 
 export default function RequestPage() {
-  const [f, setF] = useState({ topic: "", current_level: "Beginner", background: "", goals: "", preferred_days: "", preferred_time: "", preferred_schedule: "", mode: "online", audience: "individual", budget_kobo: 0, message: "" });
-  const [mine, setMine] = useState<any[]>([]);
-  const [queue, setQueue] = useState<any[]>([]);
-  const [status, setStatus] = useState<any>({ mine: [], joined: [], sla_hours: 48 });
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { data, reload: reloadShell } = useDashboard();
+  const { push } = useToast();
+  const [form, setForm] = useState(EMPTY);
+  const [joinedMsg, setJoinedMsg] = useState("");
 
-  async function refresh() {
-    try {
-      const [m, q, s] = await Promise.all([
-        apiFetch("/requests/mine").catch(() => []),
-        apiFetch("/scope/requests/open").catch(() => []),
-        apiFetch("/scope/requests/status").catch(() => ({ mine: [], joined: [], sla_hours: 48 })),
-      ]);
-      setMine(m); setQueue(q); setStatus(s);
-    } catch {}
-  }
+  const open = useAsync(() => api.openRequests(), []);
+  const status = data?.requests;
 
-  useEffect(() => { refresh(); }, []);
+  const create = useMutation(async (payload: Record<string, unknown>) => {
+    const r = await api.createRequest(payload);
+    setForm(EMPTY);
+    push("Request sent — we review every one personally.");
+    return r;
+  });
 
-  async function join(id: string) {
-    setErr(""); setOk("");
-    try {
-      const r = await apiFetch(`/scope/requests/${id}/join`, { method: "POST" });
-      setOk(`You are #${r.position} in the queue. We will notify you.`);
-      refresh();
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
+  const join = useMutation(async (id: string) => {
+    const r = await api.joinRequest(id);
+    setJoinedMsg(`You are #${r.position} in the queue — we will notify you.`);
+    open.reload();
+    reloadShell();
+    return r;
+  });
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setErr(""); setOk(""); setBusy(true);
-    try {
-      await apiFetch("/requests", { method: "POST", body: JSON.stringify(f) });
-      setOk("Request sent. We review every request personally.");
-      refresh();
-    } catch (e: any) {
-      setErr(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const set = <K extends keyof typeof EMPTY>(key: K, value: (typeof EMPTY)[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <AppShell title="Request custom training" sub="Can't find your topic? Describe it — we build a classroom around you.">
-      {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
-      {ok && <p className="mb-4 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">{ok}</p>}
-      <form onSubmit={submit} className="grid max-w-2xl gap-3.5 rounded-3xl border border-white/10 bg-stone-900/70 p-6 sm:grid-cols-2 sm:p-8">
-        <label className="text-[13px] font-medium sm:col-span-2">What do you want to learn?<input value={f.topic} onChange={(e) => set(e, "topic")} required placeholder="e.g. Node.js + PostgreSQL backend architecture" className={input} /></label>
-        <label className="text-[13px] font-medium">Current level<select value={f.current_level} onChange={(e) => set(e, "current_level")} className={input}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
-        <label className="text-[13px] font-medium">Budget (NGN)<input value={Math.round(f.budget_kobo / 100)} onChange={(e) => set(e, "budget_kobo", Number(e.target.value) * 100)} type="number" min={0} className={input} /></label>
-        <label className="text-[13px] font-medium sm:col-span-2">What do you already know?<textarea value={f.background} onChange={(e) => set(e, "background")} rows={2} className={input} /></label>
-        <label className="text-[13px] font-medium sm:col-span-2">What do you want to achieve?<textarea value={f.goals} onChange={(e) => set(e, "goals")} rows={2} className={input} /></label>
-        <label className="text-[13px] font-medium">Preferred days<input value={f.preferred_days} onChange={(e) => set(e, "preferred_days")} placeholder="e.g. Tue + Thu" className={input} /></label>
-        <label className="text-[13px] font-medium">Preferred time<input value={f.preferred_time} onChange={(e) => set(e, "preferred_time")} placeholder="e.g. evenings" className={input} /></label>
-        <label className="text-[13px] font-medium">Online or physical<select value={f.mode} onChange={(e) => set(e, "mode")} className={input}><option value="online">Online</option><option value="physical">Physical</option></select></label>
-        <label className="text-[13px] font-medium">Individual or group<select value={f.audience} onChange={(e) => set(e, "audience")} className={input}><option value="individual">Individual</option><option value="group">Group</option></select></label>
-        <label className="text-[13px] font-medium sm:col-span-2">Anything else?<textarea value={f.message} onChange={(e) => set(e, "message")} rows={2} className={input} /></label>
-        <button disabled={busy} className="btn-aurora rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50 sm:col-span-2">{busy ? "Sending…" : "Send request"}</button>
-      </form>
+    <>
+      <PageHead
+        title="Class Requests"
+        sub="Can't find your topic? Describe it and we build a classroom around you."
+        actions={
+          <Link href="/learn" className="fc-btn fc-btn-ghost">
+            <Icon name="compass" size={16} /> Browse catalog
+          </Link>
+        }
+      />
 
-      {(status.joined ?? []).length > 0 && (
-        <>
-          <h2 className="mb-3 mt-8 font-display text-lg font-bold">Queues you joined</h2>
-          <div className="grid max-w-2xl gap-2.5">
-            {(status.joined ?? []).map((r: any) => (
-              <div key={r.id} className="rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">{r.topic}</span>
-                  <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[11px]">{r.status}</span>
+      {create.error && <Alert tone="danger">{create.error}</Alert>}
+      {join.error && <Alert tone="danger">{join.error}</Alert>}
+      {joinedMsg && <Alert tone="ok">{joinedMsg}</Alert>}
+
+      <div className="fc-band">
+        {/* Request form */}
+        <section className="fc-card" aria-labelledby="rq-form-head">
+          <div className="fc-sec-head">
+            <h2 className="fc-sec-title" id="rq-form-head">
+              Tell us what you need
+            </h2>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (form.topic.trim()) void create.run(form);
+            }}
+          >
+            <Field label="What do you want to learn?" htmlFor="rq-topic">
+              <input
+                id="rq-topic"
+                className="fc-input"
+                required
+                value={form.topic}
+                onChange={(e) => set("topic", e.target.value)}
+                placeholder="e.g. Node.js + PostgreSQL backend architecture"
+              />
+            </Field>
+
+            <div className="fc-grid-2">
+              <Field label="Current level" htmlFor="rq-level">
+                <select id="rq-level" className="fc-select" value={form.current_level} onChange={(e) => set("current_level", e.target.value)}>
+                  {LEVELS.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Budget (NGN)" htmlFor="rq-budget" hint="Leave 0 if you would like a quote instead.">
+                <input
+                  id="rq-budget"
+                  className="fc-input"
+                  type="number"
+                  min={0}
+                  value={Math.round(form.budget_kobo / 100)}
+                  onChange={(e) => set("budget_kobo", Number(e.target.value) * 100)}
+                />
+              </Field>
+            </div>
+
+            <Field label="What do you already know?" htmlFor="rq-background">
+              <textarea id="rq-background" className="fc-textarea" rows={2} value={form.background} onChange={(e) => set("background", e.target.value)} />
+            </Field>
+
+            <Field label="What do you want to achieve?" htmlFor="rq-goals">
+              <textarea id="rq-goals" className="fc-textarea" rows={2} value={form.goals} onChange={(e) => set("goals", e.target.value)} />
+            </Field>
+
+            <div className="fc-grid-2">
+              <Field label="Preferred days" htmlFor="rq-days">
+                <input id="rq-days" className="fc-input" value={form.preferred_days} onChange={(e) => set("preferred_days", e.target.value)} placeholder="e.g. Tue + Thu" />
+              </Field>
+              <Field label="Preferred time" htmlFor="rq-time">
+                <input id="rq-time" className="fc-input" value={form.preferred_time} onChange={(e) => set("preferred_time", e.target.value)} placeholder="e.g. evenings" />
+              </Field>
+            </div>
+
+            <div className="fc-grid-2">
+              <Field label="Online or physical" htmlFor="rq-mode">
+                <select id="rq-mode" className="fc-select" value={form.mode} onChange={(e) => set("mode", e.target.value)}>
+                  <option value="online">Online</option>
+                  <option value="physical">Physical</option>
+                </select>
+              </Field>
+              <Field label="Individual or group" htmlFor="rq-audience">
+                <select id="rq-audience" className="fc-select" value={form.audience} onChange={(e) => set("audience", e.target.value)}>
+                  <option value="individual">Individual</option>
+                  <option value="group">Group</option>
+                </select>
+              </Field>
+            </div>
+
+            <Field label="Anything else?" htmlFor="rq-message">
+              <textarea id="rq-message" className="fc-textarea" rows={2} value={form.message} onChange={(e) => set("message", e.target.value)} />
+            </Field>
+
+            <button type="submit" className="fc-btn fc-btn-primary fc-btn-block" disabled={create.pending}>
+              <Icon name="sparkles" size={16} /> {create.pending ? "Sending…" : "Send request"}
+            </button>
+          </form>
+        </section>
+
+        {/* Your activity */}
+        <div className="fc-stack">
+          <section className="fc-card" aria-labelledby="rq-mine">
+            <div className="fc-sec-head">
+              <h2 className="fc-sec-title" id="rq-mine">
+                Your requests
+              </h2>
+            </div>
+            {!status || status.mine.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>Nothing submitted yet.</p>
+            ) : (
+              status.mine.map((r) => (
+                <div key={r.id} className="fc-row-item">
+                  <span className="fc-row-main">
+                    <span className="fc-row-title" style={{ display: "block" }}>
+                      {r.topic}
+                    </span>
+                    <span className="fc-row-meta">
+                      {r.waiting ?? 0} waiting · typically reviewed within {status.sla_hours}h
+                    </span>
+                  </span>
+                  <StatusBadge status={r.status} />
                 </div>
-                {r.classroom_slug ? (
-                  <Link href={`/classrooms/${r.classroom_slug}`} className="mt-2 inline-block text-[13px] font-bold text-emerald-300">Classroom ready — enroll now →</Link>
-                ) : (
-                  <p className="mt-1.5 text-xs text-slate-400">Position #{r.position} of {r.waiting} waiting · typically reviewed within {status.sla_hours}h</p>
-                )}
+              ))
+            )}
+          </section>
+
+          {status && status.joined.length > 0 && (
+            <section className="fc-card" aria-labelledby="rq-joined">
+              <div className="fc-sec-head">
+                <h2 className="fc-sec-title" id="rq-joined">
+                  Queues you joined
+                </h2>
+              </div>
+              {status.joined.map((r) => (
+                <div key={r.id} className="fc-row-item">
+                  <span className="fc-row-main">
+                    <span className="fc-row-title" style={{ display: "block" }}>
+                      {r.topic}
+                    </span>
+                    <span className="fc-row-meta">
+                      {r.classroom_slug
+                        ? "Classroom ready"
+                        : `Position #${r.position} of ${r.waiting} waiting`}
+                    </span>
+                    {r.classroom_slug && (
+                      <Link href={`/classrooms/${r.classroom_slug}`} className="fc-btn fc-btn-primary fc-btn-sm" style={{ marginTop: 10 }}>
+                        Enroll now <Icon name="arrowRight" size={14} />
+                      </Link>
+                    )}
+                  </span>
+                  <StatusBadge status={r.status} />
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
+      </div>
+
+      {/* Open queues */}
+      <section style={{ marginTop: 24 }} aria-labelledby="rq-open">
+        <div className="fc-sec-head">
+          <h2 className="fc-sec-title" id="rq-open">
+            Open requests — join the queue
+          </h2>
+          <button type="button" className="fc-btn-quiet fc-btn" onClick={open.reload}>
+            <Icon name="refresh" size={14} /> Refresh
+          </button>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--fc-muted)", marginBottom: 16, maxWidth: "70ch" }}>
+          Requests from other learners. Join a queue and we notify you the moment it becomes a classroom.
+        </p>
+        {open.error && <Alert tone="danger">{open.error}</Alert>}
+        {open.loading ? (
+          <LoadingGrid height={76} count={3} />
+        ) : (open.data ?? []).length === 0 ? (
+          <EmptyState icon="sparkles" title="No open requests right now" body="Be the first — submit your own request above and others can join it." />
+        ) : (
+          <div className="fc-card">
+            {(open.data ?? []).map((r) => (
+              <div key={r.id} className="fc-row-item">
+                <span className="fc-row-main">
+                  <span className="fc-row-title" style={{ display: "block" }}>
+                    {r.topic}
+                  </span>
+                  <span className="fc-row-meta">
+                    {[r.current_level, r.mode, `${r.waiting} waiting`, `opened ${shortDate(r.created_at)}`]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="fc-btn fc-btn-ghost fc-btn-sm"
+                  disabled={join.pending}
+                  onClick={() => void join.run(r.id)}
+                  aria-label={`Join the queue for ${r.topic}`}
+                >
+                  Join queue
+                </button>
               </div>
             ))}
           </div>
-        </>
-      )}
-
-      {(status.mine?.length > 0 || mine.length > 0) && (
-        <>
-          <h2 className="mb-3 mt-8 font-display text-lg font-bold">Your requests</h2>
-          <div className="grid max-w-2xl gap-2.5">
-            {(status.mine?.length ? status.mine : mine).map((r: any) => (
-              <div key={r.id} className="rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">{r.topic}</span>
-                  <span className="ml-auto rounded-full bg-white/10 px-2.5 py-1 text-[11px]">{r.status}</span>
-                </div>
-                <p className="mt-1.5 text-xs text-slate-400">{r.waiting ?? 0} waiting · typically reviewed within {status.sla_hours}h</p>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {queue.length > 0 && (
-        <>
-          <h2 className="mb-3 mt-8 font-display text-lg font-bold">Open requests — join the queue</h2>
-          <p className="mb-3 max-w-2xl text-[13px] text-slate-400">Requests from learners like you. Join a queue and we will notify you the moment it becomes a classroom.</p>
-          <div className="grid max-w-2xl gap-2.5">
-            {queue.map((r: any) => (
-              <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3 text-sm">
-                <div>
-                  <p className="font-semibold">{r.topic}</p>
-                  <p className="text-xs text-slate-500">{r.current_level} · {r.mode} · {r.waiting} waiting</p>
-                </div>
-                <button onClick={() => join(r.id)} className="ml-auto shrink-0 rounded-xl border border-white/15 px-4 py-2 text-[12.5px] font-bold hover:bg-white/10">Join queue</button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </AppShell>
+        )}
+      </section>
+    </>
   );
-
-  function set(e: any, k: string, v?: any) {
-    void e;
-    setF((prev) => ({ ...prev, [k]: v ?? (e?.target?.value ?? "") }));
-  }
 }

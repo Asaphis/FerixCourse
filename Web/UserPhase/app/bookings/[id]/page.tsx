@@ -1,72 +1,180 @@
 "use client";
-import { useEffect, useState } from "react";
-import AppShell from "@/components/shell";
-import { apiFetch } from "@/lib/client";
-import { formatMoney } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import { PageHead } from "@/components/dashboard/shell";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { Icon } from "@/components/ui/icons";
+import { Alert, EmptyState, StatusBadge, shortDateTime } from "@/components/ui/primitives";
+import { api, money, type Message } from "@/lib/dashboard-api";
+import { useAsync, useMutation } from "@/lib/use-dashboard";
+
+/*
+  Booking workspace — the private room shared with the assigned instructor.
+  GET /scope/bookings/:id for the booking + thread, POST .../messages to reply.
+*/
 
 export default function BookingDetailPage({ params }: { params: { id: string } }) {
-  const [data, setData] = useState<any>(null);
+  const { data: shell } = useDashboard();
+  const detail = useAsync(() => api.booking(params.id), [params.id]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
-  const [err, setErr] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  async function load() {
-    try {
-      setData(await apiFetch(`/scope/bookings/${params.id}`));
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
-  useEffect(() => { load(); }, [params.id]);
+  useEffect(() => {
+    setMessages(detail.data?.messages ?? []);
+  }, [detail.data]);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    if (!draft.trim()) return;
-    try {
-      await apiFetch(`/scope/bookings/${params.id}/messages`, { method: "POST", body: JSON.stringify({ body: draft }) });
-      setDraft("");
-      load();
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const send = useMutation(async (body: string) => {
+    const m = await api.sendBookingMessage(params.id, body);
+    setMessages((prev) => [...prev, m]);
+    return m;
+  });
+
+  const booking = detail.data?.booking;
+  const price = booking?.price_kobo ?? 0;
 
   return (
-    <AppShell title="Booking workspace" sub="Private room for you and your instructor. Files, price and schedule live here.">
-      {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
-      {!data ? (
-        <div className="h-48 animate-pulse rounded-3xl bg-white/5" />
+    <>
+      <PageHead
+        title={booking?.topic || "Booking workspace"}
+        sub="Your private room with the instructor — schedule, price and discussion live here."
+        actions={
+          <Link_BackToBookings />
+        }
+      />
+
+      {detail.error && (
+        <Alert tone="danger">
+          {detail.error}{" "}
+          <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={detail.reload}>
+            Retry
+          </button>
+        </Alert>
+      )}
+
+      {detail.loading ? (
+        <div className="fc-skel" style={{ height: 200 }} />
+      ) : !booking ? (
+        <EmptyState icon="calendarCheck" title="Booking not found" body="It may have been removed, or the link is wrong." />
       ) : (
-        <div className="grid max-w-3xl gap-3">
-          <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-display text-lg font-bold">{data.booking.topic}</p>
-              <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold">{data.booking.status}</span>
-              <span className="ml-auto text-sm text-slate-400">{data.booking.mode} · {data.booking.duration_min} min</span>
+        <div className="fc-band">
+          <div className="fc-stack">
+            <section className="fc-card" aria-labelledby="bd-details">
+              <div className="fc-sec-head">
+                <h2 className="fc-sec-title" id="bd-details">
+                  Session
+                </h2>
+                <StatusBadge status={booking.status} />
+              </div>
+              <dl style={{ margin: 0 }}>
+                <div className="fc-def-row">
+                  <dt>Format</dt>
+                  <dd>
+                    {booking.mode} · {booking.duration_min} minutes
+                  </dd>
+                </div>
+                <div className="fc-def-row">
+                  <dt>Preferred slot</dt>
+                  <dd>
+                    {booking.preferred_date || "Date to be confirmed"}
+                    {booking.preferred_time ? ` · ${booking.preferred_time}` : ""}
+                  </dd>
+                </div>
+                {booking.location && (
+                  <div className="fc-def-row">
+                    <dt>Location</dt>
+                    <dd>{booking.location}</dd>
+                  </div>
+                )}
+                <div className="fc-def-row">
+                  <dt>Requested</dt>
+                  <dd>{shortDateTime(booking.created_at)}</dd>
+                </div>
+                <div className="fc-def-row">
+                  <dt>Agreed price</dt>
+                  <dd>{price > 0 ? money(price) : "Not set yet — the instructor will confirm"}</dd>
+                </div>
+              </dl>
+              {booking.message && (
+                <p className="fc-bubble" style={{ marginTop: 16 }}>
+                  “{booking.message}”
+                </p>
+              )}
+            </section>
+          </div>
+
+          <section className="fc-card" aria-labelledby="bd-thread">
+            <div className="fc-sec-head">
+              <h2 className="fc-sec-title" id="bd-thread">
+                Private discussion
+              </h2>
+              <button type="button" className="fc-btn-quiet fc-btn" onClick={detail.reload}>
+                <Icon name="refresh" size={14} /> Refresh
+              </button>
             </div>
-            <p className="mt-2 text-sm text-slate-400">
-              {data.booking.preferred_date ?? "Date TBD"} {data.booking.preferred_time}
-              {data.booking.location ? ` · ${data.booking.location}` : ""}
+            <p className="fc-hint" style={{ marginBottom: 12 }}>
+              Agree on time, price and goals here. Only you and your instructor can read this.
             </p>
-            {(data.booking.price_kobo ?? 0) > 0 && (
-              <p className="mt-2 font-display font-bold">Agreed price: {formatMoney(data.booking.price_kobo, "NGN")}</p>
-            )}
-            {data.booking.message && <p className="mt-2 text-sm text-slate-400">“{data.booking.message}”</p>}
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500">Private discussion</p>
-            <div className="mt-3 grid max-h-80 content-start gap-2 overflow-y-auto">
-              {(data.messages ?? []).map((m: any) => (
-                <p key={m.id} className="rounded-xl bg-white/[.05] px-3.5 py-2.5 text-sm">{m.body}</p>
-              ))}
-              {!data.messages?.length && <p className="text-sm text-slate-500">Discuss time, price and goals here — only you two can read this.</p>}
+
+            <div className="fc-thread" ref={scrollRef} role="log" aria-label="Booking discussion">
+              {messages.length === 0 && (
+                <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>No messages yet — say hello and share your goals.</p>
+              )}
+              {messages.map((m) => {
+                const mine = m.sender_id === shell?.profile?.id;
+                return (
+                  <div key={m.id}>
+                    <p className="fc-thread-meta">
+                      {mine ? "You" : "Instructor"} · {shortDateTime(m.created_at)}
+                    </p>
+                    <p className={`fc-bubble${mine ? " me" : ""}`}>{m.body}</p>
+                  </div>
+                );
+              })}
             </div>
-            <form onSubmit={send} className="mt-4 flex gap-2">
-              <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Write to your instructor…" className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm outline-none placeholder:text-slate-600 focus:border-orange-400/60" />
-              <button className="btn-aurora rounded-xl px-5 py-2.5 text-sm font-bold text-white">Send</button>
+
+            <form
+              className="fc-toolbar"
+              style={{ marginTop: 16, marginBottom: 0 }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                const body = draft.trim();
+                if (!body) return;
+                void send.run(body).then((r) => {
+                  if (r) setDraft("");
+                });
+              }}
+            >
+              <label className="fc-sr-only" htmlFor="bd-reply">
+                Write to your instructor
+              </label>
+              <input
+                id="bd-reply"
+                className="fc-input"
+                style={{ maxWidth: "none", flex: 1 }}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Write to your instructor…"
+              />
+              <button type="submit" className="fc-btn fc-btn-primary" disabled={send.pending || !draft.trim()}>
+                <Icon name="arrowRight" size={15} /> {send.pending ? "Sending…" : "Send"}
+              </button>
             </form>
-          </div>
+            {send.error && <Alert tone="danger">{send.error}</Alert>}
+          </section>
         </div>
       )}
-    </AppShell>
+    </>
+  );
+}
+
+function Link_BackToBookings() {
+  return (
+    <a href="/book" className="fc-btn fc-btn-ghost">
+      <Icon name="arrowRight" size={16} style={{ transform: "rotate(180deg)" }} /> All bookings
+    </a>
   );
 }

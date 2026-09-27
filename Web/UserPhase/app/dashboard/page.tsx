@@ -1,144 +1,466 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { PlayCircle, Radio, ArrowRight, BookOpen, Sparkles, CalendarDays, Inbox, Bell, MessageSquare } from "lucide-react";
-import AppShell from "@/components/shell";
-import { apiFetch, currentUser } from "@/lib/client";
+import { useMemo } from "react";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { PageError, PageHead } from "@/components/dashboard/shell";
+import { Icon, type IconName } from "@/components/ui/icons";
+import { EmptyState, LoadingGrid, Progress, SectionHead, StatCard, StatusBadge, initials, shortDateTime } from "@/components/ui/primitives";
+import { api } from "@/lib/dashboard-api";
+import { useAsync, useCoursesProgress } from "@/lib/use-dashboard";
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [data, setData] = useState<{ courses: any[]; classrooms: any[] } | null>(null);
-  const [reqs, setReqs] = useState<any>({ mine: [], joined: [], sla_hours: 48 });
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [notifs, setNotifs] = useState<any[]>([]);
-  const [convCount, setConvCount] = useState(0);
-  const [err, setErr] = useState("");
+/*
+  Overview.
+  Composition mirrors the approved design: greeting → 4 stat tiles → promo band →
+  Continue Learning (wide) + Upcoming Live Classes (rail) → Explore Training →
+  My Recent Courses (wide) + Recent Activity & 1-on-1 (rail).
+  Every value is real: no placeholder rows, and each empty state offers the
+  action that would fill it.
+*/
 
-  useEffect(() => {
-    (async () => {
-      const u = await currentUser().catch(() => null);
-      if (!u) return router.push("/login");
-      setName(String(u.user_metadata?.full_name ?? u.email?.split("@")[0] ?? "Learner"));
-      try {
-        const [enr, rs, bk, nt, cv] = await Promise.all([
-          apiFetch("/api/enrollments/mine"),
-          apiFetch("/scope/requests/status").catch(() => ({ mine: [], joined: [], sla_hours: 48 })),
-          apiFetch("/bookings/mine").catch(() => []),
-          apiFetch("/notifications/mine").catch(() => []),
-          apiFetch("/messages/conversations").catch(() => []),
-        ]);
-        setData(enr); setReqs(rs); setBookings(bk); setNotifs(nt.slice(0, 3)); setConvCount(cv.length ?? 0);
-      } catch (e: any) {
-        setErr(e.message);
-      }
-    })();
-  }, [router]);
+export default function OverviewPage() {
+  const { data, loading, failures, reload, unreadNotifications, pendingRequests } = useDashboard();
+  const categories = useAsync(() => api.categories(), []);
 
   const courses = data?.courses ?? [];
-  const rooms = data?.classrooms ?? [];
-  const upcoming = rooms.filter((r: any) => r.starts_at && new Date(r.starts_at) > new Date()).slice(0, 4);
-  const pendReqs = (reqs.mine ?? []).filter((r: any) => ["pending", "reviewing"].includes(r.status));
-  const pendBooks = bookings.filter((b: any) => ["pending", "confirmed"].includes(b.status));
+  const classrooms = data?.classrooms ?? [];
+  const notifications = data?.notifications ?? [];
+  const bookings = data?.bookings ?? [];
+  const requests = data?.requests;
+
+  /* Real lesson progress for each owned course. */
+  const courseIds = useMemo(() => courses.map((c) => c.id), [courses]);
+  const { progress, loading: progressLoading } = useCoursesProgress(courseIds);
+
+  const name = data?.profile?.full_name || data?.profile?.email?.split("@")[0] || "";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  /* The classroom that is live now, or starts within the next 30 minutes. */
+  const liveNow = useMemo(() => {
+    const now = Date.now();
+    return (
+      classrooms.find((c) => {
+        if (!c.starts_at) return false;
+        const start = new Date(c.starts_at).getTime();
+        return start <= now + 30 * 60 * 1000 && start >= now - 3 * 60 * 60 * 1000;
+      }) ?? null
+    );
+  }, [classrooms]);
+
+  const upcomingRooms = useMemo(() => {
+    const now = Date.now();
+    return classrooms
+      .filter((c) => c.starts_at && new Date(c.starts_at).getTime() > now)
+      .sort((a, b) => new Date(a.starts_at as string).getTime() - new Date(b.starts_at as string).getTime())
+      .slice(0, 4);
+  }, [classrooms]);
+
+  const upcomingBookings = useMemo(
+    () => bookings.filter((b) => ["pending", "confirmed", "paid"].includes(b.status)).slice(0, 2),
+    [bookings]
+  );
+
+  const recentCourses = courses.slice(0, 3);
+  const recentActivity = notifications.slice(0, 4);
+  const cats = (categories.data ?? []).slice(0, 8);
+
+  const totalLessons = Object.values(progress).reduce((n, p) => n + p.total, 0);
+  const doneLessons = Object.values(progress).reduce((n, p) => n + p.completed, 0);
 
   return (
-    <AppShell title={name ? `Welcome back, ${name}` : "Welcome back"} sub="Your learning at a glance. Everything below is live data.">
-      {err && <p className="mb-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{err}</p>}
+    <>
+      <PageHead
+        title={name ? `${greeting}, ${name}` : greeting}
+        sub="Everything below is live from your account."
+        actions={
+          <>
+            <Link href="/learn" className="fc-btn fc-btn-ghost">
+              <Icon name="compass" size={16} /> Browse catalog
+            </Link>
+            <Link href="/request" className="fc-btn fc-btn-primary">
+              <Icon name="sparkles" size={16} /> Request training
+            </Link>
+          </>
+        }
+      />
 
-      {!data ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => <div key={i} className="h-40 animate-pulse rounded-3xl border border-white/8 bg-white/[.03]" />)}
-        </div>
-      ) : courses.length + rooms.length === 0 && pendReqs.length === 0 && pendBooks.length === 0 ? (
-        <div className="grain relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-orange-600/20 via-stone-900 to-stone-900 p-8 sm:p-12">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-rose-500"><Sparkles size={20} className="text-white" /></span>
-          <h2 className="mt-5 max-w-lg font-display text-2xl font-bold sm:text-3xl">Your journey starts with a first enrollment.</h2>
-          <p className="mt-2.5 max-w-md text-sm leading-relaxed text-slate-400">Join a live cohort, pick a recorded course, or book private mentorship — then track everything here.</p>
-          <div className="mt-6 flex flex-wrap gap-2.5">
-            <Link href="/live" className="btn-aurora rounded-xl px-5 py-2.5 text-sm font-bold text-white">Find a live class</Link>
-            <Link href="/learn" className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-bold hover:bg-white/5">Browse catalog</Link>
-            <Link href="/book" className="rounded-xl border border-white/15 px-5 py-2.5 text-sm font-bold hover:bg-white/5">Book 1-on-1</Link>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-            <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500"><PlayCircle size={14} /> My courses ({courses.length})</p>
-            {courses.slice(0, 3).map((c: any) => (
-              <Link key={c.id} href={`/courses/${c.slug}`} className="group mt-3 flex items-center justify-between rounded-2xl border border-white/8 bg-black/30 px-4 py-3 hover:border-white/20">
-                <span className="text-sm font-semibold">{c.title}</span>
-                <ArrowRight size={15} className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-white" />
-              </Link>
-            ))}
-            {!courses.length && <p className="mt-3 text-sm text-slate-500">No courses yet. <Link href="/learn" className="font-bold text-white">Browse</Link></p>}
-            {courses.length > 0 && <Link href="/my-courses" className="mt-3 inline-block text-[13px] font-bold text-slate-300 hover:text-white">View all →</Link>}
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-            <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500"><Radio size={14} /> My classrooms ({rooms.length})</p>
-            {rooms.slice(0, 3).map((r: any) => (
-              <Link key={r.id} href={`/classrooms/${r.slug}`} className="group mt-3 block rounded-2xl border border-white/8 bg-black/30 px-4 py-3 hover:border-white/20">
-                <span className="flex items-center justify-between text-sm font-semibold">{r.title}
-                  <ArrowRight size={15} className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-white" /></span>
-                <span className="text-xs text-slate-500">{r.schedule_text}</span>
-              </Link>
-            ))}
-            {!rooms.length && <p className="mt-3 text-sm text-slate-500">No live classes yet. <Link href="/live" className="font-bold text-white">Browse</Link></p>}
-            {rooms.length > 0 && <Link href="/classes" className="mt-3 inline-block text-[13px] font-bold text-slate-300 hover:text-white">View all →</Link>}
-          </div>
+      <PageError
+        message={failures.length ? `Some panels could not load: ${failures.join(", ")}.` : ""}
+        onRetry={reload}
+      />
 
-          {upcoming.length > 0 && (
-            <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-              <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500"><CalendarDays size={14} /> Upcoming timetable</p>
-              {upcoming.map((r: any) => (
-                <p key={r.id} className="mt-3 flex items-center justify-between rounded-2xl bg-black/30 px-4 py-3 text-sm">
-                  <span className="font-semibold">{r.title}</span>
-                  <span className="text-xs text-slate-400">{new Date(r.starts_at).toLocaleDateString()} {new Date(r.starts_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                </p>
-              ))}
-            </div>
-          )}
-
-          {(pendReqs.length > 0 || pendBooks.length > 0) && (
-            <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-              <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500"><Inbox size={14} /> Awaiting response</p>
-              {pendReqs.map((r: any) => (
-                <Link key={r.id} href="/request" className="mt-3 flex items-center justify-between rounded-2xl bg-black/30 px-4 py-3 text-sm hover:border-white/20">
-                  <span className="font-semibold">{r.topic}</span>
-                  <span className="text-xs text-slate-400">{r.status} · ~{reqs.sla_hours}h response</span>
-                </Link>
-              ))}
-              {pendBooks.map((b: any) => (
-                <Link key={b.id} href={`/bookings/${b.id}`} className="mt-3 flex items-center justify-between rounded-2xl bg-black/30 px-4 py-3 text-sm hover:border-white/20">
-                  <span className="font-semibold">{b.topic}</span>
-                  <span className="text-xs text-slate-400">{b.status}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-            <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500"><Bell size={14} /> Recent alerts</p>
-            {notifs.length === 0 && <p className="mt-3 text-sm text-slate-500">Nothing yet.</p>}
-            {notifs.map((n: any) => (
-              <p key={n.id} className="mt-2.5 rounded-2xl bg-black/30 px-4 py-2.5 text-sm"><b>{n.title}</b> <span className="text-xs text-slate-500">· {new Date(n.created_at).toLocaleDateString()}</span></p>
-            ))}
-            <Link href="/notifications" className="mt-3 inline-block text-[13px] font-bold text-slate-300 hover:text-white">All notifications →</Link>
+      {/* Live-now banner: a learner arriving early should not have to hunt. */}
+      {liveNow && (
+        <div className="fc-live-now">
+          <span className="fc-live-pill">
+            <span className="fc-dot" /> LIVE
+          </span>
+          <div>
+            <p className="fc-ln-title">{liveNow.title}</p>
+            <p className="fc-ln-meta">
+              {liveNow.schedule_text || "Scheduled session"} · started {shortDateTime(liveNow.starts_at)}
+            </p>
           </div>
-
-          <div className="rounded-3xl border border-white/10 bg-stone-900/70 p-6">
-            <p className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-slate-500"><MessageSquare size={14} /> Messages</p>
-            <p className="mt-3 text-sm text-slate-400">{convCount === 0 ? "No conversations yet." : `${convCount} conversation${convCount === 1 ? "" : "s"} open.`}</p>
-            <Link href="/messages" className="btn-aurora mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-bold text-white">Open messages</Link>
-          </div>
+          <Link href={`/classrooms/${liveNow.slug}`} className="fc-btn fc-btn-primary fc-btn-sm">
+            <Icon name="video" size={15} /> Join now
+          </Link>
         </div>
       )}
 
-      <div className="mt-6">
-        <Link href="/request" className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-white/20 px-4 py-2.5 text-[13px] font-bold text-slate-300 hover:border-white/40 hover:text-white">
-          <BookOpen size={14} /> Can&apos;t find your topic? Request it
-        </Link>
+      {/* 4 stat tiles */}
+      {loading ? (
+        <LoadingGrid height={86} count={4} />
+      ) : (
+        <div className="fc-stats">
+          <StatCard icon="bookOpen" label="Courses owned" value={courses.length} />
+          <StatCard icon="monitorPlay" tone="info" label="Live classrooms" value={classrooms.length} />
+          <StatCard icon="bell" tone={unreadNotifications ? "warn" : undefined} label="Unread alerts" value={unreadNotifications} />
+          <StatCard icon="sparkles" tone={pendingRequests ? "warn" : "ok"} label="Requests awaiting reply" value={pendingRequests} />
+        </div>
+      )}
+
+      {/* Promo band */}
+      <section className="fc-promo" aria-labelledby="ov-promo">
+        <div className="fc-promo-copy">
+          <h2 id="ov-promo">
+            {totalLessons > 0 ? `${doneLessons} of ${totalLessons} lessons complete` : "Pick your next skill and start today"}
+          </h2>
+          <p>
+            {totalLessons > 0
+              ? "Keep your streak going — the next lesson is already queued up for you."
+              : "Join a live cohort, buy a recorded course, or book private mentorship with an instructor."}
+          </p>
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
+            {courses.length > 0 ? (
+              <Link href="/my-courses" className="fc-btn fc-btn-primary">
+                <Icon name="play" size={15} /> Continue learning
+              </Link>
+            ) : (
+              <Link href="/learn" className="fc-btn fc-btn-primary">
+                <Icon name="compass" size={15} /> Explore the catalog
+              </Link>
+            )}
+            <Link href="/book" className="fc-btn fc-btn-ghost">
+              <Icon name="calendarCheck" size={15} /> Book 1-on-1
+            </Link>
+          </div>
+        </div>
+        <div className="fc-promo-art" aria-hidden="true">
+          <Icon name="graduationCap" />
+        </div>
+      </section>
+
+      {/* Continue Learning + Upcoming Live Classes */}
+      <div className="fc-band">
+        <section className="fc-card" aria-labelledby="ov-continue">
+          <SectionHead
+            title="Continue Learning"
+            id="ov-continue"
+            action={
+              courses.length > 0 ? (
+                <Link href="/my-courses" className="fc-btn-quiet fc-btn">
+                  View all <Icon name="arrowRight" size={14} />
+                </Link>
+              ) : undefined
+            }
+          />
+          {loading || progressLoading ? (
+            <LoadingGrid height={104} count={2} />
+          ) : courses.length === 0 ? (
+            <EmptyState
+              icon="bookOpen"
+              title="No courses yet"
+              body="Buy a recorded course and it lives here forever, with progress tracking across every lesson."
+              action={
+                <Link href="/learn" className="fc-btn fc-btn-primary fc-btn-sm">
+                  Browse catalog <Icon name="arrowRight" size={14} />
+                </Link>
+              }
+            />
+          ) : (
+            courses.slice(0, 3).map((c) => {
+              const p = progress[c.id];
+              return (
+                <div key={c.id} className="fc-cont-item">
+                  <span className="fc-cont-thumb">
+                    {initials(c.title)}
+                    {p && p.pct === 100 ? (
+                      <span className="fc-play">
+                        <Icon name="check" />
+                      </span>
+                    ) : (
+                      <span className="fc-play">
+                        <Icon name="play" />
+                      </span>
+                    )}
+                  </span>
+                  <div className="fc-cont-body">
+                    <p className="fc-cont-title">{c.title}</p>
+                    <p className="fc-cont-meta">
+                      Enrolled {new Date(c.enrolled_at).toLocaleDateString()}
+                      {p ? ` · ${p.total} lesson${p.total === 1 ? "" : "s"}` : ""}
+                    </p>
+                    {p ? (
+                      <div className="fc-cont-progress">
+                        <div className="fc-cont-pct">
+                          <span>{p.completed} completed</span>
+                          <span>{p.pct}%</span>
+                        </div>
+                        <Progress value={p.pct} label={`${c.title} progress`} tone={p.pct === 100 ? "ok" : undefined} />
+                      </div>
+                    ) : null}
+                    <p className="fc-cont-next">
+                      {p?.nextLesson ? `Next: ${p.nextLesson.title}` : p && p.total > 0 ? "All lessons complete" : "Open the course to begin"}
+                    </p>
+                  </div>
+                  <Link href={`/courses/${c.slug}`} className="fc-btn fc-btn-ghost fc-btn-sm">
+                    Open
+                  </Link>
+                </div>
+              );
+            })
+          )}
+        </section>
+
+        <section className="fc-card" aria-labelledby="ov-live">
+          <SectionHead
+            title="Upcoming Live Classes"
+            id="ov-live"
+            action={
+              classrooms.length > 0 ? (
+                <Link href="/classes" className="fc-btn-quiet fc-btn">
+                  All <Icon name="arrowRight" size={14} />
+                </Link>
+              ) : undefined
+            }
+          />
+          {loading ? (
+            <LoadingGrid height={72} count={2} />
+          ) : upcomingRooms.length === 0 ? (
+            <EmptyState
+              icon="calendar"
+              title="Nothing scheduled"
+              body="When a cohort you joined has a session, its start time appears here."
+              action={
+                <Link href="/classes" className="fc-btn fc-btn-ghost fc-btn-sm">
+                  My classrooms
+                </Link>
+              }
+            />
+          ) : (
+            upcomingRooms.map((r) => (
+              <Link key={r.id} href={`/classrooms/${r.slug}`} className="fc-live-item">
+                <span className="fc-live-thumb">{initials(r.title)}</span>
+                <span className="fc-live-body">
+                  <span className="fc-live-title" style={{ display: "block" }}>
+                    {r.title}
+                  </span>
+                  <span className="fc-live-meta">
+                    <Icon name="clock" size={12} /> {shortDateTime(r.starts_at)}
+                  </span>
+                </span>
+                <Icon name="chevronRight" size={16} style={{ color: "var(--fc-muted)" }} />
+              </Link>
+            ))
+          )}
+        </section>
       </div>
-    </AppShell>
+
+      {/* Explore Training */}
+      <section className="fc-card" aria-labelledby="ov-explore">
+        <SectionHead
+          title="Explore Training"
+          id="ov-explore"
+          action={
+            <Link href="/learn" className="fc-btn-quiet fc-btn">
+              See everything <Icon name="arrowRight" size={14} />
+            </Link>
+          }
+        />
+        {cats.length > 0 ? (
+          <div className="fc-tiles">
+            {cats.map((c) => (
+              <Link key={c.id} href={`/learn?category=${encodeURIComponent(c.slug)}`} className="fc-tile">
+                <span className="fc-tile-ico">
+                  <Icon name="layers" size={19} />
+                </span>
+                <span className="fc-tile-name">{c.name}</span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="fc-tiles">
+            {(
+              [
+                ["Recorded courses", "Learn at your own pace", "/learn", "bookOpen"],
+                ["Live cohorts", "Join a scheduled class", "/classes", "monitorPlay"],
+                ["Custom track", "Request a topic", "/request", "sparkles"],
+                ["1-on-1 session", "Book an instructor", "/book", "calendarCheck"],
+              ] as Array<[string, string, string, IconName]>
+            ).map(([label, sub, href, icon]) => (
+              <Link key={href} href={href} className="fc-tile">
+                <span className="fc-tile-ico">
+                  <Icon name={icon} size={19} />
+                </span>
+                <span className="fc-tile-name">{label}</span>
+                <p>{sub}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Recent courses + activity rail */}
+      <div className="fc-band">
+        <section className="fc-card" aria-labelledby="ov-recent">
+          <SectionHead
+            title="My Recent Courses"
+            id="ov-recent"
+            action={
+              courses.length > 0 ? (
+                <Link href="/my-courses" className="fc-btn-quiet fc-btn">
+                  View all <Icon name="arrowRight" size={14} />
+                </Link>
+              ) : undefined
+            }
+          />
+          {loading ? (
+            <LoadingGrid height={96} count={3} />
+          ) : recentCourses.length === 0 ? (
+            <EmptyState icon="bookOpen" title="Nothing here yet" body="Courses you buy show up here with their progress." />
+          ) : (
+            <div className="fc-mini-grid">
+              {recentCourses.map((c) => {
+                const p = progress[c.id];
+                return (
+                  <Link key={c.id} href={`/courses/${c.slug}`} className="fc-mini">
+                    <span className="fc-mini-top">
+                      <span className="fc-mini-ico">{initials(c.title)}</span>
+                      <span className="fc-mini-title">{c.title}</span>
+                    </span>
+                    {p ? (
+                      <>
+                        <Progress value={p.pct} label={`${c.title} progress`} tone={p.pct === 100 ? "ok" : undefined} />
+                        <span className="fc-mini-pct">
+                          <span>
+                            {p.completed}/{p.total} lessons
+                          </span>
+                          <span>{p.pct}%</span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="fc-mini-pct">
+                        <span>Open to track progress</span>
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <div className="fc-stack">
+          <section className="fc-card" aria-labelledby="ov-activity">
+            <SectionHead
+              title="Recent Activity"
+              id="ov-activity"
+              action={
+                notifications.length > 0 ? (
+                  <Link href="/notifications" className="fc-btn-quiet fc-btn">
+                    All <Icon name="arrowRight" size={14} />
+                  </Link>
+                ) : undefined
+              }
+            />
+            {loading ? (
+              <LoadingGrid height={64} count={2} />
+            ) : recentActivity.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>Nothing yet — payments, recordings and reminders land here.</p>
+            ) : (
+              recentActivity.map((n) => {
+                const tone = n.kind.includes("fail") ? "danger" : n.kind.includes("enroll") || n.kind.includes("welcome") ? "ok" : "info";
+                return (
+                  <div key={n.id} className="fc-act-item">
+                    <span className={`fc-act-ico ${tone}`}>
+                      <Icon name={tone === "ok" ? "checkCircle" : tone === "danger" ? "alertCircle" : "info"} size={15} />
+                    </span>
+                    <span className="fc-act-body">
+                      <span className="fc-act-text" style={{ display: "block" }}>
+                        {n.title}
+                      </span>
+                      <span className="fc-act-time">{new Date(n.created_at).toLocaleDateString()}</span>
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </section>
+
+          <section className="fc-card" aria-labelledby="ov-onone">
+            <SectionHead title="1-on-1 Sessions" id="ov-onone" />
+            {loading ? (
+              <LoadingGrid height={64} count={1} />
+            ) : upcomingBookings.length === 0 ? (
+              <div className="fc-onone">
+                <div className="fc-onone-top">
+                  <span className="fc-onone-ico">
+                    <Icon name="calendarCheck" size={19} />
+                  </span>
+                  <div>
+                    <p className="fc-onone-title">No sessions booked</p>
+                    <p className="fc-onone-meta">Pick a slot with an instructor.</p>
+                  </div>
+                </div>
+                <Link href="/book" className="fc-btn fc-btn-primary fc-btn-block fc-btn-sm">
+                  Book 1-on-1
+                </Link>
+              </div>
+            ) : (
+              upcomingBookings.map((b) => (
+                <div key={b.id} className="fc-onone" style={{ marginBottom: 12 }}>
+                  <div className="fc-onone-top">
+                    <span className="fc-onone-ico">
+                      <Icon name="calendarCheck" size={19} />
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <p className="fc-onone-title">{b.topic}</p>
+                      <p className="fc-onone-meta">
+                        {b.preferred_date || "Date TBC"} · {b.duration_min} min · {b.mode}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <StatusBadge status={b.status} />
+                    <Link href={`/bookings/${b.id}`} className="fc-btn fc-btn-ghost fc-btn-sm" style={{ marginLeft: "auto" }}>
+                      Open
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </section>
+
+          {requests && requests.joined.length > 0 && (
+            <section className="fc-card" aria-labelledby="ov-queue">
+              <SectionHead title="Waiting Lists" id="ov-queue" />
+              {requests.joined.slice(0, 3).map((j) => (
+                <div key={j.id} className="fc-row-item">
+                  <span className="fc-row-main">
+                    <span className="fc-row-title" style={{ display: "block" }}>
+                      {j.topic}
+                    </span>
+                    <span className="fc-row-meta">
+                      Position {j.position} of {j.waiting} · responds in ~{requests.sla_hours}h
+                    </span>
+                  </span>
+                  <StatusBadge status={j.status} />
+                </div>
+              ))}
+            </section>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
