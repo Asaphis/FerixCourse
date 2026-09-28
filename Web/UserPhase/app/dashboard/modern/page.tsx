@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Icon, type IconName } from "@/components/icons";
 import {
   Button,
   Card,
@@ -21,8 +20,8 @@ import {
   Tooltip,
   Breadcrumbs,
   Pagination,
-  AvatarStatus,
 } from "@/components/ui/modern";
+import { Icon, type IconName } from "@/components/icons";
 
 /* Type definitions matching backend API */
 interface Profile {
@@ -255,6 +254,237 @@ function getBookingStatusColor(status: string): "success" | "warning" | "danger"
   return getStatusTone(status);
 }
 
+/* ==========================================================================
+   Sub-components
+   ========================================================================== */
+
+interface StatCardProps {
+  icon: IconName;
+  label: string;
+  value: string | number;
+  trend?: string;
+  trendPositive?: boolean;
+  tone?: "success" | "warning" | "danger" | "info" | "neutral";
+  subLabel?: string;
+}
+
+function StatCard({ icon, label, value, trend, trendPositive, tone = "neutral", subLabel }: StatCardProps) {
+  return (
+    <Card variant="default" padding="md" className="fc-stat-card">
+      <div className="fc-stat-card-content">
+        <div className="fc-stat-icon">
+          <Avatar name={icon} size="md" className={`fc-stat-avatar fc-stat-avatar-${tone}`} />
+        </div>
+        <div className="fc-stat-info">
+          <p className="fc-stat-label">{label}</p>
+          <p className="fc-stat-value">{value}</p>
+          {subLabel && <p className="fc-stat-sublabel">{subLabel}</p>}
+        </div>
+      </div>
+      {trend && (
+        <div className={`fc-stat-trend ${trendPositive ? "fc-stat-trend-positive" : "fc-stat-trend-negative"}`}>
+          <Icon name={trendPositive ? "trendingUp" : "trendingDown"} size={12} aria-hidden="true" />
+          <span>{trend}</span>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+interface CourseCardProps {
+  course: EnrolledCourse;
+  progress: number;
+}
+
+function CourseCard({ course, progress }: CourseCardProps) {
+  return (
+    <Link href={`/courses/${course.slug}`} className="fc-course-card">
+      <div className="fc-course-thumb">
+        <Avatar name={course.title} size="md" />
+        {progress === 100 ? (
+          <span className="fc-course-complete" aria-label="Completed"><Icon name="check" size={16} /></span>
+        ) : (
+          <span className="fc-course-play" aria-label="Continue"><Icon name="play" size={16} /></span>
+        )}
+      </div>
+      <div className="fc-course-info">
+        <p className="fc-course-title">{course.title}</p>
+        <p className="fc-course-meta">Enrolled {formatDate(course.enrolled_at)}</p>
+        <Progress value={progress} size="sm" showValue />
+        <p className="fc-course-next">{progress === 100 ? "All lessons complete" : `Next: Lesson ${Math.floor(progress / 10) + 1}`}</p>
+      </div>
+    </Link>
+  );
+}
+
+interface ClassroomCardProps {
+  classroom: EnrolledClassroom;
+}
+
+function ClassroomCard({ classroom }: ClassroomCardProps) {
+  return (
+    <Link href={`/classrooms/${classroom.slug}`} className="fc-classroom-card">
+      <Avatar name={classroom.title} size="sm" />
+      <div className="fc-classroom-info">
+        <p className="fc-classroom-title">{classroom.title}</p>
+        <p className="fc-classroom-meta">
+          <Icon name="calendar" size={12} aria-hidden="true" />
+          {classroom.starts_at ? formatDateTime(classroom.starts_at) : "Schedule TBD"}
+        </p>
+        {classroom.schedule_text && <p className="fc-classroom-schedule">{classroom.schedule_text}</p>}
+      </div>
+      <Icon name="chevronRight" size={16} className="fc-classroom-chevron" aria-hidden="true" />
+    </Link>
+  );
+}
+
+interface ActivityItemProps {
+  notification: Notification;
+}
+
+function ActivityItem({ notification }: ActivityItemProps) {
+  const tone = getStatusTone(notification.type);
+  const icon = getNotificationIcon(notification.type);
+
+  return (
+    <div className={`fc-activity-item ${!notification.is_read ? "fc-activity-unread" : ""}`}>
+      <div className={`fc-activity-icon fc-activity-icon-${tone}`}>
+        <Icon name={icon} size={16} aria-hidden="true" />
+      </div>
+      <div className="fc-activity-content">
+        <p className="fc-activity-title">{notification.title}</p>
+        {notification.body && <p className="fc-activity-body">{notification.body}</p>}
+        <p className="fc-activity-time">{formatDateTime(notification.created_at)}</p>
+      </div>
+    </div>
+  );
+}
+
+interface BookingCardProps {
+  booking: Booking;
+}
+
+function BookingCard({ booking }: BookingCardProps) {
+  const statusTone = getBookingStatusColor(booking.status);
+
+  return (
+    <div className="fc-booking-card">
+      <div className="fc-booking-main">
+        <div className="fc-booking-icon">
+          <Icon name="calendarCheck" size={20} aria-hidden="true" />
+        </div>
+        <div className="fc-booking-info">
+          <p className="fc-booking-topic">{booking.topic}</p>
+          <p className="fc-booking-meta">
+            {booking.preferred_date && formatDate(booking.preferred_date)}
+            · {booking.duration_min} min
+            · {booking.mode}
+          </p>
+        </div>
+      </div>
+      <div className="fc-booking-actions">
+        <Badge variant={statusTone}>{booking.status}</Badge>
+        {booking.price_kobo && <span className="fc-booking-price">{formatCurrency(booking.price_kobo)}</span>}
+        <Button variant="ghost" size="sm" onClick={() => console.log(`Open booking ${booking.id}`)}>Open</Button>
+      </div>
+    </div>
+  );
+}
+
+interface WaitlistCardProps {
+  item: JoinedRequest;
+  slaHours: number;
+}
+
+function WaitlistCard({ item, slaHours }: WaitlistCardProps) {
+  return (
+    <div className="fc-waitlist-card">
+      <div className="fc-waitlist-main">
+        <p className="fc-waitlist-topic">{item.topic}</p>
+        <p className="fc-waitlist-meta">Position {item.position} of {item.waiting} · responds in ~{slaHours}h</p>
+      </div>
+      <Badge variant={getStatusTone(item.status)}>{item.status}</Badge>
+    </div>
+  );
+}
+
+interface QuickActionProps {
+  icon: IconName;
+  label: string;
+  description: string;
+  onClick: () => void;
+}
+
+function QuickAction({ icon, label, description, onClick }: QuickActionProps) {
+  return (
+    <Button variant="outline" className="fc-quick-action" onClick={onClick}>
+      <div className="fc-quick-action-icon">
+        <Icon name={icon} size={20} aria-hidden="true" />
+      </div>
+      <div className="fc-quick-action-content">
+        <span className="fc-quick-action-label">{label}</span>
+        <span className="fc-quick-action-desc">{description}</span>
+      </div>
+      <Icon name="arrowRight" size={16} aria-hidden="true" />
+    </Button>
+  );
+}
+
+interface ClassroomDetailCardProps {
+  classroom: EnrolledClassroom;
+}
+
+function ClassroomDetailCard({ classroom }: ClassroomDetailCardProps) {
+  return (
+    <Card variant="outlined" className="fc-classroom-detail-card">
+      <CardContent className="p-0">
+        <div className="fc-classroom-detail-header">
+          <div className="fc-classroom-detail-avatar">
+            <Avatar name={classroom.title} size="xl" />
+          </div>
+          <div className="fc-classroom-detail-info">
+            <h3 className="fc-classroom-detail-title">{classroom.title}</h3>
+            <p className="fc-classroom-detail-meta">Enrolled {formatDate(classroom.enrolled_at)}</p>
+            {classroom.schedule_text && <p className="fc-classroom-detail-schedule">{classroom.schedule_text}</p>}
+            {classroom.starts_at && <p className="fc-classroom-detail-starts">Starts {formatDateTime(classroom.starts_at)}</p>}
+          </div>
+        </div>
+        <CardFooter>
+          <Button variant="primary" leftIcon="video" onClick={() => console.log(`Join ${classroom.slug}`)}>Open Classroom</Button>
+          <Button variant="outline" leftIcon="fileText" onClick={() => console.log(`Materials ${classroom.slug}`)}>Materials</Button>
+        </CardFooter>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface NotificationItemProps {
+  notification: Notification;
+}
+
+function NotificationItem({ notification }: NotificationItemProps) {
+  const tone = getStatusTone(notification.type);
+  const icon = getNotificationIcon(notification.type);
+
+  return (
+    <div className={`fc-notification-item ${!notification.is_read ? "fc-notification-unread" : ""}`}>
+      <div className={`fc-notification-icon fc-notification-icon-${tone}`}>
+        <Icon name={icon} size={18} aria-hidden="true" />
+      </div>
+      <div className="fc-notification-content">
+        <p className="fc-notification-title">{notification.title}</p>
+        {notification.body && <p className="fc-notification-body">{notification.body}</p>}
+        <p className="fc-notification-time">{formatDateTime(notification.created_at)}</p>
+      </div>
+      {!notification.is_read && <span className="fc-notification-dot" aria-hidden="true" />}
+    </div>
+  );
+}
+
+/* ==========================================================================
+   Main Dashboard Component
+   ========================================================================== */
+
 export default function ModernDashboardDemo() {
   const [data, setData] = useState<ReturnType<typeof fetchDashboardData> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -395,12 +625,18 @@ export default function ModernDashboardDemo() {
       {/* Main Content */}
       <div className="fc-page-content">
         {/* Tab Navigation */}
-        <Tabs tabs={[
-          { id: "overview", label: "Overview", icon: "layoutDashboard" },
-          { id: "courses", label: "My Courses", icon: "bookOpen" },
-          { id: "classrooms", label: "Classrooms", icon: "users" },
-          { id: "activity", label: "Activity", icon: "activity" },
-        ]} activeTab={activeTab} onChange={setActiveTab} variant="pills" className="fc-dashboard-tabs" />
+        <Tabs
+          tabs={[
+            { id: "overview", label: "Overview", icon: "layoutDashboard" },
+            { id: "courses", label: "My Courses", icon: "bookOpen" },
+            { id: "classrooms", label: "Classrooms", icon: "users" },
+            { id: "activity", label: "Activity", icon: "activity" },
+          ]}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          variant="pills"
+          className="fc-dashboard-tabs"
+        />
 
         {/* Overview Tab */}
         <TabPanel id="overview" activeTab={activeTab}>
@@ -643,233 +879,6 @@ export default function ModernDashboardDemo() {
           </div>
         </TabPanel>
       </div>
-    </div>
-  );
-}
-
-/* ==========================================================================
-   Sub-components
-   ========================================================================== */
-
-interface StatCardProps {
-  icon: IconName;
-  label: string;
-  value: string | number;
-  trend?: string;
-  trendPositive?: boolean;
-  tone?: "success" | "warning" | "danger" | "info" | "neutral";
-  subLabel?: string;
-}
-
-function StatCard({ icon, label, value, trend, trendPositive, tone = "neutral", subLabel }: StatCardProps) {
-  return (
-    <Card variant="default" padding="md" className="fc-stat-card">
-      <div className="fc-stat-card-content">
-        <div className="fc-stat-icon">
-          <Avatar name={icon} size="md" className={`fc-stat-avatar fc-stat-avatar-${tone}`} />
-        </div>
-        <div className="fc-stat-info">
-          <p className="fc-stat-label">{label}</p>
-          <p className="fc-stat-value">{value}</p>
-          {subLabel && <p className="fc-stat-sublabel">{subLabel}</p>}
-        </div>
-      </div>
-      {trend && (
-        <div className={`fc-stat-trend ${trendPositive ? "fc-stat-trend-positive" : "fc-stat-trend-negative"}`}>
-          <Icon name={trendPositive ? "trendingUp" : "trendingDown"} size={12} aria-hidden="true" />
-          <span>{trend}</span>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-interface CourseCardProps {
-  course: EnrolledCourse;
-  progress: number;
-}
-
-function CourseCard({ course, progress }: CourseCardProps) {
-  return (
-    <Link href={`/courses/${course.slug}`} className="fc-course-card">
-      <div className="fc-course-thumb">
-        <Avatar name={course.title} size="md" />
-        {progress === 100 ? (
-          <span className="fc-course-complete" aria-label="Completed"><Icon name="check" size={16} /></span>
-        ) : (
-          <span className="fc-course-play" aria-label="Continue"><Icon name="play" size={16} /></span>
-        )}
-      </div>
-      <div className="fc-course-info">
-        <p className="fc-course-title">{course.title}</p>
-        <p className="fc-course-meta">Enrolled {formatDate(course.enrolled_at)}</p>
-        <Progress value={progress} size="sm" showValue />
-        <p className="fc-course-next">{progress === 100 ? "All lessons complete" : `Next: Lesson ${Math.floor(progress / 10) + 1}`}</p>
-      </div>
-    </Link>
-  );
-}
-
-interface ClassroomCardProps {
-  classroom: EnrolledClassroom;
-}
-
-function ClassroomCard({ classroom }: ClassroomCardProps) {
-  return (
-    <Link href={`/classrooms/${classroom.slug}`} className="fc-classroom-card">
-      <Avatar name={classroom.title} size="sm" />
-      <div className="fc-classroom-info">
-        <p className="fc-classroom-title">{classroom.title}</p>
-        <p className="fc-classroom-meta">
-          <Icon name="calendar" size={12} aria-hidden="true" />
-          {classroom.starts_at ? formatDateTime(classroom.starts_at) : "Schedule TBD"}
-        </p>
-        {classroom.schedule_text && <p className="fc-classroom-schedule">{classroom.schedule_text}</p>}
-      </div>
-      <Icon name="chevronRight" size={16} className="fc-classroom-chevron" aria-hidden="true" />
-    </Link>
-  );
-}
-
-interface ActivityItemProps {
-  notification: Notification;
-}
-
-function ActivityItem({ notification }: ActivityItemProps) {
-  const tone = getStatusTone(notification.type);
-  const icon = getNotificationIcon(notification.type);
-
-  return (
-    <div className={`fc-activity-item ${!notification.is_read ? "fc-activity-unread" : ""}`}>
-      <div className={`fc-activity-icon fc-activity-icon-${tone}`}>
-        <Icon name={icon} size={16} aria-hidden="true" />
-      </div>
-      <div className="fc-activity-content">
-        <p className="fc-activity-title">{notification.title}</p>
-        {notification.body && <p className="fc-activity-body">{notification.body}</p>}
-        <p className="fc-activity-time">{formatDateTime(notification.created_at)}</p>
-      </div>
-    </div>
-  );
-}
-
-interface BookingCardProps {
-  booking: Booking;
-}
-
-function BookingCard({ booking }: BookingCardProps) {
-  const statusTone = getBookingStatusColor(booking.status);
-
-  return (
-    <div className="fc-booking-card">
-      <div className="fc-booking-main">
-        <div className="fc-booking-icon">
-          <Icon name="calendarCheck" size={20} aria-hidden="true" />
-        </div>
-        <div className="fc-booking-info">
-          <p className="fc-booking-topic">{booking.topic}</p>
-          <p className="fc-booking-meta">
-            {booking.preferred_date && formatDate(booking.preferred_date)}
-            · {booking.duration_min} min
-            · {booking.mode}
-          </p>
-        </div>
-      </div>
-      <div className="fc-booking-actions">
-        <Badge variant={statusTone}>{booking.status}</Badge>
-        {booking.price_kobo && <span className="fc-booking-price">{formatCurrency(booking.price_kobo)}</span>}
-        <Button variant="ghost" size="sm" onClick={() => console.log(`Open booking ${booking.id}`)}>Open</Button>
-      </div>
-    </div>
-  );
-}
-
-interface WaitlistCardProps {
-  item: JoinedRequest;
-  slaHours: number;
-}
-
-function WaitlistCard({ item, slaHours }: WaitlistCardProps) {
-  return (
-    <div className="fc-waitlist-card">
-      <div className="fc-waitlist-main">
-        <p className="fc-waitlist-topic">{item.topic}</p>
-        <p className="fc-waitlist-meta">Position {item.position} of {item.waiting} · responds in ~{slaHours}h</p>
-      </div>
-      <Badge variant={getStatusTone(item.status)}>{item.status}</Badge>
-    </div>
-  );
-}
-
-interface QuickActionProps {
-  icon: IconName;
-  label: string;
-  description: string;
-  onClick: () => void;
-}
-
-function QuickAction({ icon, label, description, onClick }: QuickActionProps) {
-  return (
-    <Button variant="outline" className="fc-quick-action" onClick={onClick}>
-      <div className="fc-quick-action-icon">
-        <Icon name={icon} size={20} aria-hidden="true" />
-      </div>
-      <div className="fc-quick-action-content">
-        <span className="fc-quick-action-label">{label}</span>
-        <span className="fc-quick-action-desc">{description}</span>
-      </div>
-      <Icon name="arrowRight" size={16} aria-hidden="true" />
-    </Button>
-  );
-}
-
-interface ClassroomDetailCardProps {
-  classroom: EnrolledClassroom;
-}
-
-function ClassroomDetailCard({ classroom }: ClassroomDetailCardProps) {
-  return (
-    <Card variant="outlined" className="fc-classroom-detail-card">
-      <CardContent className="p-0">
-        <div className="fc-classroom-detail-header">
-          <div className="fc-classroom-detail-avatar">
-            <Avatar name={classroom.title} size="xl" />
-          </div>
-          <div className="fc-classroom-detail-info">
-            <h3 className="fc-classroom-detail-title">{classroom.title}</h3>
-            <p className="fc-classroom-detail-meta">Enrolled {formatDate(classroom.enrolled_at)}</p>
-            {classroom.schedule_text && <p className="fc-classroom-detail-schedule">{classroom.schedule_text}</p>}
-            {classroom.starts_at && <p className="fc-classroom-detail-starts">Starts {formatDateTime(classroom.starts_at)}</p>}
-          </div>
-        </div>
-        <CardFooter>
-          <Button variant="primary" leftIcon="video" onClick={() => console.log(`Join ${classroom.slug}`)}>Open Classroom</Button>
-          <Button variant="outline" leftIcon="fileText" onClick={() => console.log(`Materials ${classroom.slug}`)}>Materials</Button>
-        </CardFooter>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface NotificationItemProps {
-  notification: Notification;
-}
-
-function NotificationItem({ notification }: NotificationItemProps) {
-  const tone = getStatusTone(notification.type);
-  const icon = getNotificationIcon(notification.type);
-
-  return (
-    <div className={`fc-notification-item ${!notification.is_read ? "fc-notification-unread" : ""}`}>
-      <div className={`fc-notification-icon fc-notification-icon-${tone}`}>
-        <Icon name={icon} size={18} aria-hidden="true" />
-      </div>
-      <div className="fc-notification-content">
-        <p className="fc-notification-title">{notification.title}</p>
-        {notification.body && <p className="fc-notification-body">{notification.body}</p>}
-        <p className="fc-notification-time">{formatDateTime(notification.created_at)}</p>
-      </div>
-      {!notification.is_read && <span className="fc-notification-dot" aria-hidden="true" />}
     </div>
   );
 }
