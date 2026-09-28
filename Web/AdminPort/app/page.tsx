@@ -1,18 +1,31 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { adminFetch, adminToken } from "@/lib/admin";
+import { Icon, type IconName } from "@/components/icons";
+import { PageHead, ErrorNote, Skeleton } from "@/components/ui";
+import { adminFetch, adminToken, money } from "@/lib/admin";
+import type { Stats as AdminStats } from "@/lib/admin-types";
 
-type Stats = {
-  students: number; publishedCourses: number; activeClassrooms: number;
-  enrollments: number; successfulPayments: number; revenueKobo: number;
-  pendingBookings: number; pendingRequests: number;
-};
+const FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400";
+
+const STAT_CARDS: { key: keyof AdminStats; label: string; icon: IconName; money?: boolean; href: string }[] = [
+  { key: "students", label: "Learners", icon: "users", href: "/users" },
+  { key: "publishedCourses", label: "Published courses", icon: "book", href: "/courses" },
+  { key: "activeClassrooms", label: "Active classrooms", icon: "school", href: "/classrooms" },
+  { key: "enrollments", label: "Enrollments", icon: "barChart", href: "/courses" },
+  { key: "successfulPayments", label: "Successful payments", icon: "card", href: "/transactions" },
+  /* Rendered as currency: the API stores minor units, and the raw value
+     (158000000) overflowed the tile and was unreadable. */
+  { key: "revenueKobo", label: "Revenue", icon: "wallet", money: true, href: "/transactions" },
+  { key: "pendingBookings", label: "Pending bookings", icon: "calendar", href: "/bookings" },
+  { key: "pendingRequests", label: "Pending requests", icon: "clipboard", href: "/requests" },
+];
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -20,33 +33,42 @@ export default function AdminDashboard() {
     else adminFetch("/admin/stats").then(setStats).catch((e) => setErr(e.message));
   }, [router]);
 
-  const cards: [string, number | string][] = stats
-    ? [
-        ["Students", stats.students],
-        ["Published courses", stats.publishedCourses],
-        ["Active classrooms", stats.activeClassrooms],
-        ["Enrollments", stats.enrollments],
-        ["Successful payments", stats.successfulPayments],
-        ["Revenue (kobo)", stats.revenueKobo],
-        ["Pending bookings", stats.pendingBookings],
-        ["Pending requests", stats.pendingRequests],
-      ]
-    : [];
-
   return (
     <Shell>
-      <h1 className="font-display text-2xl font-bold">Dashboard</h1>
-      <p className="text-sm text-slate-400 mt-1">Real numbers from the database. Empty states show zero.</p>
-      {err && <p className="card mt-5 text-sm text-rose-200 border-rose-400/30">{err}</p>}
-      {!stats && !err && <p className="text-sm text-slate-400 mt-6">Loading stats…</p>}
-      <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map(([t, v]) => (
-          <div key={t} className="card">
-            <p className="text-xs text-slate-400">{t}</p>
-            <p className="font-display text-3xl font-bold mt-1">{v}</p>
-          </div>
-        ))}
-      </div>
+      <PageHead
+        title="Overview"
+        sub="Every figure comes from the live database."
+        actions={
+          <Link className="ad-btn ad-btn-ghost" href="/live">
+            <Icon name="live" size={14} /> Live control
+          </Link>
+        }
+      />
+
+      {err ? <ErrorNote message={err} /> : null}
+      {!stats && !err ? <Skeleton height={104} count={4} /> : null}
+
+      {stats ? (
+        <div className="ad-stat-grid">
+          {STAT_CARDS.map((c) => {
+            const raw = stats[c.key] as number;
+            const value = c.money ? money(raw) : raw.toLocaleString("en-NG");
+            return (
+              <Link key={c.key} href={c.href} className={`ad-card ad-stat ad-stat-link ${FOCUS}`}>
+                <span className="ad-stat-icon" aria-hidden="true">
+                  <Icon name={c.icon} size={19} />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="ad-stat-label">{c.label}</span>
+                  {/* tabular-nums + minmax(0,1fr) keep long figures inside the
+                      tile instead of bleeding past its right edge. */}
+                  <span className="ad-stat-value">{value}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
     </Shell>
   );
 }

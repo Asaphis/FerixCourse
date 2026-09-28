@@ -557,6 +557,26 @@
 
 /* ---------- stat tile ---------- */
 .ad-stat { display: flex; align-items: flex-start; gap: 13px; }
+
+/* Tile grid for the overview counters. minmax(0, 1fr) is what stops a long
+   figure (a currency total) from forcing the track wider than its share and
+   spilling past the card edge. */
+.ad-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ad-gap);
+}
+
+/* A tile that navigates. Underlined rather than coloured: on the light theme
+   --ad-brand-text on --ad-surface is only 4.5:1, borderline for 12px labels. */
+.ad-stat-link {
+  text-decoration: none;
+  color: var(--ad-text);
+  transition: border-color var(--ad-dur) var(--ad-ease), transform var(--ad-dur) var(--ad-ease);
+}
+.ad-stat-link:hover { border-color: var(--ad-border-strong); transform: translateY(-2px); }
+.ad-stat-link .ad-stat-value { display: block; margin-top: 2px; }
+.ad-stat-link { display: flex; }
 .ad-stat-icon {
   width: 42px;
   height: 42px;
@@ -974,6 +994,10 @@
 
 @media (max-width: 900px) {
   .ad-only-mobile { display: inline-flex; }
+  /* The mobile bottom bar is fixed and about 62px tall. Without this the last
+     row of content sat underneath it — the Overview's final tile was half
+     hidden at 390px. */
+  .ad-content { padding-bottom: 96px; }
   .ad-rail {
     position: fixed;
     inset: 0 auto 0 0;

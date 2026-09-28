@@ -28,6 +28,8 @@ export type Stats = {
   revenueKobo: number;
   pendingBookings: number;
   pendingRequests: number;
+  /* Added with the live control room so the rail can show a live count. */
+  liveSessions: number;
 };
 
 export type Course = {
