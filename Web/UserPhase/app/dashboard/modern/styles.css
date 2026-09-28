@@ -1,0 +1,470 @@
+@layer components {
+  /* ==========================================================================
+     MODERN DASHBOARD SPECIFIC STYLES
+     ========================================================================== */
+
+  .fc-page {
+    @apply min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-page-modern {
+    @apply fc-page;
+  }
+
+  .fc-page-header {
+    @apply px-6 py-6 sm:px-8 lg:px-12;
+  }
+
+  .fc-page-header-content {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6;
+  }
+
+  .fc-page-title {
+    @apply text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-page-subtitle {
+    @apply text-slate-500 dark:text-slate-400 mt-1;
+  }
+
+  .fc-page-header-actions {
+    @apply flex flex-wrap gap-3;
+  }
+
+  .fc-live-banner {
+    @apply flex items-center gap-4 p-4 rounded-xl
+           bg-gradient-to-r from-orange-500 to-orange-600 text-white
+           shadow-lg shadow-orange-500/25
+           animate-slide-down;
+  }
+
+  .fc-live-indicator {
+    @apply flex items-center gap-2;
+  }
+
+  .fc-live-dot {
+    @apply w-2.5 h-2.5 rounded-full bg-white animate-pulse;
+  }
+
+  .fc-live-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-live-title {
+    @apply font-semibold truncate;
+  }
+
+  .fc-live-meta {
+    @apply text-sm text-orange-100 truncate;
+  }
+
+  .fc-stats-grid {
+    @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6;
+  }
+
+  .fc-stat-card {
+    @apply relative overflow-hidden;
+  }
+
+  .fc-stat-card-content {
+    @apply flex items-center gap-4;
+  }
+
+  .fc-stat-avatar {
+    @apply bg-slate-100 dark:bg-slate-800;
+  }
+
+  .fc-stat-avatar-success { @apply bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400; }
+  .fc-stat-avatar-warning { @apply bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400; }
+  .fc-stat-avatar-danger { @apply bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400; }
+  .fc-stat-avatar-info { @apply bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400; }
+  .fc-stat-avatar-neutral { @apply bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400; }
+
+  .fc-stat-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-stat-label {
+    @apply text-sm font-medium text-slate-500 dark:text-slate-400;
+  }
+
+  .fc-stat-value {
+    @apply text-2xl font-bold text-slate-900 dark:text-slate-100 tabular-nums;
+  }
+
+  .fc-stat-sublabel {
+    @apply text-xs text-slate-400 dark:text-slate-500 mt-0.5;
+  }
+
+  .fc-stat-trend {
+    @apply absolute bottom-3 right-3 flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full;
+  }
+
+  .fc-stat-trend-positive {
+    @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300;
+  }
+
+  .fc-stat-trend-negative {
+    @apply bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300;
+  }
+
+  .fc-page-content {
+    @apply px-6 py-4 sm:px-8 lg:px-12;
+  }
+
+  .fc-dashboard-tabs {
+    @apply mb-6;
+  }
+
+  .fc-grid-2 {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+  }
+
+  .fc-dashboard-card {
+    @apply h-full;
+  }
+
+  /* Course Card */
+  .fc-course-card {
+    @apply flex items-center gap-4 p-3 rounded-xl
+           hover:bg-slate-50 dark:hover:bg-slate-800/50
+           transition-colors duration-150;
+  }
+
+  .fc-course-thumb {
+    @apply relative shrink-0;
+  }
+
+  .fc-course-play,
+  .fc-course-complete {
+    @apply absolute bottom-0 right-0 w-6 h-6 rounded-full
+           flex items-center justify-center text-white text-xs
+           shadow-lg;
+  }
+
+  .fc-course-play {
+    @apply bg-orange-500;
+  }
+
+  .fc-course-complete {
+    @apply bg-emerald-500;
+  }
+
+  .fc-course-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-course-title {
+    @apply font-medium text-slate-900 dark:text-slate-100 truncate;
+  }
+
+  .fc-course-meta {
+    @apply text-xs text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  .fc-course-next {
+    @apply text-xs text-slate-400 dark:text-slate-500 mt-1.5 truncate;
+  }
+
+  /* Classroom Card */
+  .fc-classroom-card {
+    @apply flex items-center gap-3 p-3 rounded-xl
+           hover:bg-slate-50 dark:hover:bg-slate-800/50
+           transition-colors duration-150;
+  }
+
+  .fc-classroom-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-classroom-title {
+    @apply font-medium text-slate-900 dark:text-slate-100 truncate;
+  }
+
+  .fc-classroom-meta {
+    @apply flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  .fc-classroom-schedule {
+    @apply text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate;
+  }
+
+  .fc-classroom-chevron {
+    @apply text-slate-300 dark:text-slate-600 shrink-0;
+  }
+
+  /* Activity List */
+  .fc-activity-list {
+    @apply space-y-3;
+  }
+
+  .fc-activity-item {
+    @apply flex gap-3 p-3 rounded-xl
+           hover:bg-slate-50 dark:hover:bg-slate-800/50
+           transition-colors duration-150;
+  }
+
+  .fc-activity-unread {
+    @apply bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  .fc-activity-icon {
+    @apply shrink-0 w-8 h-8 rounded-lg flex items-center justify-center;
+  }
+
+  .fc-activity-icon-success { @apply bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400; }
+  .fc-activity-icon-warning { @apply bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400; }
+  .fc-activity-icon-danger { @apply bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400; }
+  .fc-activity-icon-info { @apply bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400; }
+  .fc-activity-icon-neutral { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+
+  .fc-activity-content {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-activity-title {
+    @apply font-medium text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-activity-body {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate;
+  }
+
+  .fc-activity-time {
+    @apply text-xs text-slate-400 dark:text-slate-500 mt-1;
+  }
+
+  /* On-One Empty State */
+  .fc-on-one-empty {
+    @apply text-center py-8;
+  }
+
+  .fc-on-one-placeholder {
+    @apply inline-flex items-center justify-center w-16 h-16 rounded-2xl
+           bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500
+           mb-4;
+  }
+
+  .fc-on-one-icon { @apply; }
+
+  .fc-on-one-title {
+    @apply font-medium text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-on-one-meta {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-1;
+  }
+
+  /* Booking Card */
+  .fc-booking-card {
+    @apply flex items-center justify-between gap-4 p-4 rounded-xl
+           bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  .fc-booking-main {
+    @apply flex items-center gap-3 flex-1 min-w-0;
+  }
+
+  .fc-booking-icon {
+    @apply shrink-0 w-10 h-10 rounded-xl
+           bg-orange-100 dark:bg-orange-900/30
+           text-orange-600 dark:text-orange-400
+           flex items-center justify-center;
+  }
+
+  .fc-booking-info {
+    @apply min-w-0;
+  }
+
+  .fc-booking-topic {
+    @apply font-medium text-slate-900 dark:text-slate-100 truncate;
+  }
+
+  .fc-booking-meta {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  .fc-booking-actions {
+    @apply flex items-center gap-3 shrink-0;
+  }
+
+  .fc-booking-price {
+    @apply text-sm font-semibold text-emerald-600 dark:text-emerald-400;
+  }
+
+  /* Waitlist Card */
+  .fc-waitlist-list {
+    @apply space-y-3;
+  }
+
+  .fc-waitlist-card {
+    @apply flex items-center justify-between gap-4 p-4 rounded-xl
+           bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  .fc-waitlist-main {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-waitlist-topic {
+    @apply font-medium text-slate-900 dark:text-slate-100 truncate;
+  }
+
+  .fc-waitlist-meta {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  /* Quick Actions */
+  .fc-quick-actions {
+    @apply grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3;
+  }
+
+  .fc-quick-action {
+    @apply flex items-center gap-3 p-4 rounded-xl
+           hover:bg-slate-50 dark:hover:bg-slate-800/50
+           transition-all duration-150
+           text-left;
+  }
+
+  .fc-quick-action-icon {
+    @apply shrink-0 w-10 h-10 rounded-xl
+           bg-slate-100 dark:bg-slate-800
+           text-slate-600 dark:text-slate-400
+           flex items-center justify-center;
+  }
+
+  .fc-quick-action-content {
+    @apply flex-1 min-w-0 flex flex-col;
+  }
+
+  .fc-quick-action-label {
+    @apply font-medium text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-quick-action-desc {
+    @apply text-xs text-slate-500 dark:text-slate-400;
+  }
+
+  /* Classroom Grid */
+  .fc-classroom-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  .fc-classroom-detail-card {
+    @apply overflow-hidden;
+  }
+
+  .fc-classroom-detail-header {
+    @apply flex items-start gap-4 p-6;
+  }
+
+  .fc-classroom-detail-avatar {
+    @apply shrink-0;
+  }
+
+  .fc-classroom-detail-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-classroom-detail-title {
+    @apply text-lg font-semibold text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-classroom-detail-meta {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-1;
+  }
+
+  .fc-classroom-detail-schedule {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5;
+  }
+
+  .fc-classroom-detail-schedule::before {
+    content: "";
+    @apply w-4 h-4 bg-current -translate-y-0.5 mask-contain mask-center;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+  }
+
+  .fc-classroom-detail-starts {
+    @apply text-sm text-orange-600 dark:text-orange-400 mt-1 font-medium flex items-center gap-1.5;
+  }
+
+  .fc-classroom-detail-starts::before {
+    content: "";
+    @apply w-4 h-4 bg-current -translate-y-0.5 mask-contain mask-center;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Cpolyline points='12 6 12 12 16 14'%3E%3C/polyline%3E%3C/svg%3E");
+  }
+
+  /* Table Course */
+  .fc-table-course {
+    @apply flex items-center gap-3;
+  }
+
+  .fc-table-course-title {
+    @apply font-medium text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-table-course-meta {
+    @apply text-xs text-slate-500 dark:text-slate-400;
+  }
+
+  .fc-txn-product {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full
+           text-xs font-medium bg-slate-100 dark:bg-slate-800
+           text-slate-600 dark:text-slate-400;
+  }
+
+  /* Notification List */
+  .fc-notification-list {
+    @apply space-y-2 max-h-[500px] overflow-y-auto;
+  }
+
+  .fc-notification-item {
+    @apply flex items-start gap-3 p-3 rounded-xl
+           hover:bg-slate-50 dark:hover:bg-slate-800/50
+           transition-colors duration-150
+           relative;
+  }
+
+  .fc-notification-unread {
+    @apply bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  .fc-notification-icon {
+    @apply shrink-0 w-9 h-9 rounded-xl flex items-center justify-center;
+  }
+
+  .fc-notification-icon-success { @apply bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400; }
+  .fc-notification-icon-warning { @apply bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400; }
+  .fc-notification-icon-danger { @apply bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400; }
+  .fc-notification-icon-info { @apply bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400; }
+  .fc-notification-icon-neutral { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+
+  .fc-notification-content {
+    @apply flex-1 min-w-0;
+  }
+
+  .fc-notification-title {
+    @apply font-medium text-slate-900 dark:text-slate-100;
+  }
+
+  .fc-notification-body {
+    @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5;
+  }
+
+  .fc-notification-time {
+    @apply text-xs text-slate-400 dark:text-slate-500 mt-1;
+  }
+
+  .fc-notification-dot {
+    @apply absolute top-3 right-3 w-2 h-2 rounded-full bg-orange-500;
+  }
+
+  /* Skeleton placeholders */
+  .fc-stat-card-skeleton {
+    @apply p-6 rounded-xl;
+  }
+
+  .fc-panel-skeleton {
+    @apply p-6 rounded-2xl;
+  }
+}

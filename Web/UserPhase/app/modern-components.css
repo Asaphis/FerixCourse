@@ -1,0 +1,278 @@
+@layer base {
+  /* ==========================================================================
+     FERIXCOURSE DESIGN TOKENS - Modern Design System
+     ========================================================================== */
+
+  :root {
+    /* Color Primitives */
+    --fc-color-primary-50: 255 247 237;
+    --fc-color-primary-100: 255 237 213;
+    --fc-color-primary-200: 253 216 166;
+    --fc-color-primary-300: 252 184 97;
+    --fc-color-primary-400: 251 146 60;
+    --fc-color-primary-500: 249 115 22;
+    --fc-color-primary-600: 234 88 12;
+    --fc-color-primary-700: 194 65 12;
+    --fc-color-primary-800: 159 52 15;
+    --fc-color-primary-900: 133 43 15;
+    --fc-color-primary-950: 71 22 7;
+
+    --fc-color-success-500: 16 185 129;
+    --fc-color-warning-500: 245 158 11;
+    --fc-color-danger-500: 239 68 68;
+    --fc-color-info-500: 59 130 246;
+
+    /* Semantic Colors - Light Mode */
+    --fc-bg-primary: 255 255 255;
+    --fc-bg-secondary: 248 250 252;
+    --fc-bg-tertiary: 241 245 249;
+    --fc-bg-inverse: 15 23 42;
+
+    --fc-text-primary: 15 23 42;
+    --fc-text-secondary: 51 65 85;
+    --fc-text-tertiary: 100 116 139;
+    --fc-text-inverse: 255 255 255;
+    --fc-text-disabled: 148 163 184;
+
+    --fc-border-primary: 226 232 240;
+    --fc-border-secondary: 203 213 225;
+    --fc-border-focus: 249 115 22;
+
+    --fc-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --fc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --fc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --fc-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* Radius */
+    --fc-radius-sm: 0.375rem;
+    --fc-radius-md: 0.5rem;
+    --fc-radius-lg: 0.75rem;
+    --fc-radius-xl: 1rem;
+    --fc-radius-2xl: 1.5rem;
+    --fc-radius-full: 9999px;
+
+    /* Spacing Scale */
+    --fc-space-1: 0.25rem;
+    --fc-space-2: 0.5rem;
+    --fc-space-3: 0.75rem;
+    --fc-space-4: 1rem;
+    --fc-space-5: 1.25rem;
+    --fc-space-6: 1.5rem;
+    --fc-space-8: 2rem;
+    --fc-space-10: 2.5rem;
+    --fc-space-12: 3rem;
+    --fc-space-16: 4rem;
+
+    /* Typography */
+    --fc-font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+    --fc-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --fc-text-xs: 0.75rem;
+    --fc-text-sm: 0.875rem;
+    --fc-text-base: 1rem;
+    --fc-text-lg: 1.125rem;
+    --fc-text-xl: 1.25rem;
+    --fc-text-2xl: 1.5rem;
+    --fc-text-3xl: 1.875rem;
+    --fc-text-4xl: 2.25rem;
+
+    --fc-font-normal: 400;
+    --fc-font-medium: 500;
+    --fc-font-semibold: 600;
+    --fc-font-bold: 700;
+
+    --fc-leading-tight: 1.25;
+    --fc-leading-normal: 1.5;
+    --fc-leading-relaxed: 1.625;
+
+    /* Transitions */
+    --fc-transition-fast: 100ms ease-out;
+    --fc-transition-normal: 200ms ease-out;
+    --fc-transition-slow: 300ms ease-out;
+
+    /* Z-Index */
+    --fc-z-dropdown: 100;
+    --fc-z-sticky: 200;
+    --fc-z-fixed: 300;
+    --fc-z-modal-backdrop: 400;
+    --fc-z-modal: 500;
+    --fc-z-popover: 600;
+    --fc-z-tooltip: 700;
+  }
+
+  .dark {
+    /* Semantic Colors - Dark Mode */
+    --fc-bg-primary: 15 23 42;
+    --fc-bg-secondary: 30 41 59;
+    --fc-bg-tertiary: 51 65 85;
+    --fc-bg-inverse: 255 255 255;
+
+    --fc-text-primary: 248 250 252;
+    --fc-text-secondary: 226 232 240;
+    --fc-text-tertiary: 148 163 184;
+    --fc-text-inverse: 15 23 42;
+    --fc-text-disabled: 100 116 139;
+
+    --fc-border-primary: 51 65 85;
+    --fc-border-secondary: 71 85 105;
+    --fc-border-focus: 251 146 60;
+
+    --fc-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --fc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --fc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --fc-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
+  }
+
+  /* ==========================================================================
+     BASE STYLES
+     ========================================================================== */
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--fc-font-sans);
+    font-size: 16px;
+    line-height: var(--fc-leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background-color: rgb(var(--fc-bg-primary));
+    color: rgb(var(--fc-text-primary));
+    min-height: 100vh;
+  }
+
+  .fc-root {
+    min-height: 100vh;
+  }
+
+  .fc-body {
+    min-height: 100vh;
+  }
+
+  /* Focus visible for accessibility */
+  :focus-visible {
+    outline: 2px solid rgb(var(--fc-border-focus));
+    outline-offset: 2px;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: rgb(var(--fc-color-primary-500) / 0.2);
+    color: rgb(var(--fc-text-primary));
+  }
+
+  /* Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--fc-border-secondary)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--fc-border-secondary));
+    border-radius: var(--fc-radius-full);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--fc-text-tertiary));
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     UTILITY CLASSES
+     ========================================================================== */
+
+  .fc-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .fc-sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .fc-visually-hidden {
+    @apply fc-sr-only;
+  }
+
+  /* Typography Utilities */
+  .fc-text-balance {
+    text-wrap: balance;
+  }
+
+  .fc-text-pretty {
+    text-wrap: pretty;
+  }
+
+  .fc-truncate {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .fc-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .fc-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Layout Utilities */
+  .fc-flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .fc-flex-between {
+    @apply flex items-center justify-between;
+  }
+
+  .fc-flex-start {
+    @apply flex items-center justify-start;
+  }
+
+  .fc-grid-auto-fit {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .fc-grid-auto-fill {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
