@@ -1,278 +1,538 @@
-@layer base {
-  /* ==========================================================================
-     FERIXCOURSE DESIGN TOKENS - Modern Design System
-     ========================================================================== */
-
-  :root {
-    /* Color Primitives */
-    --fc-color-primary-50: 255 247 237;
-    --fc-color-primary-100: 255 237 213;
-    --fc-color-primary-200: 253 216 166;
-    --fc-color-primary-300: 252 184 97;
-    --fc-color-primary-400: 251 146 60;
-    --fc-color-primary-500: 249 115 22;
-    --fc-color-primary-600: 234 88 12;
-    --fc-color-primary-700: 194 65 12;
-    --fc-color-primary-800: 159 52 15;
-    --fc-color-primary-900: 133 43 15;
-    --fc-color-primary-950: 71 22 7;
-
-    --fc-color-success-500: 16 185 129;
-    --fc-color-warning-500: 245 158 11;
-    --fc-color-danger-500: 239 68 68;
-    --fc-color-info-500: 59 130 246;
-
-    /* Semantic Colors - Light Mode */
-    --fc-bg-primary: 255 255 255;
-    --fc-bg-secondary: 248 250 252;
-    --fc-bg-tertiary: 241 245 249;
-    --fc-bg-inverse: 15 23 42;
-
-    --fc-text-primary: 15 23 42;
-    --fc-text-secondary: 51 65 85;
-    --fc-text-tertiary: 100 116 139;
-    --fc-text-inverse: 255 255 255;
-    --fc-text-disabled: 148 163 184;
-
-    --fc-border-primary: 226 232 240;
-    --fc-border-secondary: 203 213 225;
-    --fc-border-focus: 249 115 22;
-
-    --fc-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --fc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --fc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --fc-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-
-    /* Radius */
-    --fc-radius-sm: 0.375rem;
-    --fc-radius-md: 0.5rem;
-    --fc-radius-lg: 0.75rem;
-    --fc-radius-xl: 1rem;
-    --fc-radius-2xl: 1.5rem;
-    --fc-radius-full: 9999px;
-
-    /* Spacing Scale */
-    --fc-space-1: 0.25rem;
-    --fc-space-2: 0.5rem;
-    --fc-space-3: 0.75rem;
-    --fc-space-4: 1rem;
-    --fc-space-5: 1.25rem;
-    --fc-space-6: 1.5rem;
-    --fc-space-8: 2rem;
-    --fc-space-10: 2.5rem;
-    --fc-space-12: 3rem;
-    --fc-space-16: 4rem;
-
-    /* Typography */
-    --fc-font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-    --fc-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-
-    --fc-text-xs: 0.75rem;
-    --fc-text-sm: 0.875rem;
-    --fc-text-base: 1rem;
-    --fc-text-lg: 1.125rem;
-    --fc-text-xl: 1.25rem;
-    --fc-text-2xl: 1.5rem;
-    --fc-text-3xl: 1.875rem;
-    --fc-text-4xl: 2.25rem;
-
-    --fc-font-normal: 400;
-    --fc-font-medium: 500;
-    --fc-font-semibold: 600;
-    --fc-font-bold: 700;
-
-    --fc-leading-tight: 1.25;
-    --fc-leading-normal: 1.5;
-    --fc-leading-relaxed: 1.625;
-
-    /* Transitions */
-    --fc-transition-fast: 100ms ease-out;
-    --fc-transition-normal: 200ms ease-out;
-    --fc-transition-slow: 300ms ease-out;
-
-    /* Z-Index */
-    --fc-z-dropdown: 100;
-    --fc-z-sticky: 200;
-    --fc-z-fixed: 300;
-    --fc-z-modal-backdrop: 400;
-    --fc-z-modal: 500;
-    --fc-z-popover: 600;
-    --fc-z-tooltip: 700;
-  }
-
-  .dark {
-    /* Semantic Colors - Dark Mode */
-    --fc-bg-primary: 15 23 42;
-    --fc-bg-secondary: 30 41 59;
-    --fc-bg-tertiary: 51 65 85;
-    --fc-bg-inverse: 255 255 255;
-
-    --fc-text-primary: 248 250 252;
-    --fc-text-secondary: 226 232 240;
-    --fc-text-tertiary: 148 163 184;
-    --fc-text-inverse: 15 23 42;
-    --fc-text-disabled: 100 116 139;
-
-    --fc-border-primary: 51 65 85;
-    --fc-border-secondary: 71 85 105;
-    --fc-border-focus: 251 146 60;
-
-    --fc-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --fc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --fc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-    --fc-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
-  }
-
-  /* ==========================================================================
-     BASE STYLES
-     ========================================================================== */
-
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
-  html {
-    font-family: var(--fc-font-sans);
-    font-size: 16px;
-    line-height: var(--fc-leading-normal);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-
-  body {
-    margin: 0;
-    background-color: rgb(var(--fc-bg-primary));
-    color: rgb(var(--fc-text-primary));
-    min-height: 100vh;
-  }
-
-  .fc-root {
-    min-height: 100vh;
-  }
-
-  .fc-body {
-    min-height: 100vh;
-  }
-
-  /* Focus visible for accessibility */
-  :focus-visible {
-    outline: 2px solid rgb(var(--fc-border-focus));
-    outline-offset: 2px;
-  }
-
-  /* Selection */
-  ::selection {
-    background-color: rgb(var(--fc-color-primary-500) / 0.2);
-    color: rgb(var(--fc-text-primary));
-  }
-
-  /* Scrollbar */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--fc-border-secondary)) transparent;
-  }
-
-  *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background-color: rgb(var(--fc-border-secondary));
-    border-radius: var(--fc-radius-full);
-    border: 2px solid transparent;
-    background-clip: content-box;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background-color: rgb(var(--fc-text-tertiary));
-  }
-
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer components {
   /* ==========================================================================
-     UTILITY CLASSES
+     MODERN COMPONENT LIBRARY - FerixCourse Design System
      ========================================================================== */
 
-  .fc-container {
-    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  /* --------------------------------------------------------------------------
+     BUTTON
+     -------------------------------------------------------------------------- */
+  .fc-btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 ease-out
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
+           whitespace-nowrap;
   }
 
-  .fc-sr-only {
-    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
-    clip: rect(0, 0, 0, 0);
+  .fc-btn-primary {
+    @apply bg-gradient-to-r from-orange-500 to-orange-600 text-white
+           hover:from-orange-600 hover:to-orange-700
+           active:from-orange-700 active:to-orange-800
+           focus-visible:ring-orange-500
+           shadow-sm shadow-orange-500/20;
   }
 
-  .fc-visually-hidden {
-    @apply fc-sr-only;
+  .fc-btn-secondary {
+    @apply bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100
+           hover:bg-slate-200 dark:hover:bg-slate-700
+           active:bg-slate-300 dark:active:bg-slate-600
+           focus-visible:ring-slate-500
+           border border-slate-200 dark:border-slate-700;
   }
 
-  /* Typography Utilities */
-  .fc-text-balance {
-    text-wrap: balance;
+  .fc-btn-outline {
+    @apply bg-transparent text-slate-700 dark:text-slate-300
+           border-2 border-slate-300 dark:border-slate-600
+           hover:bg-slate-50 dark:hover:bg-slate-800
+           active:bg-slate-100 dark:active:bg-slate-700
+           focus-visible:ring-slate-500;
   }
 
-  .fc-text-pretty {
-    text-wrap: pretty;
+  .fc-btn-ghost {
+    @apply bg-transparent text-slate-700 dark:text-slate-300
+           hover:bg-slate-100 dark:hover:bg-slate-800
+           active:bg-slate-200 dark:active:bg-slate-700
+           focus-visible:ring-slate-500;
   }
 
-  .fc-truncate {
-    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  .fc-btn-danger {
+    @apply bg-gradient-to-r from-red-500 to-red-600 text-white
+           hover:from-red-600 hover:to-red-700
+           active:from-red-700 active:to-red-800
+           focus-visible:ring-red-500
+           shadow-sm shadow-red-500/20;
   }
 
-  .fc-truncate-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .fc-btn-success {
+    @apply bg-gradient-to-r from-emerald-500 to-emerald-600 text-white
+           hover:from-emerald-600 hover:to-emerald-700
+           active:from-emerald-700 active:to-emerald-800
+           focus-visible:ring-emerald-500
+           shadow-sm shadow-emerald-500/20;
   }
 
-  .fc-truncate-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .fc-btn-xs { @apply px-3 py-1.5 text-xs gap-1; }
+  .fc-btn-sm { @apply px-4 py-2 text-sm gap-1.5; }
+  .fc-btn-md { @apply px-5 py-2.5 text-base gap-2; }
+  .fc-btn-lg { @apply px-6 py-3 text-lg gap-2; }
+  .fc-btn-xl { @apply px-8 py-4 text-xl gap-3; }
+
+  .fc-btn-full { @apply w-full; }
+
+  .fc-btn-spinner { @apply flex items-center gap-1.5; }
+
+  .fc-spin {
+    @apply animate-spin;
   }
 
-  /* Layout Utilities */
-  .fc-flex-center {
-    @apply flex items-center justify-center;
+  /* --------------------------------------------------------------------------
+     CARD
+     -------------------------------------------------------------------------- */
+  .fc-card {
+    @apply rounded-2xl bg-white dark:bg-slate-900
+           border border-slate-200 dark:border-slate-800
+           transition-all duration-200;
   }
 
-  .fc-flex-between {
-    @apply flex items-center justify-between;
+  .fc-card-default { @apply shadow-sm; }
+  .fc-card-elevated { @apply shadow-lg shadow-slate-900/5 dark:shadow-black/20; }
+  .fc-card-outlined { @apply border-2 border-slate-200 dark:border-slate-700 shadow-none; }
+  .fc-card-filled { @apply bg-slate-50 dark:bg-slate-800/50 border-none shadow-none; }
+
+  .fc-card-p-none { @apply p-0; }
+  .fc-card-p-sm { @apply p-4; }
+  .fc-card-p-md { @apply p-6; }
+  .fc-card-p-lg { @apply p-8; }
+
+  .fc-card-hover {
+    @apply hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700
+           hover:-translate-y-0.5;
   }
 
-  .fc-flex-start {
-    @apply flex items-center justify-start;
+  .fc-card-clickable {
+    @apply cursor-pointer select-none;
   }
 
-  .fc-grid-auto-fit {
-    @apply grid gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  .fc-card-header {
+    @apply flex items-start justify-between gap-4 mb-4 pb-4 border-b border-slate-200 dark:border-slate-800;
   }
 
-  .fc-grid-auto-fill {
-    @apply grid gap-4;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  .fc-card-header-content { @apply flex-1 min-w-0; }
+  .fc-card-title { @apply text-lg font-semibold text-slate-900 dark:text-slate-100 truncate; }
+  .fc-card-subtitle { @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5; }
+  .fc-card-header-action { @apply flex-shrink-0; }
+
+  .fc-card-content { @apply; }
+  .fc-card-footer {
+    @apply mt-4 pt-4 flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800;
   }
+
+  /* --------------------------------------------------------------------------
+     BADGE
+     -------------------------------------------------------------------------- */
+  .fc-badge {
+    @apply inline-flex items-center gap-1.5 font-medium rounded-full
+           border border-transparent transition-colors duration-150;
+  }
+
+  .fc-badge-default { @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+  .fc-badge-success { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300; }
+  .fc-badge-warning { @apply bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300; }
+  .fc-badge-danger { @apply bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300; }
+  .fc-badge-info { @apply bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300; }
+  .fc-badge-neutral { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+
+  .fc-badge-sm { @apply px-2 py-0.5 text-xs; }
+  .fc-badge-md { @apply px-2.5 py-1 text-sm; }
+  .fc-badge-lg { @apply px-3 py-1.5 text-base; }
+
+  .fc-badge-dot { @apply relative pl-5; }
+  .fc-badge-dot-indicator {
+    @apply absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-current opacity-70;
+  }
+
+  /* --------------------------------------------------------------------------
+     AVATAR
+     -------------------------------------------------------------------------- */
+  .fc-avatar {
+    @apply inline-flex items-center justify-center overflow-hidden rounded-full
+           bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400
+           font-medium select-none relative shrink-0;
+  }
+
+  .fc-avatar-xs { @apply w-6 h-6 text-xs; }
+  .fc-avatar-sm { @apply w-8 h-8 text-sm; }
+  .fc-avatar-md { @apply w-10 h-10 text-base; }
+  .fc-avatar-lg { @apply w-12 h-12 text-lg; }
+  .fc-avatar-xl { @apply w-16 h-16 text-xl; }
+
+  .fc-avatar-img { @apply w-full h-full object-cover; }
+  .fc-avatar-initials { @apply font-semibold; }
+
+  .fc-avatar-status {
+    @apply absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900;
+  }
+  .fc-avatar-status-online { @apply bg-emerald-500; }
+  .fc-avatar-status-offline { @apply bg-slate-400; }
+  .fc-avatar-status-busy { @apply bg-red-500; }
+  .fc-avatar-status-away { @apply bg-amber-500; }
+
+  /* --------------------------------------------------------------------------
+     INPUT / TEXTAREA / SELECT
+     -------------------------------------------------------------------------- */
+  .fc-field { @apply w-full; }
+  .fc-label { @apply block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5; }
+  .fc-hint { @apply mt-1.5 text-sm text-slate-500 dark:text-slate-400; }
+  .fc-field-error-text { @apply mt-1.5 text-sm text-red-600 dark:text-red-400; }
+
+  .fc-input-wrapper { @apply relative flex items-center; }
+  .fc-input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600
+           bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
+           transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .fc-input-has-prefix { @apply pl-11; }
+  .fc-input-has-suffix { @apply pr-11; }
+  .fc-input-icon { @apply absolute text-slate-400 pointer-events-none; }
+  .fc-input-icon-left { @apply left-3; }
+  .fc-input-icon-right { @apply right-3; }
+  .fc-input-prefix,
+  .fc-input-suffix {
+    @apply absolute flex items-center justify-center text-slate-500;
+  }
+  .fc-input-prefix { @apply left-3; }
+  .fc-input-suffix { @apply right-3; }
+
+  .fc-field-error .fc-input { @apply border-red-500 focus:ring-red-500; }
+
+  .fc-textarea {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600
+           bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
+           transition-all duration-150 resize-y min-h-[100px]
+           focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .fc-field-error .fc-textarea { @apply border-red-500 focus:ring-red-500; }
+
+  .fc-select-wrapper { @apply relative; }
+  .fc-select {
+    @apply w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600
+           bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
+           appearance-none cursor-pointer
+           transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+           disabled:opacity-50 disabled:cursor-not-allowed
+           pr-10;
+  }
+  .fc-field-error .fc-select { @apply border-red-500 focus:ring-red-500; }
+  .fc-select-icon {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none;
+  }
+
+  /* --------------------------------------------------------------------------
+     MODAL
+     -------------------------------------------------------------------------- */
+  .fc-modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4
+           bg-black/50 backdrop-blur-sm
+           animate-fade-in;
+  }
+
+  .fc-modal {
+    @apply w-full max-h-[90vh] overflow-hidden rounded-2xl bg-white dark:bg-slate-900
+           shadow-2xl shadow-slate-900/10 dark:shadow-black/30
+           animate-slide-up;
+  }
+
+  .fc-modal-sm { @apply max-w-sm; }
+  .fc-modal-md { @apply max-w-lg; }
+  .fc-modal-lg { @apply max-w-2xl; }
+  .fc-modal-xl { @apply max-w-4xl; }
+  .fc-modal-full { @apply max-w-[90vw] max-h-[90vh]; }
+
+  .fc-modal-header {
+    @apply flex items-start justify-between gap-4 p-6 border-b border-slate-200 dark:border-slate-800;
+  }
+  .fc-modal-title { @apply text-xl font-semibold text-slate-900 dark:text-slate-100; }
+  .fc-modal-description { @apply text-sm text-slate-500 dark:text-slate-400 mt-0.5; }
+  .fc-modal-close {
+    @apply p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300
+           hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors
+           flex-shrink-0;
+  }
+  .fc-modal-content { @apply p-6 overflow-y-auto max-h-[calc(90vh-120px)]; }
+
+  /* --------------------------------------------------------------------------
+     TABLE
+     -------------------------------------------------------------------------- */
+  .fc-table-wrapper { @apply w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800; }
+  .fc-table-scroll { @apply overflow-x-auto; }
+
+  .fc-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .fc-table thead {
+    @apply bg-slate-50 dark:bg-slate-800/50;
+  }
+
+  .fc-table th {
+    @apply px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400
+           border-b border-slate-200 dark:border-slate-700
+           whitespace-nowrap;
+  }
+
+  .fc-table td {
+    @apply px-4 py-3 text-slate-700 dark:text-slate-300
+           border-b border-slate-100 dark:border-slate-800;
+  }
+
+  .fc-table tbody tr:last-child td { @apply border-b-0; }
+
+  .fc-table-striped tbody tr:nth-child(even) { @apply bg-slate-50 dark:bg-slate-800/30; }
+  .fc-table-hoverable tbody tr { @apply hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors; }
+  .fc-table-bordered td { @apply border-r border-slate-100 dark:border-slate-800; }
+  .fc-table-bordered td:last-child { @apply border-r-0; }
+
+  .fc-table-row-clickable { @apply cursor-pointer; }
+  .fc-table-row-clickable:focus-visible { @apply outline-none ring-2 ring-orange-500 ring-inset; }
+
+  .fc-table-skeleton { @apply p-0; }
+
+  .fc-table-empty {
+    @apply flex flex-col items-center justify-center py-16 px-6 text-center;
+  }
+  .fc-table-empty-icon { @apply text-slate-300 dark:text-slate-600 mb-3; }
+  .fc-table-empty-message { @apply text-slate-500 dark:text-slate-400 mb-2; }
+  .fc-table-empty-action { @apply mt-4; }
+
+  /* --------------------------------------------------------------------------
+     PROGRESS
+     -------------------------------------------------------------------------- */
+  .fc-progress { @apply w-full; }
+  .fc-progress-header { @apply flex items-center justify-between mb-1.5; }
+  .fc-progress-label { @apply text-sm font-medium text-slate-700 dark:text-slate-300; }
+  .fc-progress-value { @apply text-sm font-mono text-slate-500 dark:text-slate-400; }
+
+  .fc-progress-bar {
+    @apply h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden;
+  }
+  .fc-progress-sm .fc-progress-bar { @apply h-1.5; }
+  .fc-progress-lg .fc-progress-bar { @apply h-3; }
+
+  .fc-progress-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out
+           bg-gradient-to-r from-orange-500 to-orange-600;
+  }
+  .fc-progress-success .fc-progress-fill { @apply from-emerald-500 to-emerald-600; }
+  .fc-progress-warning .fc-progress-fill { @apply from-amber-500 to-amber-600; }
+  .fc-progress-danger .fc-progress-fill { @apply from-red-500 to-red-600; }
+  .fc-progress-info .fc-progress-fill { @apply from-blue-500 to-blue-600; }
+
+  /* --------------------------------------------------------------------------
+     ALERT
+     -------------------------------------------------------------------------- */
+  .fc-alert {
+    @apply flex gap-3 p-4 rounded-xl border
+           animate-slide-down;
+  }
+
+  .fc-alert-info { @apply bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800; }
+  .fc-alert-success { @apply bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800; }
+  .fc-alert-warning { @apply bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border-amber-200 dark:border-amber-800; }
+  .fc-alert-danger { @apply bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-200 border-red-200 dark:border-red-800; }
+
+  .fc-alert-icon { @apply flex-shrink-0 mt-0.5; }
+  .fc-alert-content { @apply flex-1 min-w-0; }
+  .fc-alert-title { @apply font-semibold text-base mb-1; }
+  .fc-alert-body { @apply text-sm; }
+  .fc-alert-action { @apply mt-3; }
+
+  .fc-alert-dismissible { @apply pr-10 relative; }
+  .fc-alert-dismiss {
+    @apply absolute top-3 right-3 p-1 rounded-lg
+           hover:bg-black/5 dark:hover:bg-white/5 transition-colors;
+  }
+
+  /* --------------------------------------------------------------------------
+     TABS
+     -------------------------------------------------------------------------- */
+  .fc-tabs { @apply flex gap-1; }
+  .fc-tabs-default { @apply bg-slate-100 dark:bg-slate-800 p-1 rounded-xl; }
+  .fc-tabs-pills { @apply gap-1; }
+  .fc-tabs-underline { @apply border-b border-slate-200 dark:border-slate-800 relative pb-0; }
+
+  .fc-tab {
+    @apply flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-medium text-sm
+           text-slate-600 dark:text-slate-400
+           transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500;
+  }
+  .fc-tabs-default .fc-tab { @apply rounded-lg; }
+  .fc-tabs-pills .fc-tab { @apply rounded-lg; }
+  .fc-tabs-underline .fc-tab { @apply rounded-none pb-3 border-b-2 border-transparent -mb-px; }
+
+  .fc-tab-active {
+    @apply text-orange-600 dark:text-orange-400;
+  }
+  .fc-tabs-default .fc-tab-active { @apply bg-white dark:bg-slate-900 shadow-sm; }
+  .fc-tabs-pills .fc-tab-active { @apply bg-orange-50 dark:bg-orange-900/30; }
+  .fc-tabs-underline .fc-tab-active { @apply border-orange-500 dark:border-orange-400; }
+
+  .fc-tab-disabled { @apply opacity-40 cursor-not-allowed; }
+
+  .fc-tabs-indicator {
+    @apply absolute bottom-0 left-0 h-0.5 bg-orange-500 dark:bg-orange-400 rounded-full
+           transition-transform duration-200 ease-out;
+  }
+
+  .fc-tab-panel { @apply animate-fade-in; }
+
+  /* --------------------------------------------------------------------------
+     DROPDOWN
+     -------------------------------------------------------------------------- */
+  .fc-dropdown { @apply relative inline-block; }
+  .fc-dropdown-trigger { @apply cursor-pointer; }
+  .fc-dropdown-caret { @apply transition-transform duration-150; }
+  .fc-dropdown-caret-open { @apply rotate-180; }
+
+  .fc-dropdown-menu {
+    @apply absolute z-50 mt-2 min-w-[180px] max-w-[280px] rounded-xl
+           bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800
+           shadow-lg shadow-slate-900/10 dark:shadow-black/20
+           py-1.5 animate-fade-in;
+  }
+  .fc-dropdown-left { @apply left-0; }
+  .fc-dropdown-right { @apply right-0; }
+
+  .fc-dropdown-item {
+    @apply w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-300
+           hover:bg-slate-100 dark:hover:bg-slate-800
+           transition-colors duration-100
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .fc-dropdown-item-danger { @apply text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20; }
+  .fc-dropdown-item-disabled { @apply opacity-40 cursor-not-allowed; }
+  .fc-dropdown-shortcut { @apply ml-auto text-xs text-slate-400 dark:text-slate-500 font-mono; }
+
+  /* --------------------------------------------------------------------------
+     TOOLTIP
+     -------------------------------------------------------------------------- */
+  .fc-tooltip-wrapper { @apply relative inline-block; }
+  .fc-tooltip {
+    @apply absolute z-50 px-3 py-2 text-sm font-medium text-white
+           bg-slate-900 dark:bg-slate-100 dark:text-slate-900
+           rounded-lg shadow-lg shadow-slate-900/20
+           whitespace-nowrap animate-fade-in;
+  }
+  .fc-tooltip-top { @apply bottom-full left-1/2 -translate-x-1/2 mb-2; }
+  .fc-tooltip-bottom { @apply top-full left-1/2 -translate-x-1/2 mt-2; }
+  .fc-tooltip-left { @apply right-full top-1/2 -translate-y-1/2 mr-2; }
+  .fc-tooltip-right { @apply left-full top-1/2 -translate-y-1/2 ml-2; }
+  .fc-tooltip-arrow {
+    @apply absolute w-2 h-2 bg-inherit rotate-45;
+  }
+  .fc-tooltip-top .fc-tooltip-arrow { @apply bottom-[-4px] left-1/2 -translate-x-1/2; }
+  .fc-tooltip-bottom .fc-tooltip-arrow { @apply top-[-4px] left-1/2 -translate-x-1/2; }
+  .fc-tooltip-left .fc-tooltip-arrow { @apply right-[-4px] top-1/2 -translate-y-1/2; }
+  .fc-tooltip-right .fc-tooltip-arrow { @apply left-[-4px] top-1/2 -translate-y-1/2; }
+
+  /* --------------------------------------------------------------------------
+     SKELETON
+     -------------------------------------------------------------------------- */
+  .fc-skel {
+    @apply bg-slate-200 dark:bg-slate-700 rounded animate-pulse;
+  }
+  .fc-skel-text { @apply h-4 rounded; }
+  .fc-skel-circular { @apply rounded-full; }
+  .fc-skel-rectangular { @apply rounded-lg; }
+  .fc-skel-avatar { @apply rounded-full; }
+
+  /* --------------------------------------------------------------------------
+     EMPTY STATE
+     -------------------------------------------------------------------------- */
+  .fc-empty-state {
+    @apply flex flex-col items-center justify-center text-center py-12 px-6;
+  }
+  .fc-empty-illustration { @apply mb-4 text-slate-300 dark:text-slate-600; }
+  .fc-empty-icon { @apply mb-4 text-slate-300 dark:text-slate-600; }
+  .fc-empty-title { @apply text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1; }
+  .fc-empty-description { @apply text-slate-500 dark:text-slate-400 mb-4 max-w-sm; }
+  .fc-empty-action { @apply flex gap-2 flex-wrap justify-center; }
+
+  /* --------------------------------------------------------------------------
+     DIVIDER
+     -------------------------------------------------------------------------- */
+  .fc-divider { @apply border-t border-slate-200 dark:border-slate-800; }
+  .fc-divider-vertical { @apply border-t-0 border-l h-6; }
+  .fc-divider-label {
+    @apply relative flex items-center text-sm text-slate-500 dark:text-slate-400;
+  }
+  .fc-divider-label::before,
+  .fc-divider-label::after {
+    @apply content-[""] flex-1 border-t border-slate-200 dark:border-slate-800;
+  }
+  .fc-divider-label::before { @apply mr-4; }
+  .fc-divider-label::after { @apply ml-4; }
+
+  /* --------------------------------------------------------------------------
+     BREADCRUMBS
+     -------------------------------------------------------------------------- */
+  .fc-breadcrumbs { @apply flex; }
+  .fc-breadcrumbs-list { @apply flex items-center gap-1.5 flex-wrap; }
+  .fc-breadcrumbs-item { @apply flex items-center gap-1.5; }
+  .fc-breadcrumbs-link {
+    @apply text-sm text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors;
+  }
+  .fc-breadcrumbs-current { @apply text-sm text-slate-700 dark:text-slate-300 font-medium; }
+  .fc-breadcrumbs-current-page { @apply text-orange-600 dark:text-orange-400; }
+  .fc-breadcrumbs-separator { @apply text-slate-300 dark:text-slate-600; }
+
+  /* --------------------------------------------------------------------------
+     PAGINATION
+     -------------------------------------------------------------------------- */
+  .fc-pagination { @apply flex items-center justify-center; }
+  .fc-pagination-list { @apply flex items-center gap-1; }
+  .fc-pagination-btn {
+    @apply flex items-center justify-center min-w-[36px] h-9 px-3 rounded-xl
+           text-sm font-medium text-slate-700 dark:text-slate-300
+           bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+           hover:bg-slate-50 dark:hover:bg-slate-700
+           hover:border-slate-300 dark:hover:border-slate-600
+           disabled:opacity-40 disabled:cursor-not-allowed
+           transition-all duration-150;
+  }
+  .fc-pagination-current {
+    @apply bg-orange-500 text-white border-orange-500 hover:bg-orange-600;
+  }
+  .fc-pagination-prev,
+  .fc-pagination-next { @apply px-3; }
+  .fc-pagination-ellipsis { @apply px-2 text-slate-400 dark:text-slate-500; }
+
+  /* --------------------------------------------------------------------------
+     ANIMATIONS
+     -------------------------------------------------------------------------- */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .animate-fade-in { animation: fade-in 200ms ease-out; }
+  .animate-slide-up { animation: slide-up 250ms ease-out; }
+  .animate-slide-down { animation: slide-down 200ms ease-out; }
+  .animate-spin { animation: spin 1s linear infinite; }
+  .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 }

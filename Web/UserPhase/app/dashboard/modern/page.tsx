@@ -21,7 +21,7 @@ import {
   Breadcrumbs,
   Pagination,
 } from "@/components/ui/modern";
-import { Icon, type IconName } from "@/components/icons";
+import { Icon, type IconName } from "@/components/ui/icons";
 
 /* Type definitions matching backend API */
 interface Profile {
