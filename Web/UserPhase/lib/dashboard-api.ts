@@ -34,7 +34,9 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, auth = t
   if (!apiBase) {
     throw new ApiError("API URL is not configured. Set NEXT_PUBLIC_API_URL in .env.local.", 0);
   }
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  // multipart bodies (FormData) must let the browser set the boundary itself.
+  if (!(init.body instanceof FormData)) headers["Content-Type"] = "application/json";
   if (auth) {
     const token = authToken();
     if (!token) throw new AuthError();
@@ -68,6 +70,13 @@ export type Profile = {
   is_active: boolean;
   email_verified: boolean;
   created_at: string;
+  /**
+   * PATCH /auth/me returns `phone` and `preferences`, but the existing
+   * GET /auth/me projection does not select them — so they arrive only
+   * after the first save. Kept optional for that reason.
+   */
+  phone?: string | null;
+  preferences?: Record<string, unknown> | null;
 };
 
 export type EnrolledCourse = {
@@ -117,6 +126,15 @@ export type Notification = {
   created_at: string;
 };
 
+/** Attachment object returned by the enriched message endpoints. */
+export type Attachment = {
+  key: string;
+  name: string;
+  kind: string; // "pdf" | "image" | "file"
+  /** Signed/download path served by /files/... — already relative to the API. */
+  url: string;
+};
+
 export type Conversation = {
   id: string;
   student_id: string;
@@ -125,6 +143,10 @@ export type Conversation = {
   unread: number;
   created_at: string;
   updated_at: string;
+  /** Enrichment from GET /messages/conversations (absent on POST create). */
+  last_body?: string | null;
+  last_at?: string | null;
+  admin_name?: string | null;
 };
 
 export type Message = {
@@ -134,6 +156,84 @@ export type Message = {
   body: string;
   is_read: boolean;
   created_at: string;
+  /** Enrichment from GET/POST /messages/conversations/:id (threaded replies). */
+  parent_id?: string | null;
+  parent_body?: string | null;
+  parent_sender?: string | null;
+  sender_name?: string | null;
+  attachment?: Attachment | null;
+};
+
+export type NewMessage = {
+  body: string;
+  parent_id?: string | null;
+  attachment?: { key: string; name: string; kind: string } | null;
+};
+
+export type MessageUpload = { key: string; name: string; kind: string; size: number };
+
+/** Workspace/classroom chat message (enriched — scope.ts CM_ENRICH). */
+export type ClassroomMessage = {
+  id: string;
+  classroom_id: string;
+  body: string;
+  created_at: string;
+  sender_id: string;
+  sender_name: string | null;
+  sender_role: string | null;
+  parent_id: string | null;
+  parent_body: string | null;
+  parent_sender: string | null;
+  is_issue: boolean;
+  is_solved: boolean;
+  attachment: Attachment | null;
+  seen_count: number;
+};
+
+export type NewClassroomMessage = {
+  body: string;
+  parent_id?: string | null;
+  is_issue?: boolean;
+  attachment?: { key: string; name: string; kind: string } | null;
+};
+
+export type WorkspaceMember = {
+  user_id: string;
+  full_name: string | null;
+  role: string;
+  is_me: boolean;
+};
+
+/** GET /dashboard/summary — one honest request behind the learner board. */
+export type DashboardSummary = {
+  first_name: string;
+  date_label: string;
+  stats: {
+    live_now: number;
+    awaiting_reply: number;
+    unread: number;
+    classes_total: number;
+    courses_total: number;
+  };
+  continue_learning: {
+    course_id: string;
+    course_title: string;
+    course_slug: string;
+    lesson_title: string;
+    progress_pct: number;
+    lessons_done: number;
+    lessons_total: number;
+  } | null;
+  up_next: Array<{
+    session_id: string;
+    classroom_id: string;
+    classroom_title: string;
+    classroom_slug: string;
+    title: string;
+    starts_at: string | null;
+    live: boolean;
+  }>;
+  recent: Array<Notification & { link: string }>;
 };
 
 export type TrainingRequest = {
@@ -230,7 +330,8 @@ export type ClassroomWorkspace = {
   announcements: Array<{ id: string; title: string; body: string | null; created_at: string }>;
   assignments: Array<{ id: string; title: string; due_at: string | null; submitted: number; created_at: string }>;
   recordings: Array<{ id: string; duration_sec: number | null; status: string; session_title: string | null }>;
-  messages: Array<{ id: string; body: string; sender_id: string; sender_name: string | null; created_at: string }>;
+  messages: ClassroomMessage[];
+  members: WorkspaceMember[];
 };
 
 export type CatalogCourse = {
@@ -269,10 +370,15 @@ export type Category = { id: string; name: string; slug: string };
 export const api = {
   /* auth.ts */
   me: () => apiFetch<Profile>("/auth/me"),
+  /** PATCH /auth/me — profile edits; preferences shallow-merged server-side. */
+  patchMe: (payload: { full_name?: string; phone?: string; preferences?: Record<string, unknown> }) =>
+    apiFetch<Profile>("/auth/me", { method: "PATCH", body: JSON.stringify(payload) }),
 
   /* public.ts — logged-in student views */
   myEnrollments: () => apiFetch<MyEnrollments>("/public/enrollments/mine"),
   myTransactions: () => apiFetch<Transaction[]>("/public/transactions/mine"),
+  /* public.ts — the board (mounted at /api and /public; contract spells /api) */
+  dashboardSummary: () => apiFetch<DashboardSummary>("/api/dashboard/summary"),
 
   /* public.ts — catalog */
   courses: (params?: { search?: string; category?: string; level?: string }) => {
@@ -301,8 +407,12 @@ export const api = {
   courseLearn: (id: string) => apiFetch<CourseLearn>(`/scope/courses/${encodeURIComponent(id)}/learn`),
   completeLesson: (lessonId: string) => apiFetch<{ completed: boolean }>(`/scope/lessons/${encodeURIComponent(lessonId)}/complete`, { method: "POST" }),
   classroomWorkspace: (id: string) => apiFetch<ClassroomWorkspace>(`/scope/classrooms/${encodeURIComponent(id)}/workspace`),
-  sendClassroomMessage: (id: string, body: string) =>
-    apiFetch<{ id: string }>(`/scope/classrooms/${encodeURIComponent(id)}/messages`, { method: "POST", body: JSON.stringify({ body }) }),
+  /** POST /scope/classrooms/:id/messages — threaded, issues, attachments. */
+  sendClassroomMessage: (id: string, payload: NewClassroomMessage) =>
+    apiFetch<ClassroomMessage>(`/scope/classrooms/${encodeURIComponent(id)}/messages`, { method: "POST", body: JSON.stringify(payload) }),
+  /** POST /scope/classrooms/:id/read — upserts my read marker (seen counts). */
+  classroomRead: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/scope/classrooms/${encodeURIComponent(id)}/read`, { method: "POST" }),
   submitAssignment: (id: string, body: string) =>
     apiFetch<{ submitted: boolean }>(`/scope/assignments/${encodeURIComponent(id)}/submit`, { method: "POST", body: JSON.stringify({ body }) }),
   booking: (id: string) =>
@@ -317,13 +427,37 @@ export const api = {
   myBookings: () => apiFetch<Booking[]>("/bookings/mine"),
   createBooking: (payload: Record<string, unknown>) =>
     apiFetch<Booking>("/bookings", { method: "POST", body: JSON.stringify(payload) }),
-  conversations: () => apiFetch<Conversation[]>("/messages/conversations"),
+  /** GET /messages/conversations — enriched (unread, last_body, last_at, admin_name). */
+  conversations: (since?: string) =>
+    apiFetch<Conversation[]>(`/messages/conversations${since ? `?since=${encodeURIComponent(since)}` : ""}`),
   createConversation: (subject: string) =>
     apiFetch<Conversation>("/messages/conversations", { method: "POST", body: JSON.stringify({ subject }) }),
-  conversation: (id: string) => apiFetch<Message[]>(`/messages/conversations/${encodeURIComponent(id)}`),
-  sendMessage: (id: string, body: string) =>
-    apiFetch<Message>(`/messages/conversations/${encodeURIComponent(id)}`, { method: "POST", body: JSON.stringify({ body }) }),
+  /** GET /messages/conversations/:id — full thread; `since` returns only newer rows. */
+  conversation: (id: string, since?: string) =>
+    apiFetch<Message[]>(
+      `/messages/conversations/${encodeURIComponent(id)}${since ? `?since=${encodeURIComponent(since)}` : ""}`
+    ),
+  /** POST /messages/conversations/:id — body + optional reply/attachment. */
+  sendMessage: (id: string, payload: NewMessage) =>
+    apiFetch<Message>(`/messages/conversations/${encodeURIComponent(id)}`, { method: "POST", body: JSON.stringify(payload) }),
+  /** POST /messages/conversations/:id/read — clears the other side's unread. */
+  markConversationRead: (id: string) =>
+    apiFetch<{ ok: boolean; read: number }>(`/messages/conversations/${encodeURIComponent(id)}/read`, { method: "POST" }),
+  /** POST /messages/uploads — multipart, field "file" → {key,name,kind,size}. */
+  uploadMessageFile: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiFetch<MessageUpload>("/messages/uploads", { method: "POST", body: fd });
+  },
+  /** POST /messages/typing — ephemeral SSE event (no DB write). */
+  sendTyping: (conversation_id: string) =>
+    apiFetch<{ ok: boolean }>("/messages/typing", { method: "POST", body: JSON.stringify({ conversation_id }) }),
   notifications: () => apiFetch<Notification[]>("/notifications/mine"),
+  /** PATCH /notifications/:id — one notification read/unread. */
+  patchNotification: (id: string, is_read: boolean) =>
+    apiFetch<Notification>(`/notifications/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ is_read }) }),
+  /** POST /notifications/read-all — the bell menu "mark all read". */
+  markAllNotificationsRead: () => apiFetch<{ updated: number }>("/notifications/read-all", { method: "POST" }),
 
   /* files.ts — authenticated download URL for a private material.
      The route is /files/:scope/:id, so the scope segment is required; the old
@@ -345,4 +479,13 @@ export function money(kobo: number | null | undefined, currency = "NGN"): string
   } catch {
     return `${currency} ${major.toLocaleString()}`;
   }
+}
+
+/**
+ * Enriched messages carry `attachment.url` relative to the API
+ * ("/files/message/<id>"). Prefix it so the browser can open it directly.
+ */
+export function fileUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  return url.startsWith("/") ? `${apiBase}${url}` : url;
 }

@@ -123,13 +123,22 @@ const PATHS = {
   moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
   chevronDown: <path d="m6 9 6 6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,
+  chevronLeft: <path d="m15 18-6 6 6-6" />,
+  arrowLeft: (
+    <>
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </>
+  ),
   arrowRight: (
     <>
       <path d="M5 12h14" />
       <path d="m12 5 7 7-7 7" />
     </>
   ),
-  play: <polygon points="6 3 20 12 6 21 6 3" />,
+  /* Inline style beats the stylesheet's `fill:none`, so the triangle renders
+     solid like the reference instead of an outline. */
+  play: <polygon points="6 3 20 12 6 21 6 3" style={{ fill: "currentColor", stroke: "none" }} />,
   check: <path d="M20 6 9 17l-5-5" />,
   checkCircle: (
     <>
@@ -386,6 +395,74 @@ const PATHS = {
   ),
   flame: <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />,
   star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />,
+  more: (
+    <>
+      <circle cx="12" cy="12" r="1.6" style={{ fill: "currentColor", stroke: "none" }} />
+      <circle cx="19" cy="12" r="1.6" style={{ fill: "currentColor", stroke: "none" }} />
+      <circle cx="5" cy="12" r="1.6" style={{ fill: "currentColor", stroke: "none" }} />
+    </>
+  ),
+  hand: (
+    <>
+      <path d="M18 11V6a2 2 0 0 0-4 0v5" />
+      <path d="M14 10V4a2 2 0 0 0-4 0v6" />
+      <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+    </>
+  ),
+  paperclip: <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />,
+  phone: (
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
+  ),
+  send: (
+    <>
+      <path d="M14.54 5.46l-8.4 8.4a1.5 1.5 0 0 0 0 2.12l1.42 1.42a1.5 1.5 0 0 0 2.12 0l8.4-8.4a3 3 0 0 0 0-4.24l-1.4-1.4a3 3 0 0 0-4.24 0z" />
+      <path d="M22 2 11 13" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect width="4" height="12" x="9" y="2" rx="2" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" x2="12" y1="19" y2="22" />
+      <path d="M8 21h8" />
+    </>
+  ),
+  micOff: (
+    <>
+      <path d="M2 2l20 20" />
+      <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
+      <path d="M15 9.34V5a3 3 0 0 0-5.94-.6" />
+      <path d="M17 16.95A7 7 0 0 1 5 12v-2" />
+      <line x1="12" x2="12" y1="19" y2="22" />
+      <path d="M8 21h8" />
+    </>
+  ),
+  camOff: (
+    <>
+      <path d="M2 2l20 20" />
+      <path d="M10.66 6H14a2 2 0 0 1 2 2v3.34" />
+      <path d="M16 16H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2" />
+      <path d="m16 8 6-3v10l-2.5-1.5" />
+    </>
+  ),
+  screenShare: (
+    <>
+      <rect x="2" y="4" width="20" height="13" rx="2" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <path d="M12 13V8" />
+      <path d="m9 11 3-3 3 3" />
+    </>
+  ),
+  smile: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <line x1="9" x2="9.01" y1="9" y2="9" />
+      <line x1="15" x2="15.01" y1="9" y2="9" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof PATHS;
@@ -405,7 +482,7 @@ export function Icon({
 }): ReactNode {
   return (
     <svg
-      className={className ? `fc-ico ${className}` : "fc-ico"}
+      className={`ic ${className ? `fc-ico ${className}` : "fc-ico"}`}
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"

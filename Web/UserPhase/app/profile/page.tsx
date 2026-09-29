@@ -1,196 +1,158 @@
 "use client";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { usePrefs } from "@/components/dashboard/preferences";
-import { PageHead } from "@/components/dashboard/shell";
+import { PageHead, SignOutButton } from "@/components/dashboard/shell";
 import { Icon } from "@/components/ui/icons";
-import { Avatar, LoadingGrid, StatusBadge, shortDateTime } from "@/components/ui/primitives";
-import { money } from "@/lib/dashboard-api";
+import { initials, shortDate } from "@/components/ui/primitives";
+import { api } from "@/lib/dashboard-api";
 
 /*
-  Profile — real account data from GET /auth/me plus your recent payments from
-  GET /api/transactions/mine. Preferences here are genuinely applied: the theme
-  and the reduce-motion switch both change the dashboard immediately and persist.
+  Profile — name and phone are saved through PATCH /auth/me (the only screen
+  that can write them; the GET projection does not include them until the first
+  save). Theme and motion preferences are local, applied by the shell.
 */
 
 export default function ProfilePage() {
-  const { data, loading, failures } = useDashboard();
+  const { data, reload } = useDashboard();
   const { prefs, update } = usePrefs();
-  const profile = data?.profile;
-  const tx = (data?.transactions ?? []).slice(0, 5);
-  const name = profile?.full_name || profile?.email?.split("@")[0] || "Learner";
-  const role = profile?.role === "INSTRUCTOR" ? "Instructor" : profile?.role === "ADMIN" ? "Administrator" : "Learner";
+  const profile = data?.profile ?? null;
+
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    setFullName(profile.full_name ?? "");
+    setPhone(profile.phone ?? "");
+  }, [profile?.id, profile?.full_name, profile?.phone]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    const name = fullName.trim();
+    if (!name) {
+      setError("Name cannot be empty.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    setSaved(false);
+    try {
+      await api.patchMe({ full_name: name, phone: phone.trim() });
+      await reload();
+      setSaved(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not save your profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
-      <PageHead title="Profile" sub="Your account details and recent activity." />
+      <PageHead title="Profile" sub="Your account details and how the app behaves for you." />
 
-      {failures.length > 0 && failures.includes("dashboard") && (
-        <div className="fc-alert fc-alert-danger" role="alert">
-          <Icon name="alertCircle" size={17} />
-          <span>Could not load your profile right now. Refresh the page to try again.</span>
-        </div>
-      )}
-
-      <div className="fc-band">
-        <div className="fc-stack">
-          <section className="fc-card" aria-labelledby="pf-details">
-            <div className="fc-sec-head">
-              <h2 className="fc-sec-title" id="pf-details">
-                Account
-              </h2>
+      <div className="grid2">
+        <section className="card" aria-label="Account">
+          <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 16 }}>
+            <span className="avatar" style={{ width: 52, height: 52, fontSize: 18 }}>{initials(profile?.full_name ?? profile?.email ?? "?")}</span>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: 800, fontSize: 16 }}>{profile?.full_name ?? "Your name"}</p>
+              <p className="hint">{profile?.email}</p>
+              <p className="hint">
+                <span className="badge">{profile?.role ?? "STUDENT"}</span>{" "}
+                {profile?.created_at ? `· joined ${shortDate(profile.created_at)}` : ""}
+              </p>
             </div>
-            {loading ? (
-              <LoadingGrid height={90} count={1} />
-            ) : (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-                  <Avatar name={name} large />
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontFamily: "var(--fc-font-display)", fontSize: 18, fontWeight: 800 }}>{name}</p>
-                    <p style={{ fontSize: 13, color: "var(--fc-muted)", wordBreak: "break-word" }}>{profile?.email}</p>
-                  </div>
-                </div>
-                <dl style={{ margin: 0 }}>
-                  <div className="fc-def-row">
-                    <dt>Role</dt>
-                    <dd>{role}</dd>
-                  </div>
-                  <div className="fc-def-row">
-                    <dt>Email status</dt>
-                    <dd>
-                      {profile?.email_verified ? (
-                        <span className="fc-badge fc-badge-ok">
-                          <Icon name="check" size={12} /> Verified
-                        </span>
-                      ) : (
-                        <span className="fc-badge fc-badge-warn">Not verified</span>
-                      )}
-                    </dd>
-                  </div>
-                  <div className="fc-def-row">
-                    <dt>Member since</dt>
-                    <dd>{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "—"}</dd>
-                  </div>
-                  <div className="fc-def-row">
-                    <dt>Account state</dt>
-                    <dd>
-                      {profile?.is_active ? (
-                        <span className="fc-badge fc-badge-ok">Active</span>
-                      ) : (
-                        <span className="fc-badge fc-badge-danger">Disabled</span>
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-              </>
-            )}
-          </section>
+          </div>
 
-          <section className="fc-card" aria-labelledby="pf-payments">
-            <div className="fc-sec-head">
-              <h2 className="fc-sec-title" id="pf-payments">
-                Recent payments
-              </h2>
-              <Link href="/transactions" className="fc-btn-quiet fc-btn">
-                All transactions <Icon name="arrowRight" size={14} />
-              </Link>
+          <form onSubmit={save} style={{ display: "grid", gap: 12 }}>
+            <div>
+              <label className="fc-sr-only" htmlFor="pf-name">Full name</label>
+              <input
+                id="pf-name"
+                className="input"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Full name"
+                autoComplete="name"
+              />
             </div>
-            {loading ? (
-              <LoadingGrid height={60} count={2} />
-            ) : tx.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>No payments yet.</p>
-            ) : (
-              <div className="fc-table-wrap">
-                <table className="fc-tbl">
-                  <caption className="fc-sr-only">Your five most recent payments</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Product</th>
-                      <th scope="col">Date</th>
-                      <th scope="col">Status</th>
-                      <th scope="col" className="num">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tx.map((t) => (
-                      <tr key={t.id}>
-                        <td style={{ textTransform: "capitalize", fontWeight: 600 }}>{t.product_type}</td>
-                        <td style={{ whiteSpace: "nowrap" }}>{shortDateTime(t.created_at)}</td>
-                        <td>
-                          <StatusBadge status={t.status} />
-                        </td>
-                        <td className="num" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-                          {money(t.amount_kobo, t.currency)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
-
-        <div className="fc-stack">
-          <section className="fc-card" aria-labelledby="pf-prefs">
-            <div className="fc-sec-head">
-              <h2 className="fc-sec-title" id="pf-prefs">
-                Display
-              </h2>
+            <div>
+              <label className="fc-sr-only" htmlFor="pf-phone">Phone</label>
+              <input
+                id="pf-phone"
+                className="input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Phone (optional)"
+                inputMode="tel"
+                autoComplete="tel"
+              />
             </div>
 
-            <div className="fc-set-row">
-              <div className="fc-row-main">
-                <p className="fc-row-title">Light theme</p>
-                <p className="fc-row-meta">Switch between the dark and light palettes.</p>
-              </div>
-              <label className="fc-switch">
-                <input
-                  type="checkbox"
-                  aria-label="Use light theme"
-                  checked={prefs.theme === "light"}
-                  onChange={(e) => update({ theme: e.target.checked ? "light" : "dark" })}
-                />
-                <span className="fc-switch-track" />
-              </label>
-            </div>
+            {error && <p style={{ color: "var(--danger, #fca5a5)", fontSize: 13 }} role="alert">{error}</p>}
+            {saved && !error && <p style={{ color: "var(--ok, #34d399)", fontSize: 13 }} role="status">Saved.</p>}
 
-            <div className="fc-set-row">
-              <div className="fc-row-main">
-                <p className="fc-row-title">Reduce motion</p>
-                <p className="fc-row-meta">Turn off the animated page transitions and pulsing live indicator.</p>
-              </div>
-              <label className="fc-switch">
-                <input
-                  type="checkbox"
-                  aria-label="Reduce motion"
-                  checked={prefs.reduceMotion}
-                  onChange={(e) => update({ reduceMotion: e.target.checked })}
-                />
-                <span className="fc-switch-track" />
-              </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="submit" className="btn pri" disabled={saving}>
+                <Icon name="check" size={15} /> {saving ? "Saving…" : "Save changes"}
+              </button>
+              <SignOutButton />
             </div>
+          </form>
+        </section>
 
-            <p className="fc-hint">Saved on this device and applied straight away.</p>
-          </section>
+        <section className="card" aria-label="Preferences">
+          <h2 className="eyebrow-sm" style={{ marginBottom: 12 }}>Preferences</h2>
 
-          <section className="fc-card" aria-labelledby="pf-support">
-            <div className="fc-sec-head">
-              <h2 className="fc-sec-title" id="pf-support">
-                Support
-              </h2>
+          <div className="qa">
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name={prefs.theme === "dark" ? "moon" : "sun"} size={16} />
+              <span style={{ flex: 1 }}>
+                <b style={{ fontSize: 13.5 }}>Theme</b>
+                <span className="hint" style={{ display: "block" }}>{prefs.theme === "dark" ? "Dark" : "Light"}</span>
+              </span>
+              <button type="button" className="btn ghost sm" onClick={() => update({ theme: prefs.theme === "dark" ? "light" : "dark" })}>
+                Switch to {prefs.theme === "dark" ? "light" : "dark"}
+              </button>
             </div>
-            <p style={{ fontSize: 13, color: "var(--fc-muted)", marginBottom: 14 }}>
-              Need your data exported or your account changed? Message the team and we will handle it.
-            </p>
-            <Link href="/messages" className="fc-btn fc-btn-primary fc-btn-block fc-btn-sm">
-              <Icon name="messageSquare" size={15} /> Open messages
-            </Link>
-          </section>
-        </div>
+          </div>
+
+          <div className="qa">
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="activity" size={16} />
+              <span style={{ flex: 1 }}>
+                <b style={{ fontSize: 13.5 }}>Reduce motion</b>
+                <span className="hint" style={{ display: "block" }}>Calms the interface animations</span>
+              </span>
+              <button
+                type="button"
+                className={prefs.reduceMotion ? "btn sm pri" : "btn ghost sm"}
+                onClick={() => update({ reduceMotion: !prefs.reduceMotion })}
+                aria-pressed={prefs.reduceMotion}
+              >
+                {prefs.reduceMotion ? "On" : "Off"}
+              </button>
+            </div>
+          </div>
+
+          <div className="qa" style={{ marginBottom: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="shieldCheck" size={16} />
+              <span style={{ flex: 1 }}>
+                <b style={{ fontSize: 13.5 }}>Account status</b>
+                <span className="hint" style={{ display: "block" }}>
+                  {profile?.email_verified ? "Email verified" : "Email not verified yet"} ·{" "}
+                  {profile?.is_active ? "Active" : "Disabled"}
+                </span>
+              </span>
+            </div>
+          </div>
+        </section>
       </div>
     </>
   );

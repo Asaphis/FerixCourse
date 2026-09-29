@@ -4,28 +4,25 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/ui/icons";
-import { Avatar } from "@/components/ui/primitives";
+import { initials } from "@/components/ui/primitives";
 import { PrefsProvider, ToastProvider, usePrefs, useToast } from "./preferences";
 import { DashboardProvider, useDashboard } from "./dashboard-context";
 import { apiLogout } from "@/lib/auth";
 
 /*
-  Dashboard shell.
+  Dashboard shell — ported from demo/rebuild-learner.html.
 
-  Rail order mirrors the approved design: logo → grouped nav → promo card.
-  Header order mirrors it too: search left, theme/bell/identity right.
+  Structure mirrors the reference exactly:
+    .reb (tokens + base, was :root/body)
+      .reb-frame (container-type:inline-size, container-name:app — was #frame)
+        .app → rail | col(topbar, view, dock) | scrim | more-sheet | palette
 
-  Two mount points:
-    - <DashboardShell>       wraps the private dashboard routes (redirects to
-                             /login when the session is gone).
-    - <DashboardShell requireAuth={false}>  for screens that are also public
-                             (catalog, a course page): same chrome, but a
-                             logged-out visitor keeps browsing instead of
-                             being bounced to login.
+  Mount points:
+    <DashboardShell>                    private routes (redirects to /login)
+    <DashboardShell requireAuth={false}> routes that also work logged out
 
-  Accessibility: skip link, real aria-current on the active destination,
-  role="menu" dropdowns with Escape + focus return, a focusable command
-  palette, and a polite live region that announces page changes.
+  Auth behaviour (token storage, single 401 redirect) still lives in
+  lib/auth.ts + DashboardProvider — this file only owns presentation.
 */
 
 type NavItem = {
@@ -34,13 +31,14 @@ type NavItem = {
   icon: IconName;
   count?: number;
   alert?: boolean;
+  /** Extra prefixes that should also mark this item as current. */
+  alsoActive?: string[];
 };
 
 type NavGroup = { label: string; items: NavItem[] };
 
 function useNavGroups(): NavGroup[] {
-  const { data, publicMode, outage, unreadNotifications, unreadMessages, pendingRequests, upcomingBookings } =
-    useDashboard();
+  const { data, publicMode, outage, unreadNotifications, unreadMessages, pendingRequests } = useDashboard();
 
   /* Counts are only meaningful once the account data actually loaded. Showing a
      zero from a failed request would read as "you have nothing". */
@@ -51,38 +49,22 @@ function useNavGroups(): NavGroup[] {
       {
         label: "Main",
         items: [
-          { href: "/dashboard", label: "Dashboard", icon: "grid" },
-          {
-            href: "/my-courses",
-            label: "My Courses",
-            icon: "bookOpen",
-            count: countsKnown ? data?.courses.length : undefined,
-          },
+          { href: "/dashboard", label: "Board", icon: "grid" },
+          { href: "/my-courses", label: "My Courses", icon: "bookOpen" },
           {
             href: "/classes",
             label: "My Classrooms",
             icon: "monitorPlay",
             count: countsKnown ? data?.classrooms.length : undefined,
+            alsoActive: ["/classrooms"],
           },
-          { href: "/learn", label: "Catalog", icon: "compass" },
-          {
-            href: "/request",
-            label: "Class Requests",
-            icon: "sparkles",
-            count: countsKnown ? pendingRequests : undefined,
-            alert: countsKnown && pendingRequests > 0,
-          },
-          {
-            href: "/book",
-            label: "Book Training",
-            icon: "calendarCheck",
-            count: countsKnown ? upcomingBookings : undefined,
-          },
+          { href: "/catalog", label: "Catalog", icon: "compass" },
         ],
       },
       {
-        label: "More",
+        label: "Practice",
         items: [
+          { href: "/live", label: "Live training", icon: "radio" },
           {
             href: "/messages",
             label: "Messages",
@@ -90,6 +72,19 @@ function useNavGroups(): NavGroup[] {
             count: countsKnown ? unreadMessages : undefined,
             alert: countsKnown && unreadMessages > 0,
           },
+          {
+            href: "/request",
+            label: "Class requests",
+            icon: "sparkles",
+            count: countsKnown ? pendingRequests : undefined,
+            alert: countsKnown && pendingRequests > 0,
+          },
+          { href: "/book", label: "Book 1-on-1", icon: "calendarCheck", alsoActive: ["/bookings"] },
+        ],
+      },
+      {
+        label: "Account",
+        items: [
           {
             href: "/notifications",
             label: "Notifications",
@@ -102,19 +97,23 @@ function useNavGroups(): NavGroup[] {
         ],
       },
     ],
-    [
-      data?.courses.length,
-      data?.classrooms.length,
-      unreadNotifications,
-      unreadMessages,
-      pendingRequests,
-      upcomingBookings,
-      countsKnown,
-    ]
+    [data?.classrooms.length, unreadNotifications, unreadMessages, pendingRequests, countsKnown]
   );
 }
 
-/* ---------- Command palette ---------- */
+/** Current-destination test shared by rail + dock. */
+function useIsActive() {
+  const pathname = usePathname();
+  return useCallback(
+    (item: { href: string; alsoActive?: string[] }) => {
+      const prefixes = [item.href, ...(item.alsoActive ?? [])];
+      return prefixes.some((h) => pathname === h || pathname.startsWith(`${h}/`));
+    },
+    [pathname]
+  );
+}
+
+/* ---------- Command palette (⌘K) ---------- */
 
 function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -125,18 +124,19 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
 
   const targets = useMemo(() => {
     const pages: Array<{ label: string; href: string; kind: string; icon: IconName }> = [
-      { label: "Dashboard", href: "/dashboard", kind: "Page", icon: "grid" },
+      { label: "Board", href: "/dashboard", kind: "Page", icon: "grid" },
       { label: "My Courses", href: "/my-courses", kind: "Page", icon: "bookOpen" },
       { label: "My Classrooms", href: "/classes", kind: "Page", icon: "monitorPlay" },
-      { label: "Catalog", href: "/learn", kind: "Page", icon: "compass" },
-      { label: "Class Requests", href: "/request", kind: "Page", icon: "sparkles" },
-      { label: "Book Training", href: "/book", kind: "Page", icon: "calendarCheck" },
+      { label: "Catalog", href: "/catalog", kind: "Page", icon: "compass" },
+      { label: "Live training room", href: "/live", kind: "Page", icon: "radio" },
       { label: "Messages", href: "/messages", kind: "Page", icon: "messageSquare" },
+      { label: "Class requests", href: "/request", kind: "Page", icon: "sparkles" },
+      { label: "Book 1-on-1", href: "/book", kind: "Page", icon: "calendarCheck" },
       { label: "Notifications", href: "/notifications", kind: "Page", icon: "bell" },
       { label: "Transactions", href: "/transactions", kind: "Page", icon: "receipt" },
       { label: "Profile", href: "/profile", kind: "Page", icon: "user" },
     ];
-    if (publicMode) return pages.filter((p) => ["/learn", "/request"].includes(p.href));
+    if (publicMode) return pages.filter((p) => ["/catalog", "/request"].includes(p.href));
     const courses = (data?.courses ?? []).map((c) => ({
       label: c.title,
       href: `/courses/${c.slug}`,
@@ -162,7 +162,7 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
     if (open) {
       setQuery("");
       setActive(0);
-      const t = setTimeout(() => inputRef.current?.focus(), 30);
+      const t = setTimeout(() => inputRef.current?.focus(), 40);
       return () => clearTimeout(t);
     }
   }, [open]);
@@ -179,15 +179,15 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
 
   return (
     <div
-      className="fc-overlay"
+      className="palette-wrap on"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="fc-palette" role="dialog" aria-modal="true" aria-label="Search FerixCourse">
-        <div className="fc-palette-input">
-          <Icon name="search" size={18} style={{ color: "var(--fc-muted)" }} />
+      <div className="palette" role="dialog" aria-modal="true" aria-label="Search FerixCourse">
+        <div className="pin">
+          <Icon name="search" size={18} style={{ color: "var(--faint)" }} />
           {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
           <input
             ref={inputRef}
@@ -198,8 +198,8 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
             }}
             placeholder="Search pages, courses and classrooms…"
             aria-label="Search pages, courses and classrooms"
-            aria-controls="fc-palette-results"
-            aria-activedescendant={results[active] ? `fc-palette-opt-${active}` : undefined}
+            aria-controls="reb-palette-results"
+            aria-activedescendant={results[active] ? `reb-palette-opt-${active}` : undefined}
             role="combobox"
             aria-expanded="true"
             onKeyDown={(e) => {
@@ -219,196 +219,76 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
             }}
           />
         </div>
-        <div className="fc-palette-list" id="fc-palette-results" role="listbox" aria-label="Results">
+        <div className="plist" id="reb-palette-results" role="listbox" aria-label="Results">
           {results.map((r, i) => (
             <button
               key={`${r.kind}-${r.href}-${r.label}`}
-              id={`fc-palette-opt-${i}`}
+              id={`reb-palette-opt-${i}`}
               type="button"
               role="option"
               aria-selected={i === active}
-              className="fc-palette-item"
+              className={i === active ? "on" : undefined}
               onMouseEnter={() => setActive(i)}
               onClick={() => go(r.href)}
             >
-              <Icon name={r.icon} size={17} />
+              <Icon name={r.icon} size={16} />
               <span>{r.label}</span>
               <span className="kind">{r.kind}</span>
             </button>
           ))}
-          {!results.length && <p className="fc-palette-empty">No matches for “{query}”.</p>}
+          {!results.length && <p style={{ padding: 16, color: "var(--muted)", fontSize: 13 }}>No matches.</p>}
         </div>
-        <div className="fc-palette-foot">
-          <span>↑↓ to navigate</span>
-          <span>↵ to open</span>
-          <span>Esc to close</span>
+        <div className="pfoot">
+          <span>↑↓ navigate</span>
+          <span>↵ open</span>
+          <span>Esc close</span>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- Header ---------- */
+/* ---------- Topbar ---------- */
 
-function useDismiss(onClose: () => void) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
-  return wrapRef;
-}
-
-function Header({ onOpenPalette, onOpenRail }: { onOpenPalette: () => void; onOpenRail: () => void }) {
-  const router = useRouter();
+function Topbar({ onOpenPalette, onOpenRail }: { onOpenPalette: () => void; onOpenRail: () => void }) {
   const { data, unreadNotifications, publicMode } = useDashboard();
-  const { prefs, update } = usePrefs();
-  const { push } = useToast();
-  const [userOpen, setUserOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const userWrap = useDismiss(() => setUserOpen(false));
-  const bellWrap = useDismiss(() => setMenuOpen(false));
-
   const name = data?.profile?.full_name || data?.profile?.email?.split("@")[0] || "Learner";
-  const plan = data?.profile?.role === "INSTRUCTOR" ? "Instructor" : data?.profile?.role === "ADMIN" ? "Administrator" : "Learner";
-  const recent = (data?.notifications ?? []).slice(0, 5);
-
-  function logout() {
-    apiLogout();
-    push("Signed out.");
-    router.push("/");
-  }
 
   return (
-    <header className="fc-topbar">
-      <button type="button" className="fc-icon-btn fc-only-mobile" onClick={onOpenRail} aria-label="Open navigation">
+    <header className="topbar">
+      <button type="button" className="icon-btn only-m" onClick={onOpenRail} aria-label="Open navigation">
         <Icon name="menu" size={19} />
       </button>
 
-      <button type="button" className="fc-search-trigger" onClick={onOpenPalette} aria-label="Search — opens command palette">
-        <Icon name="search" size={17} />
-        <span>Search courses, classrooms, pages…</span>
-        <kbd className="fc-kbd">⌘K</kbd>
+      <button type="button" className="search-trig" onClick={onOpenPalette} aria-label="Search — opens command palette">
+        <Icon name="search" size={16} />
+        <span>Search pages, courses, classrooms…</span>
+        <kbd>⌘K</kbd>
       </button>
 
-      <div className="fc-topbar-actions">
-        <button
-          type="button"
-          className="fc-icon-btn"
-          onClick={() => update({ theme: prefs.theme === "dark" ? "light" : "dark" })}
-          aria-pressed={prefs.theme === "light"}
-          aria-label={prefs.theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-          title={prefs.theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-        >
-          <Icon name={prefs.theme === "dark" ? "sun" : "moon"} size={18} />
-        </button>
-
+      <div className="tb-actions">
         {publicMode ? (
           <>
-            <Link href="/login" className="fc-btn fc-btn-ghost fc-btn-sm">
+            <Link href="/login" className="btn ghost sm">
               Log in
             </Link>
-            <Link href="/register" className="fc-btn fc-btn-primary fc-btn-sm">
+            <Link href="/register" className="btn pri sm">
               Sign up free
             </Link>
           </>
         ) : (
           <>
-            <div className="fc-menu-wrap" ref={bellWrap}>
-              <button
-                type="button"
-                className="fc-icon-btn"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                aria-label={unreadNotifications ? `Notifications, ${unreadNotifications} unread` : "Notifications"}
-                onClick={() => setMenuOpen((o) => !o)}
-              >
-                <Icon name="bell" size={18} />
-                {unreadNotifications > 0 && <span className="fc-notif-dot" aria-hidden="true" />}
-              </button>
-              {menuOpen && (
-                <div className="fc-menu" role="menu" aria-label="Recent notifications">
-                  <div className="fc-menu-head">
-                    <p>Notifications</p>
-                    <span>{unreadNotifications > 0 ? `${unreadNotifications} unread` : "All caught up"}</span>
-                  </div>
-                  {recent.map((n) => (
-                    <Link
-                      key={n.id}
-                      href="/notifications"
-                      role="menuitem"
-                      className="fc-menu-item"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <Icon name="bell" size={16} />
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: "block", fontWeight: 600 }}>{n.title}</span>
-                        <span style={{ display: "block", fontSize: 11.5, color: "var(--fc-muted)" }}>
-                          {new Date(n.created_at).toLocaleDateString()}
-                        </span>
-                      </span>
-                    </Link>
-                  ))}
-                  {!recent.length && (
-                    <p style={{ padding: "14px 12px", fontSize: 13, color: "var(--fc-muted)" }}>Nothing yet.</p>
-                  )}
-                  <div className="fc-menu-sep" />
-                  <Link href="/notifications" role="menuitem" className="fc-menu-item" onClick={() => setMenuOpen(false)}>
-                    <Icon name="arrowRight" size={16} />
-                    View all notifications
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            <div className="fc-menu-wrap" ref={userWrap}>
-              <button
-                type="button"
-                className="fc-user-btn"
-                aria-haspopup="menu"
-                aria-expanded={userOpen}
-                aria-label={`Account menu for ${name}`}
-                onClick={() => setUserOpen((o) => !o)}
-              >
-                <Avatar name={name} />
-                <span style={{ minWidth: 0 }}>
-                  <span className="fc-user-name">{name}</span>
-                  <span className="fc-user-plan">{plan}</span>
-                </span>
-                <Icon name="chevronDown" size={15} style={{ color: "var(--fc-muted)" }} />
-              </button>
-              {userOpen && (
-                <div className="fc-menu" role="menu" aria-label="Account">
-                  <div className="fc-menu-head">
-                    <p>{name}</p>
-                    <span>{data?.profile?.email}</span>
-                  </div>
-                  <Link href="/profile" role="menuitem" className="fc-menu-item" onClick={() => setUserOpen(false)}>
-                    <Icon name="user" size={16} /> Profile
-                  </Link>
-                  <Link href="/transactions" role="menuitem" className="fc-menu-item" onClick={() => setUserOpen(false)}>
-                    <Icon name="receipt" size={16} /> Transactions
-                  </Link>
-                  <Link href="/messages" role="menuitem" className="fc-menu-item" onClick={() => setUserOpen(false)}>
-                    <Icon name="messageSquare" size={16} /> Messages
-                  </Link>
-                  <div className="fc-menu-sep" />
-                  <button type="button" role="menuitem" className="fc-menu-item fc-menu-item-danger" onClick={logout}>
-                    <Icon name="logOut" size={16} /> Sign out
-                  </button>
-                </div>
-              )}
-            </div>
+            <Link
+              href="/notifications"
+              className="icon-btn"
+              aria-label={unreadNotifications ? `Notifications, ${unreadNotifications} unread` : "Notifications"}
+            >
+              <Icon name="bell" size={18} />
+              {unreadNotifications > 0 && <span className="dot" aria-hidden="true" />}
+            </Link>
+            <Link href="/profile" className="avatar" title={name} aria-label={`Profile — ${name}`}>
+              {initials(name)}
+            </Link>
           </>
         )}
       </div>
@@ -419,115 +299,136 @@ function Header({ onOpenPalette, onOpenRail }: { onOpenPalette: () => void; onOp
 /* ---------- Rail ---------- */
 
 function Rail({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const pathname = usePathname();
   const { publicMode } = useDashboard();
   const groups = useNavGroups();
+  const isActive = useIsActive();
 
   return (
-    <>
-      {open && <div className="fc-scrim fc-only-mobile" onClick={onClose} aria-hidden="true" />}
-      <aside className={`fc-sidebar${open ? " is-open" : ""}`} aria-label="Dashboard navigation">
-        <Link href={publicMode ? "/learn" : "/dashboard"} className="fc-brand">
-          <span className="fc-brand-mark">
-            <Icon name="graduationCap" size={20} />
-          </span>
-          <span>
-            <span className="fc-brand-name">FerixCourse</span>
-            <span className="fc-brand-tag">Learn. Ship. Repeat.</span>
-          </span>
-        </Link>
+    <aside className={`rail${open ? " open" : ""}`} aria-label="Navigation">
+      <Link href={publicMode ? "/catalog" : "/dashboard"} className="brand">
+        <span className="brand-mark">FC</span>
+        <span>
+          <b>FerixCourse</b>
+          <small>Learn. Ship. Repeat.</small>
+        </span>
+      </Link>
 
-        <nav className="fc-nav" aria-label="Main">
-          {groups.map((group) => (
-            <div key={group.label}>
-              <p className="fc-nav-label">{group.label}</p>
-              {group.items.map((item) => {
-                /* A destination is current when it is the page itself or a
-                   detail page underneath it, so /bookings/:id keeps
-                   "Book Training" marked as you in the rail. */
-                const nested = item.href === "/book" ? ["/book", "/bookings"] : [item.href];
-                const active = nested.some((h) => pathname === h || pathname.startsWith(`${h}/`));
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="fc-nav-link"
-                    aria-current={active ? "page" : undefined}
-                    onClick={onClose}
-                  >
-                    <Icon name={item.icon} size={19} />
-                    <span>{item.label}</span>
-                    {item.count ? <span className={`fc-nav-count${item.alert ? " is-alert" : ""}`}>{item.count}</span> : null}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        <div className="fc-side-promo">
-          {publicMode ? (
-            <>
-              <h2>Start learning today</h2>
-              <p>Create a free account to enroll, join live cohorts and track progress.</p>
-              <Link href="/register" className="fc-btn fc-btn-primary fc-btn-block fc-btn-sm" onClick={onClose}>
-                Create free account
-              </Link>
-              <p style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
-                Already a member?{" "}
-                <Link href="/login" style={{ color: "var(--fc-brand)", fontWeight: 700 }}>
-                  Log in
+      <nav className="nav" aria-label="Main">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="nav-label">{group.label}</p>
+            {group.items.map((item) => {
+              const active = isActive(item);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "on" : undefined}
+                  aria-current={active ? "page" : undefined}
+                  onClick={onClose}
+                >
+                  <Icon name={item.icon} size={18} />
+                  <span className="t">{item.label}</span>
+                  {item.count ? <span className={`cnt${item.alert ? " alert" : ""}`}>{item.count}</span> : null}
                 </Link>
-              </p>
-            </>
-          ) : (
-            <>
-              <h2>Need a custom track?</h2>
-              <p>Tell us the topic and we will match you to an instructor.</p>
-              <Link href="/request" className="fc-btn fc-btn-primary fc-btn-block fc-btn-sm" onClick={onClose}>
-                Request training
-              </Link>
-            </>
-          )}
-        </div>
-      </aside>
-    </>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <div className="promo">
+        {publicMode ? (
+          <>
+            <h4>Start learning today</h4>
+            <p>Create a free account to enroll, join live cohorts and track progress.</p>
+            <Link href="/register" className="btn pri sm block" onClick={onClose}>
+              Create free account
+            </Link>
+          </>
+        ) : (
+          <>
+            <h4>Need a custom track?</h4>
+            <p>Tell us the topic and we match you to an instructor.</p>
+            <Link href="/request" className="btn pri sm block" onClick={onClose}>
+              Request training
+            </Link>
+          </>
+        )}
+      </div>
+    </aside>
   );
 }
 
-function MobileNav() {
-  const pathname = usePathname();
-  const { unreadMessages, publicMode } = useDashboard();
-  if (publicMode) return null;
+/* ---------- Mobile dock + More sheet ---------- */
 
-  const items: NavItem[] = [
-    { href: "/dashboard", label: "Home", icon: "grid" },
-    { href: "/my-courses", label: "Courses", icon: "bookOpen" },
-    { href: "/classes", label: "Classes", icon: "monitorPlay" },
-    { href: "/messages", label: "Chat", icon: "messageSquare", count: unreadMessages, alert: unreadMessages > 0 },
-    { href: "/profile", label: "You", icon: "user" },
+function Dock({ onOpenSheet }: { onOpenSheet: () => void }) {
+  const { unreadMessages } = useDashboard();
+  const isActive = useIsActive();
+
+  const items = [
+    { href: "/dashboard", label: "Board", icon: "grid" as IconName },
+    { href: "/classes", label: "Rooms", icon: "monitorPlay" as IconName, alsoActive: ["/classrooms"] },
+    { href: "/messages", label: "Chat", icon: "messageSquare" as IconName },
   ];
 
   return (
-    <nav className="fc-mobile-nav" aria-label="Primary">
+    <nav className="dock" aria-label="Primary">
       {items.map((item) => {
-        const active = pathname === item.href;
+        const active = isActive(item);
+        const badge = item.href === "/messages" && unreadMessages > 0 ? unreadMessages : 0;
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            /* The rail is rendered at every width, so it already publishes the
-               aria-current="page" marker. Duplicating it here gave assistive
-               tech two identically-marked current destinations. */
-            className={active ? "is-active" : undefined}
-          >
+          <Link key={item.href} href={item.href} className={active ? "on" : undefined} aria-current={active ? "page" : undefined}>
             <Icon name={item.icon} size={19} />
-            <span>{item.label}</span>
-            {item.count ? <span className={`fc-nav-count${item.alert ? " is-alert" : ""}`}>{item.count}</span> : null}
+            {item.label}
+            {badge ? <span className="cnt">{badge}</span> : null}
           </Link>
         );
       })}
+      <button type="button" onClick={onOpenSheet} aria-haspopup="dialog">
+        <Icon name="more" size={19} />
+        More
+      </button>
     </nav>
+  );
+}
+
+function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { unreadNotifications } = useDashboard();
+
+  const links = [
+    { href: "/profile", label: "You · Profile", icon: "user" as IconName },
+    { href: "/my-courses", label: "My Courses", icon: "bookOpen" as IconName },
+    { href: "/catalog", label: "Catalog", icon: "compass" as IconName },
+    { href: "/live", label: "Live training", icon: "radio" as IconName },
+    { href: "/request", label: "Class requests", icon: "sparkles" as IconName },
+    { href: "/book", label: "Book 1-on-1", icon: "calendarCheck" as IconName },
+    {
+      href: "/notifications",
+      label: "Notifications",
+      icon: "bell" as IconName,
+      count: unreadNotifications > 0 ? unreadNotifications : undefined,
+    },
+    { href: "/transactions", label: "Transactions", icon: "receipt" as IconName },
+  ];
+
+  return (
+    <>
+      <div className={`sheet-scrim${open ? " on" : ""}`} onClick={onClose} aria-hidden="true" />
+      <div className={`more-sheet${open ? " on" : ""}`} role="dialog" aria-modal="true" aria-label="More destinations" aria-hidden={!open}>
+        <div className="handle" />
+        <h4>More</h4>
+        <div className="mrow2">
+          {links.map((l) => (
+            <Link key={l.href} href={l.href} onClick={onClose} tabIndex={open ? 0 : -1}>
+              <Icon name={l.icon} size={17} />
+              {l.label}
+              {l.count ? <span className="cnt">{l.count}</span> : null}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -536,17 +437,19 @@ function MobileNav() {
 function ShellBody({
   children,
   theme,
-  reduceMotion,
 }: {
   children: ReactNode;
   theme: "dark" | "light";
-  reduceMotion: boolean;
 }) {
   const pathname = usePathname();
   const { outage, reload } = useDashboard();
   const [railOpen, setRailOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [announce, setAnnounce] = useState("");
+
+  /* The reference marks messages/live as fit (no page scroll — panels scroll). */
+  const fit = pathname === "/messages" || pathname === "/live" || pathname.endsWith("/live");
 
   /* ⌘K / Ctrl-K opens search; "/" does too when not typing in a field. */
   useEffect(() => {
@@ -564,48 +467,60 @@ function ShellBody({
       } else if (e.key === "/" && !typing) {
         e.preventDefault();
         setPaletteOpen(true);
+      } else if (e.key === "Escape") {
+        setPaletteOpen(false);
+        setSheetOpen(false);
+        setRailOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  /* Announce route changes to assistive tech (SPA navigation is otherwise silent). */
+  /* Close overlays + announce route changes on navigation. */
   useEffect(() => {
     setRailOpen(false);
+    setSheetOpen(false);
+    setPaletteOpen(false);
     const heading = document.querySelector("h1");
     setAnnounce(`Navigated to ${heading?.textContent?.trim() || pathname}`);
   }, [pathname]);
 
   return (
-    /* Single .fc-dash root. Nesting a second one used to re-declare the dark
-       token set inside the light theme, which silently overrode it. */
-    <div className={`fc-dash${reduceMotion ? " fc-reduce-motion" : ""}`} data-theme={theme}>
-      <a className="fc-skip" href="#fc-main">
+    <div className="reb" data-theme={theme}>
+      <a className="fc-skip" href="#reb-main">
         Skip to main content
       </a>
-      <Rail open={railOpen} onClose={() => setRailOpen(false)} />
-      <div className="fc-main">
-        <Header onOpenPalette={() => setPaletteOpen(true)} onOpenRail={() => setRailOpen(true)} />
-        <main className="fc-content" id="fc-main" tabIndex={-1}>
-          <div className="fc-content-inner">
-            {outage && (
-              <div className="fc-alert fc-alert-danger" role="alert">
-                <Icon name="alertCircle" size={17} style={{ marginTop: 1 }} />
-                <span style={{ flex: 1 }}>
-                  We could not reach FerixCourse. Your data is safe — this is a connection problem on our side.
-                </span>
-                <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={reload}>
-                  <Icon name="refresh" size={14} /> Try again
-                </button>
-              </div>
-            )}
-            {children}
+      <div className="reb-frame">
+        <div className="app">
+          <Rail open={railOpen} onClose={() => setRailOpen(false)} />
+          <div className={`scrim${railOpen ? " on" : ""}`} onClick={() => setRailOpen(false)} aria-hidden="true" />
+
+          <div className="col">
+            <Topbar onOpenPalette={() => setPaletteOpen(true)} onOpenRail={() => setRailOpen(true)} />
+            <main className="view" id="reb-main" tabIndex={-1} data-fit={fit ? "1" : undefined}>
+              {outage && (
+                <div style={{ padding: "22px 26px 0" }}>
+                  <div className="alert danger" role="alert" style={{ marginBottom: 0 }}>
+                    <Icon name="alertCircle" size={17} style={{ marginTop: 1 }} />
+                    <span style={{ flex: 1 }}>
+                      We could not reach FerixCourse. Your data is safe — this is a connection problem on our side.
+                    </span>
+                    <button type="button" className="btn ghost sm" onClick={reload}>
+                      <Icon name="refresh" size={14} /> Try again
+                    </button>
+                  </div>
+                </div>
+              )}
+              {children}
+            </main>
+            <Dock onOpenSheet={() => setSheetOpen(true)} />
           </div>
-        </main>
+
+          <MoreSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        </div>
       </div>
-      <MobileNav />
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <p className="fc-sr-only" role="status" aria-live="polite">
         {announce}
       </p>
@@ -613,26 +528,10 @@ function ShellBody({
   );
 }
 
-/**
- * One PrefsProvider for the whole dashboard, so the header toggle, the profile
- * switch and the themed root all read the SAME preference state.
- */
+/** One PrefsProvider for the whole shell so the theme is a single source of truth. */
 function PrefsShell({ children }: { children: ReactNode }) {
-  return (
-    <PrefsProvider>
-      <ThemedShell>{children}</ThemedShell>
-    </PrefsProvider>
-  );
-}
-
-/** Renders the single .fc-dash root carrying the theme attribute. */
-function ThemedShell({ children }: { children: ReactNode }) {
   const { prefs } = usePrefs();
-  return (
-    <ShellBody theme={prefs.theme} reduceMotion={prefs.reduceMotion}>
-      {children}
-    </ShellBody>
-  );
+  return <ShellBody theme={prefs.theme}>{children}</ShellBody>;
 }
 
 export default function DashboardShell({
@@ -645,7 +544,9 @@ export default function DashboardShell({
   return (
     <DashboardProvider requireAuth={requireAuth}>
       <ToastProvider>
-        <PrefsShell>{children}</PrefsShell>
+        <PrefsProvider>
+          <PrefsShell>{children}</PrefsShell>
+        </PrefsProvider>
       </ToastProvider>
     </DashboardProvider>
   );
@@ -655,14 +556,13 @@ export default function DashboardShell({
 
 export function PageHead({ title, sub, actions }: { title: string; sub?: string; actions?: ReactNode }) {
   return (
-    <div className="fc-page-head">
-      <div className="fc-page-head-row">
-        <div>
-          <h1 className="fc-page-title">{title}</h1>
-          {sub ? <p className="fc-page-sub">{sub}</p> : null}
-        </div>
-        {actions ? <div className="fc-page-actions">{actions}</div> : null}
+    <div className="ph">
+      <div>
+        <h1>{title}</h1>
+        {sub ? <p className="sub">{sub}</p> : null}
       </div>
+      <div className="sp" />
+      {actions ? <div>{actions}</div> : null}
     </div>
   );
 }
@@ -671,14 +571,33 @@ export function PageHead({ title, sub, actions }: { title: string; sub?: string;
 export function PageError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   if (!message) return null;
   return (
-    <div className="fc-alert fc-alert-danger" role="alert">
+    <div className="alert danger" role="alert">
       <Icon name="alertCircle" size={17} style={{ marginTop: 1 }} />
       <span style={{ flex: 1 }}>{message}</span>
       {onRetry ? (
-        <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={onRetry}>
+        <button type="button" className="btn ghost sm" onClick={onRetry}>
           <Icon name="refresh" size={14} /> Retry
         </button>
       ) : null}
     </div>
+  );
+}
+
+/** Sign-out control reused by the profile page (the reference topbar has none). */
+export function SignOutButton({ className = "btn ghost" }: { className?: string }) {
+  const router = useRouter();
+  const { push } = useToast();
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={() => {
+        apiLogout();
+        push("Signed out.");
+        router.push("/");
+      }}
+    >
+      <Icon name="logOut" size={16} /> Sign out
+    </button>
   );
 }

@@ -1,469 +1,596 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useDashboard } from "@/components/dashboard/dashboard-context";
+import { Icon } from "@/components/ui/icons";
+import { initials, timeAgo } from "@/components/ui/primitives";
 import {
-  Radio, FileText, Megaphone, ClipboardList, MessageSquare, Disc3,
-  Check, Send, AlertCircle, Loader2, Users,
-} from "lucide-react";
-import { apiFetch } from "@/lib/client";
+  api,
+  apiFetch,
+  type ClassroomMessage,
+  type ClassroomWorkspace,
+  type WorkspaceMember,
+} from "@/lib/dashboard-api";
 
 /*
-  Classroom workspace for an enrolled learner.
+  Classroom workspace for an enrolled learner — ported from
+  demo/rebuild-learner.html (#/class) and wired to the enriched endpoints:
 
-  Rewritten for three reasons:
-    1. The tabs were plain buttons with no tab semantics — a screen reader read
-       six unrelated buttons and keyboard users had to Tab through each one.
-       They are now a proper tablist (role, aria-selected, aria-controls, roving
-       tabindex, arrow/Home/End keys).
-    2. Any load failure returned null, so a broken request was indistinguishable
-       from "not enrolled" and the learner saw the public enroll card instead of
-       an error. Only an access refusal falls through to the enroll card now;
-       everything else renders a retry.
-    3. The discussion showed only the body. It now shows sender and time (both
-       already returned by /scope/classrooms/:id/messages) and scrolls to the
-       newest message.
+    GET  /scope/classrooms/:id/workspace   (threaded messages + members)
+    POST /scope/classrooms/:id/messages   (body, parent_id, is_issue, attachment)
+    POST /scope/classrooms/:id/read       (read marker → seen counts)
+    POST /messages/uploads                (attachment bytes)
 
-  Endpoints (unchanged — all real):
-    GET  /scope/classrooms/:id/workspace
-    POST /scope/classrooms/:id/messages
-    GET  /files/classroom-material/:id
-    GET  /files/recording/:id
-    POST /scope/assignments/:id/submit
-    POST /live/token
+  Discussion behaviour: replies quote the parent message, a question can be
+  raised as an issue, attachments ride along with a post, "Seen by N" comes
+  from the backend, and new posts arrive over the shell's SSE stream.
+  A non-member gets `null` so the public classroom page can show its enroll
+  card instead.
 */
 
 const TABS = [
-  { id: "sessions", label: "Timetable", icon: Radio },
-  { id: "materials", label: "Materials", icon: FileText },
-  { id: "announce", label: "Announcements", icon: Megaphone },
-  { id: "assign", label: "Assignments", icon: ClipboardList },
-  { id: "discuss", label: "Discuss", icon: MessageSquare },
-  { id: "record", label: "Recordings", icon: Disc3 },
-] as const;
-
+  { id: "sessions", label: "Timetable", icon: "radio" as const },
+  { id: "materials", label: "Materials", icon: "fileText" as const },
+  { id: "announce", label: "Announcements", icon: "megaphone" as const },
+  { id: "assign", label: "Assignments", icon: "clipboardList" as const },
+  { id: "discuss", label: "Discuss", icon: "messageSquare" as const },
+  { id: "record", label: "Recordings", icon: "play" as const },
+];
 type TabId = (typeof TABS)[number]["id"];
 
-const FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300";
-
-function formatBytes(n: number | undefined): string {
+function bytes(n: number | null | undefined): string {
   const v = Number(n) || 0;
   if (v < 1024) return `${v} B`;
   if (v < 1048576) return `${(v / 1024).toFixed(0)} KB`;
   return `${(v / 1048576).toFixed(1)} MB`;
 }
 
-function when(iso: string | null | undefined): string {
-  if (!iso) return "TBD";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "TBD" : d.toLocaleString();
+const isAccessRefusal = (m: string) => /don'?t have access|not enrolled|forbidden|no access/i.test(m);
+
+/** Files are private: fetch the signed URL, then open it. */
+async function openPrivate(path: string, what: string): Promise<void> {
+  const r = await apiFetch<{ url: string }>(path);
+  window.open(r.url, "_blank", "noopener");
+  if (!r.url) throw new Error(`Could not open ${what}.`);
 }
 
-/**
- * Distinguishes "you are not a member" (fall through to the public enroll card)
- * from a genuine failure (show a retry). apiFetch throws a plain Error carrying
- * the API's message, so the guard is on the wording the backend actually sends:
- * "You don't have access to this classroom."
- */
-function isAccessRefusal(message: string): boolean {
-  return /don'?t have access|not enrolled|forbidden|no access/i.test(message);
-}
-
-export default function ClassroomWorkspace({ classroomId, slug }: { classroomId: string; slug: string }) {
-  const [tab, setTab] = useState<TabId>("sessions");
-  const [data, setData] = useState<any>(null);
-  const [err, setErr] = useState("");
+export default function ClassroomWorkspace({
+  classroomId,
+  slug,
+  title,
+}: {
+  classroomId: string;
+  slug: string;
+  title?: string;
+}) {
+  const { liveClassroom, liveSession } = useDashboard();
+  const [tab, setTab] = useState<TabId>("discuss");
+  const [data, setData] = useState<ClassroomWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [draft, setDraft] = useState("");
-  const [liveMsg, setLiveMsg] = useState("");
+  const [asIssue, setAsIssue] = useState(false);
+  const [replyTo, setReplyTo] = useState<ClassroomMessage | null>(null);
+  const [attachment, setAttachment] = useState<{ key: string; name: string; kind: string } | null>(null);
   const [sending, setSending] = useState(false);
-  const [openingId, setOpeningId] = useState("");
-  const [answer, setAnswer] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+  const [opening, setOpening] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState("");
 
-  const logRef = useRef<HTMLDivElement | null>(null);
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const logRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  async function load() {
-    setLoading(true);
-    setErr("");
+  const load = useCallback(async () => {
+    setError("");
     try {
-      setData(await apiFetch(`/scope/classrooms/${classroomId}/workspace`));
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not load this classroom.");
+      setData(await api.classroomWorkspace(classroomId));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not load this classroom.");
       setData(null);
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classroomId]);
 
-  const messageCount = data?.messages?.length ?? 0;
   useEffect(() => {
-    const el = logRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messageCount, tab]);
+    void load();
+  }, [load]);
 
-  if (err && isAccessRefusal(err)) return null; // not a member → public enroll card
+  const messages = data?.messages ?? [];
+  const members: WorkspaceMember[] = data?.members ?? [];
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [messages.length, tab]);
+
+  /* Opening the discussion marks the room read, so "seen" is honest. */
+  useEffect(() => {
+    if (tab === "discuss" && data) void api.classroomRead(classroomId).catch(() => undefined);
+  }, [tab, data, classroomId, liveClassroom]);
+
+  /* Realtime: append posts from classmates and the instructor. */
+  useEffect(() => {
+    if (!liveClassroom || liveClassroom.classroom_id !== classroomId) return;
+    setData((d) => {
+      if (!d) return d;
+      if (d.messages.some((m) => m.id === liveClassroom.message.id)) return d;
+      return { ...d, messages: [...d.messages, liveClassroom.message] };
+    });
+  }, [liveClassroom, classroomId]);
+
+  const liveSessionRow = (data?.sessions ?? []).find((s) => s.status === "live");
+  const liveIsUp = Boolean(liveSessionRow) || liveSession?.classroom_id === classroomId;
+  const me = members.find((m) => m.is_me)?.user_id;
+
+  async function joinLive() {
+    setError("");
+    try {
+      await api.liveToken({ classroom_id: classroomId });
+      window.location.href = `/classrooms/${slug}/live`;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not join the session.");
+    }
+  }
+
+  async function pickFile(file: File) {
+    setUploading(true);
+    setError("");
+    try {
+      const up = await api.uploadMessageFile(file);
+      setAttachment({ key: up.key, name: up.name, kind: up.kind });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not attach that file.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const body = draft.trim();
+    if ((!body && !attachment) || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const posted = await api.sendClassroomMessage(classroomId, {
+        body,
+        parent_id: replyTo?.id ?? null,
+        is_issue: asIssue,
+        attachment: attachment ?? null,
+      });
+      setData((d) => (d ? { ...d, messages: [...d.messages, posted] } : d));
+      setDraft("");
+      setReplyTo(null);
+      setAsIssue(false);
+      setAttachment(null);
+      void api.classroomRead(classroomId).catch(() => undefined);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not post your message.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function openMaterial(id: string) {
+    setOpening(id);
+    setError("");
+    try {
+      await openPrivate(`/files/classroom-material/${encodeURIComponent(id)}`, "that file");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not open that file.");
+    } finally {
+      setOpening("");
+    }
+  }
+
+  async function openRecording(id: string) {
+    setOpening(id);
+    setError("");
+    try {
+      await openPrivate(`/files/recording/${encodeURIComponent(id)}`, "that recording");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not open that recording.");
+    } finally {
+      setOpening("");
+    }
+  }
+
+  async function openMessageFile(m: ClassroomMessage) {
+    if (!m.attachment) return;
+    setOpening(m.id);
+    setError("");
+    try {
+      await openPrivate(`/files/classroom-message/${encodeURIComponent(m.id)}`, "that attachment");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not open that attachment.");
+    } finally {
+      setOpening("");
+    }
+  }
+
+  async function submitAssignment(id: string) {
+    setSubmitting(id);
+    setError("");
+    try {
+      await api.submitAssignment(id, answers[id] ?? "");
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not submit your answer.");
+    } finally {
+      setSubmitting("");
+    }
+  }
+
+  if (error && isAccessRefusal(error) && !data) return null;
   if (loading && !data) {
     return (
-      <div className="mt-8 grid gap-2.5" aria-busy="true">
-        <div className="h-20 animate-pulse rounded-3xl bg-white/5" />
-        <div className="h-56 animate-pulse rounded-3xl bg-white/5" />
+      <div className="sec" aria-busy="true">
+        <div className="skel" style={{ height: 120, marginBottom: 12 }} />
+        <div className="skel" style={{ height: 320 }} />
       </div>
     );
   }
-  if (err && !data) {
+  if (error && !data) {
     return (
-      <div className="mt-8 rounded-3xl border border-rose-400/30 bg-rose-500/10 p-6" role="alert">
-        <p className="flex items-center gap-2 font-bold text-rose-100">
-          <AlertCircle size={17} /> Could not load this classroom
-        </p>
-        <p className="mt-1.5 text-[13.5px] text-rose-100/80">{err}</p>
-        <button onClick={load} className={`mt-4 rounded-xl border border-rose-300/40 px-4 py-2.5 text-sm font-bold text-rose-50 hover:bg-rose-500/15 ${FOCUS}`}>
-          Try again
+      <div className="alert danger" role="alert">
+        <Icon name="alertCircle" size={17} />
+        <span style={{ flex: 1 }}>{error}</span>
+        <button type="button" className="btn ghost sm" onClick={() => void load()}>
+          <Icon name="refresh" size={14} /> Retry
         </button>
       </div>
     );
   }
   if (!data) return null;
 
-  const liveSession = (data.sessions ?? []).find((s: any) => s.status === "live");
-
-  async function joinLive() {
-    setLiveMsg("Checking your access…");
-    try {
-      await apiFetch("/live/token", { method: "POST", body: JSON.stringify({ classroom_id: classroomId }) });
-      window.location.href = `/classrooms/${slug}/live`;
-    } catch (e: any) {
-      setLiveMsg(e?.message ?? "Could not join the session.");
-    }
-  }
-
-  async function sendDiscuss(e: React.FormEvent) {
-    e.preventDefault();
-    if (!draft.trim() || sending) return;
-    setSending(true);
-    setErr("");
-    try {
-      const m = await apiFetch(`/scope/classrooms/${classroomId}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ body: draft }),
-      });
-      setData({
-        ...data,
-        messages: [
-          ...(data.messages ?? []),
-          { ...m, sender_name: m?.sender_name ?? "You", created_at: m?.created_at ?? new Date().toISOString() },
-        ],
-      });
-      setDraft("");
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not post your message.");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function openFile(id: string) {
-    setOpeningId(id);
-    setErr("");
-    try {
-      const r = await apiFetch(`/files/classroom-material/${id}`);
-      window.open(r.url, "_blank", "noopener");
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not open that file.");
-    } finally {
-      setOpeningId("");
-    }
-  }
-
-  async function openRecording(id: string) {
-    setOpeningId(id);
-    setErr("");
-    try {
-      const r = await apiFetch(`/files/recording/${id}`);
-      window.open(r.url, "_blank", "noopener");
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not open that recording.");
-    } finally {
-      setOpeningId("");
-    }
-  }
-
-  async function submit(aid: string) {
-    setSubmitting(aid);
-    setErr("");
-    try {
-      await apiFetch(`/scope/assignments/${aid}/submit`, {
-        method: "POST",
-        body: JSON.stringify({ body: answer[aid] ?? "" }),
-      });
-      await load();
-    } catch (e: any) {
-      setErr(e?.message ?? "Could not submit your answer.");
-    } finally {
-      setSubmitting("");
-    }
-  }
-
-  /** Arrow-key traversal across the tablist, plus Home/End. */
-  function onTabKey(e: React.KeyboardEvent, index: number) {
-    let next = -1;
-    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
-    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = TABS.length - 1;
-    if (next < 0) return;
-    e.preventDefault();
-    setTab(TABS[next].id);
-    tabRefs.current[next]?.focus();
-  }
-
   return (
-    <div className="mt-10">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-emerald-300/25 bg-emerald-400/[.07] p-5">
-        <div className="min-w-0">
-          <p className="font-display font-bold">You are enrolled in this classroom</p>
-          <p className="text-[13px] text-slate-400">Everything below is private to members.</p>
+    <div className="sec" style={{ marginTop: 26 }}>
+      {/* Member banner + live join */}
+      <div className="card" style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <p className="eyebrow-sm">You are enrolled{title ? ` · ${title}` : ""}</p>
+          <p className="sub" style={{ marginTop: 2 }}>
+            {members.length} {members.length === 1 ? "member" : "members"} · everything below is private to this class
+          </p>
         </div>
-        <button
-          onClick={joinLive}
-          disabled={!liveSession}
-          className={`shrink-0 rounded-2xl px-5 py-3 text-sm font-bold ${FOCUS} ${
-            liveSession ? "btn-aurora text-white" : "border border-white/15 bg-white/[.06] text-slate-300"
-          }`}
-        >
-          {liveSession ? "Join live now" : "No live session"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href={`/classrooms/${slug}/live`} className="btn ghost sm">
+            <Icon name="video" size={14} /> Room
+          </Link>
+          <button type="button" className={`btn sm ${liveIsUp ? "pri" : "ghost"}`} onClick={() => void joinLive()} disabled={!liveIsUp}>
+            <Icon name="radio" size={14} /> {liveIsUp ? "Join live now" : "Not live"}
+          </button>
+        </div>
       </div>
 
-      {liveMsg && (
-        <p className="mt-3 rounded-2xl border border-white/12 bg-white/[.04] px-4 py-3 text-[13px] text-slate-300" role="status">
-          {liveMsg}
-        </p>
-      )}
-
-      {err && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3" role="alert">
-          <AlertCircle size={16} className="shrink-0 text-rose-200" />
-          <span className="flex-1 text-[13px] text-rose-100">{err}</span>
-          <button onClick={load} className={`rounded-lg border border-rose-300/40 px-3 py-1.5 text-xs font-bold text-rose-50 hover:bg-rose-500/15 ${FOCUS}`}>
-            Reload
+      {error && (
+        <div className="alert danger" role="alert" style={{ marginTop: 12 }}>
+          <Icon name="alertCircle" size={17} />
+          <span style={{ flex: 1 }}>{error}</span>
+          <button type="button" className="btn ghost sm" onClick={() => setError("")}>
+            Dismiss
           </button>
         </div>
       )}
 
-      {/* Real tab semantics: one tablist, one tab per panel, arrow-key traversal. */}
-      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Classroom sections">
-        {TABS.map((t, i) => (
+      <div className="tabs" role="tablist" aria-label="Classroom sections" style={{ marginTop: 18 }}>
+        {TABS.map((t) => (
           <button
             key={t.id}
-            ref={(el) => {
-              tabRefs.current[i] = el;
-            }}
             type="button"
             role="tab"
             id={`tab-${t.id}`}
             aria-selected={tab === t.id}
             aria-controls={`panel-${t.id}`}
-            tabIndex={tab === t.id ? 0 : -1}
+            className={tab === t.id ? "on" : undefined}
             onClick={() => setTab(t.id)}
-            onKeyDown={(e) => onTabKey(e, i)}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-bold transition ${FOCUS} ${
-              tab === t.id ? "bg-white text-stone-950" : "border border-white/12 text-slate-300 hover:bg-white/5"
-            }`}
           >
-            <t.icon size={14} /> {t.label}
+            <Icon name={t.icon} size={14} /> {t.label}
+            {t.id === "discuss" && messages.length > 0 && <span className="cnt">{messages.length}</span>}
           </button>
         ))}
       </div>
 
-      <div className="mt-4">
-        {tab === "sessions" && (
-          <div role="tabpanel" id="panel-sessions" aria-labelledby="tab-sessions" tabIndex={-1} className="grid gap-2.5">
-            {(data.sessions ?? []).map((s: any) => (
-              <div key={s.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3.5 text-sm">
-                <span className="font-bold">{s.title}</span>
-                <span className="text-xs text-slate-400">{when(s.starts_at)}</span>
-                <span
-                  className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                    s.status === "live" ? "bg-rose-500/20 text-rose-200" : s.status === "ended" ? "bg-white/10 text-slate-300" : "bg-white/10 text-slate-300"
-                  }`}
-                >
-                  {s.status}
-                </span>
+      {/* ---- Timetable ---- */}
+      {tab === "sessions" && (
+        <section id="panel-sessions" role="tabpanel" aria-labelledby="tab-sessions" className="card-grid">
+          {data.sessions.length === 0 ? (
+            <div className="card empty">
+              <div className="ico">
+                <Icon name="calendar" size={24} />
               </div>
-            ))}
-            {!data.sessions?.length && (
-              <p className="rounded-2xl border border-white/10 p-6 text-sm text-slate-400">
-                No sessions scheduled yet. Your instructor will post the timetable here.
-              </p>
-            )}
-          </div>
-        )}
-
-        {tab === "materials" && (
-          <div role="tabpanel" id="panel-materials" aria-labelledby="tab-materials" tabIndex={-1} className="grid gap-2.5">
-            {(data.materials ?? []).map((m: any) => (
-              <button
-                key={m.id}
-                onClick={() => openFile(m.id)}
-                disabled={openingId === m.id}
-                className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3.5 text-left text-sm hover:border-white/25 disabled:opacity-60 ${FOCUS}`}
-              >
-                {openingId === m.id ? (
-                  <Loader2 size={16} className="shrink-0 animate-spin text-amber-300" />
-                ) : (
-                  <FileText size={16} className="shrink-0 text-amber-300" />
-                )}
-                <span className="font-semibold">{m.title}</span>
-                <span className="ml-auto text-xs text-slate-400">
-                  {m.mime} · {formatBytes(m.size_bytes)}
-                </span>
-              </button>
-            ))}
-            {!data.materials?.length && (
-              <p className="rounded-2xl border border-white/10 p-6 text-sm text-slate-400">
-                No materials yet. Files your instructor uploads appear here.
-              </p>
-            )}
-          </div>
-        )}
-
-        {tab === "announce" && (
-          <div role="tabpanel" id="panel-announce" aria-labelledby="tab-announce" tabIndex={-1} className="grid gap-2.5">
-            {(data.announcements ?? []).map((a: any) => (
-              <div key={a.id} className="rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3.5">
-                <p className="text-sm font-bold">{a.title}</p>
-                <p className="mt-1 whitespace-pre-line text-[13.5px] text-slate-400">{a.body}</p>
-                {a.created_at && <p className="mt-2 text-xs text-slate-500">{when(a.created_at)}</p>}
-              </div>
-            ))}
-            {!data.announcements?.length && (
-              <p className="rounded-2xl border border-white/10 p-6 text-sm text-slate-400">No announcements yet.</p>
-            )}
-          </div>
-        )}
-
-        {tab === "assign" && (
-          <div role="tabpanel" id="panel-assign" aria-labelledby="tab-assign" tabIndex={-1} className="grid gap-3">
-            {(data.assignments ?? []).map((a: any) => (
-              <div key={a.id} className="rounded-2xl border border-white/10 bg-stone-900/70 p-5">
-                <p className="font-bold">
-                  {a.title}{" "}
-                  {a.submitted > 0 && (
-                    <span className="ml-2 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] text-emerald-300">submitted</span>
-                  )}
+              <h3>No sessions yet</h3>
+              <p>Your instructor posts the timetable here, and you get a notification when it goes live.</p>
+            </div>
+          ) : (
+            data.sessions.map((s) => (
+              <article key={s.id} className="tile">
+                <h3>
+                  <Icon name="clock" size={14} /> {s.starts_at ? new Date(s.starts_at).toLocaleString() : "Time TBD"}
+                </h3>
+                <p style={{ fontSize: 15, fontWeight: 700 }}>{s.title}</p>
+                <p className="hint">
+                  {s.status === "live" ? "Live now" : s.status === "ended" ? "Ended" : "Scheduled"}
+                  {s.recording_status && s.recording_status !== "none" ? ` · recording: ${s.recording_status}` : ""}
                 </p>
-                <p className="mt-1 whitespace-pre-line text-[13.5px] text-slate-400">{a.description}</p>
-                {a.due_at && <p className="mt-1 text-xs text-slate-500">Due {when(a.due_at)}</p>}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <label className="sr-only" htmlFor={`answer-${a.id}`}>
-                    Your answer for {a.title}
-                  </label>
-                  <input
-                    id={`answer-${a.id}`}
-                    value={answer[a.id] ?? ""}
-                    onChange={(e) => setAnswer({ ...answer, [a.id]: e.target.value })}
-                    placeholder="Your answer…"
-                    className={`min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-orange-400/60 ${FOCUS}`}
-                  />
-                  <button
-                    onClick={() => submit(a.id)}
-                    disabled={submitting === a.id}
-                    className={`btn-aurora flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60 ${FOCUS}`}
-                  >
-                    {submitting === a.id ? <Loader2 size={14} className="animate-spin" /> : null}
-                    Submit
+                {s.status === "live" && (
+                  <button type="button" className="btn pri sm" style={{ marginTop: 10 }} onClick={() => void joinLive()}>
+                    <Icon name="radio" size={14} /> Join
                   </button>
+                )}
+              </article>
+            ))
+          )}
+        </section>
+      )}
+
+      {/* ---- Materials ---- */}
+      {tab === "materials" && (
+        <section id="panel-materials" role="tabpanel" aria-labelledby="tab-materials">
+          {data.materials.length === 0 ? (
+            <div className="card empty">
+              <div className="ico">
+                <Icon name="fileText" size={24} />
+              </div>
+              <h3>No materials yet</h3>
+              <p>Slides, workbooks and recordings your instructor uploads land here.</p>
+            </div>
+          ) : (
+            <div className="qa">
+              {data.materials.map((m) => (
+                <button key={m.id} type="button" className="filecard" onClick={() => void openMaterial(m.id)} disabled={opening === m.id} style={{ width: "100%", textAlign: "left" }}>
+                  <Icon name={opening === m.id ? "loader" : "fileText"} size={17} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <b style={{ fontSize: 13.5 }}>{m.title}</b>
+                    <span className="hint" style={{ display: "block" }}>
+                      {m.mime ?? "file"} · {bytes(m.size_bytes)}
+                    </span>
+                  </span>
+                  <Icon name="download" size={15} />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ---- Announcements ---- */}
+      {tab === "announce" && (
+        <section id="panel-announce" role="tabpanel" aria-labelledby="tab-announce">
+          {data.announcements.length === 0 ? (
+            <div className="card empty">
+              <div className="ico">
+                <Icon name="megaphone" size={24} />
+              </div>
+              <h3>Nothing announced</h3>
+              <p>Class-wide announcements from your instructor will appear here.</p>
+            </div>
+          ) : (
+            <div className="qa">
+              {data.announcements.map((a) => (
+                <article key={a.id} className="qa">
+                  <p className="eyebrow-sm">{timeAgo(a.created_at)}</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, margin: "4px 0" }}>{a.title}</p>
+                  <p className="sub" style={{ whiteSpace: "pre-wrap" }}>{a.body}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ---- Assignments ---- */}
+      {tab === "assign" && (
+        <section id="panel-assign" role="tabpanel" aria-labelledby="tab-assign">
+          {data.assignments.length === 0 ? (
+            <div className="card empty">
+              <div className="ico">
+                <Icon name="clipboardList" size={24} />
+              </div>
+              <h3>No assignments</h3>
+              <p>When your instructor sets work, you submit it here and get feedback back.</p>
+            </div>
+          ) : (
+            <div className="grid2">
+              {data.assignments.map((a) => (
+                <article key={a.id} className="tile">
+                  <h3>
+                    <Icon name="clipboardList" size={14} /> {a.due_at ? `Due ${new Date(a.due_at).toLocaleDateString()}` : "No due date"}
+                  </h3>
+                  <p style={{ fontSize: 15, fontWeight: 700 }}>{a.title}</p>
+                  {a.submitted > 0 && <span className="badge" style={{ marginTop: 6 }}>Submitted</span>}
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <label className="fc-sr-only" htmlFor={`answer-${a.id}`}>Your answer for {a.title}</label>
+                    <input
+                      id={`answer-${a.id}`}
+                      className="input"
+                      value={answers[a.id] ?? ""}
+                      onChange={(e) => setAnswers({ ...answers, [a.id]: e.target.value })}
+                      placeholder="Your answer…"
+                    />
+                    <button type="button" className="btn pri sm" onClick={() => void submitAssignment(a.id)} disabled={submitting === a.id}>
+                      {submitting === a.id ? "…" : "Submit"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ---- Discussion ---- */}
+      {tab === "discuss" && (
+        <section id="panel-discuss" role="tabpanel" aria-labelledby="tab-discuss" className="disc-main">
+          <div className="disc-head">
+            <Icon name="messageSquare" size={16} />
+            <b style={{ fontSize: 14 }}>Class discussion</b>
+            <span className="badge">{messages.length}</span>
+            <span className="hint" style={{ marginLeft: "auto" }}>Visible to classmates and your instructor</span>
+          </div>
+
+          <div className="disc-log" ref={logRef} role="log" aria-live="polite" aria-label="Class discussion">
+            {messages.length === 0 ? (
+              <div className="thr-empty">
+                <div>
+                  <div className="ico" style={{ margin: "0 auto 12px", width: 46, height: 46, borderRadius: 15, display: "grid", placeItems: "center", background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <Icon name="messageSquare" size={22} />
+                  </div>
+                  <p className="sub">Start the conversation — ask a question or raise it as an issue.</p>
                 </div>
               </div>
-            ))}
-            {!data.assignments?.length && (
-              <p className="rounded-2xl border border-white/10 p-6 text-sm text-slate-400">No assignments yet.</p>
+            ) : (
+              messages.map((m) => {
+                const mine = m.sender_id === me;
+                const staff = m.sender_role === "ADMIN" || m.sender_role === "INSTRUCTOR";
+                return (
+                  <div key={m.id} className={`gm ${mine ? "mine" : ""} ${m.is_issue ? "issue" : ""}`}>
+                    <span className="avatar" aria-hidden="true">{initials(m.sender_name ?? "?")}</span>
+                    <div className="gbody">
+                      <div className="gname">
+                        <b>{mine ? "You" : m.sender_name ?? "Member"}</b>
+                        {staff && <span className="badge">Instructor</span>}
+                        {m.is_issue && <span className="issue-tag"><Icon name="alertCircle" size={11} /> Question</span>}
+                        {m.is_solved && <span className="solved-tag"><Icon name="check" size={11} /> Solved</span>}
+                        <span className="hint" style={{ marginLeft: "auto" }}>{timeAgo(m.created_at)}</span>
+                      </div>
+
+                      {m.parent_body && (
+                        <div className="reply-strip">
+                          <Icon name="arrowLeft" size={12} />
+                          <span style={{ minWidth: 0 }}>
+                            <b>{m.parent_sender ?? "Earlier"}</b>: {m.parent_body.slice(0, 90)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="gbub">
+                        {m.body}
+                        {m.attachment && (
+                          <button type="button" className="filecard" style={{ marginTop: 10, width: "100%" }} onClick={() => void openMessageFile(m)} disabled={opening === m.id}>
+                            <Icon name={m.attachment.kind === "pdf" ? "fileText" : "paperclip"} size={16} />
+                            <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                              <b style={{ fontSize: 13 }}>{m.attachment.name}</b>
+                              <span className="hint" style={{ display: "block" }}>Attachment · opens in a new tab</span>
+                            </span>
+                            <Icon name="externalLink" size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="seenrow">
+                        <button type="button" className="btn ghost sm" onClick={() => setReplyTo(m)} style={{ padding: "2px 8px" }}>
+                          <Icon name="arrowRight" size={12} /> Reply
+                        </button>
+                        {mine && m.seen_count > 0 && (
+                          <span className="seen"><Icon name="eye" size={12} /> Seen by {m.seen_count}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        )}
 
-        {tab === "discuss" && (
-          <div role="tabpanel" id="panel-discuss" aria-labelledby="tab-discuss" tabIndex={-1} className="rounded-3xl border border-white/10 bg-stone-900/70 p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <MessageSquare size={15} className="text-amber-300" />
-              <span className="text-[13px] font-bold">
-                Class discussion
-              </span>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-slate-300" aria-label={`${messageCount} messages`}>
-                {messageCount}
-              </span>
-              <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-slate-400">
-                <Users size={13} /> Visible to classmates and your instructor
-              </span>
-            </div>
+          <form className="composer" onSubmit={send} style={{ flexWrap: "wrap" }}>
+            {replyTo && (
+              <div className="reply-strip" style={{ width: "100%", marginBottom: 8 }}>
+                <Icon name="arrowLeft" size={12} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  Replying to <b>{replyTo.sender_name ?? "member"}</b>: {replyTo.body.slice(0, 60)}
+                </span>
+                <button type="button" className="btn ghost sm" onClick={() => setReplyTo(null)} aria-label="Cancel reply">
+                  <Icon name="x" size={13} />
+                </button>
+              </div>
+            )}
+            {attachment && (
+              <div className="reply-strip" style={{ width: "100%", marginBottom: 8 }}>
+                <Icon name="paperclip" size={12} />
+                <span style={{ flex: 1, minWidth: 0 }}>{attachment.name}</span>
+                <button type="button" className="btn ghost sm" onClick={() => setAttachment(null)} aria-label="Remove attachment">
+                  <Icon name="x" size={13} />
+                </button>
+              </div>
+            )}
 
-            <div ref={logRef} className="grid max-h-80 content-start gap-2.5 overflow-y-auto">
-              {(data.messages ?? []).map((m: any) => (
-                <div key={m.id} className="rounded-xl bg-white/[.05] px-3.5 py-2.5 text-sm">
-                  <p className="text-[12px] text-amber-200">
-                    <b>{m.sender_name ?? "Member"}</b>
-                    {m.sender_role === "ADMIN" ? " · Instructor" : ""}
-                    {m.created_at ? <span className="text-slate-400"> · {when(m.created_at)}</span> : null}
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap break-words">{m.body}</p>
-                </div>
-              ))}
-              {!messageCount && (
-                <p className="text-sm text-slate-400">Start the discussion — visible to classmates only.</p>
-              )}
-            </div>
-
-            <form onSubmit={sendDiscuss} className="mt-4 flex flex-wrap gap-2">
-              <label className="sr-only" htmlFor="discuss-input">
-                Message the class
-              </label>
+            <div className="field-wrap">
               <input
-                id="discuss-input"
+                className="input"
+                style={{ background: "transparent", border: 0, padding: "9px 0" }}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Ask or share…"
-                className={`min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-orange-400/60 ${FOCUS}`}
+                placeholder={asIssue ? "Ask a question the instructor can answer…" : "Message the class…"}
+                aria-label="Message the class"
+              />
+              <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach a file" style={{ padding: 6 }}>
+                <Icon name={uploading ? "loader" : "paperclip"} size={15} />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                className="fc-sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void pickFile(f);
+                }}
               />
               <button
-                disabled={sending || !draft.trim()}
-                className={`btn-aurora flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60 ${FOCUS}`}
+                type="button"
+                className={asIssue ? "btn sm pri" : "btn ghost sm"}
+                onClick={() => setAsIssue((v) => !v)}
+                aria-pressed={asIssue}
+                style={{ padding: 6 }}
+                title="Raise as a question the instructor can mark solved"
               >
-                {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Post
+                <Icon name="alertCircle" size={14} />
               </button>
-            </form>
-          </div>
-        )}
+            </div>
 
-        {tab === "record" && (
-          <div role="tabpanel" id="panel-record" aria-labelledby="tab-record" tabIndex={-1} className="grid gap-2.5">
-            {(data.recordings ?? []).map((r: any) => (
-              <button
-                key={r.id}
-                onClick={() => openRecording(r.id)}
-                disabled={openingId === r.id}
-                className={`flex items-center gap-3 rounded-2xl border border-white/10 bg-stone-900/70 px-4 py-3.5 text-left text-sm hover:border-white/25 disabled:opacity-60 ${FOCUS}`}
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15">
-                  {openingId === r.id ? <Loader2 size={15} className="animate-spin text-rose-200" /> : <Check size={15} className="text-rose-200" />}
-                </span>
-                <span className="font-semibold">{r.session_title ?? "Session recording"}</span>
-                <span className="ml-auto text-xs text-slate-400">{Math.round((r.duration_sec ?? 0) / 60)} min</span>
-              </button>
-            ))}
-            {!data.recordings?.length && (
-              <p className="rounded-2xl border border-white/10 p-6 text-sm text-slate-400">
-                Recordings appear here automatically after live sessions.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+            <button type="submit" className="sendbtn" disabled={sending || (!draft.trim() && !attachment)} aria-label="Post to the class">
+              <Icon name={sending ? "loader" : "send"} size={16} />
+            </button>
+          </form>
+        </section>
+      )}
+
+      {/* ---- Recordings ---- */}
+      {tab === "record" && (
+        <section id="panel-record" role="tabpanel" aria-labelledby="tab-record">
+          {data.recordings.length === 0 ? (
+            <div className="card empty">
+              <div className="ico">
+                <Icon name="play" size={24} />
+              </div>
+              <h3>No recordings yet</h3>
+              <p>Recorded sessions appear here automatically once the instructor finishes processing them.</p>
+            </div>
+          ) : (
+            <div className="qa">
+              {data.recordings.map((r) => (
+                <button key={r.id} type="button" className="filecard" onClick={() => void openRecording(r.id)} disabled={opening === r.id} style={{ width: "100%", textAlign: "left" }}>
+                  <Icon name="play" size={16} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <b style={{ fontSize: 13.5 }}>{r.session_title ?? "Session recording"}</b>
+                    <span className="hint" style={{ display: "block" }}>{Math.round((r.duration_sec ?? 0) / 60)} min</span>
+                  </span>
+                  <Icon name="download" size={15} />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      <p className="hint" style={{ marginTop: 14 }}>
+        {liveSessionRow ? "A session is live right now." : "No live session at the moment."} Timetable, materials and
+        recordings are private to enrolled members. Need something else?{" "}
+        <Link href="/messages" style={{ color: "var(--brand-text)" }}>Message your instructor</Link>.
+      </p>
     </div>
   );
 }

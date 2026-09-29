@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./rebuild.css";
 
 export const metadata: Metadata = {
   title: "FerixCourse — Learn Technology. Build Real Skills.",

@@ -5,14 +5,17 @@ import {
   api,
   AuthError,
   type Booking,
+  type ClassroomMessage,
   type Conversation,
   type EnrolledClassroom,
   type EnrolledCourse,
+  type Message,
   type Notification,
   type Profile,
   type RequestStatus,
   type Transaction,
 } from "@/lib/dashboard-api";
+import { useLiveStream, type LiveStatus } from "@/lib/live-events";
 
 /*
   One fetch for everything the shell and the overview need.
@@ -31,6 +34,13 @@ export type ShellData = {
   bookings: Booking[];
   transactions: Transaction[];
 };
+
+/* ---------- Realtime events pushed down from the SSE stream ---------- */
+
+export type LiveMessageEvent = { conversation_id: string; message: Message; at: number };
+export type LiveTypingEvent = { conversation_id: string; user_id: string; at: number };
+export type LiveClassroomEvent = { classroom_id: string; message: ClassroomMessage; at: number };
+export type LiveSessionEvent = { session_id: string; classroom_id: string; status: string; at: number };
 
 type DashboardContextValue = {
   data: ShellData | null;
@@ -52,6 +62,14 @@ type DashboardContextValue = {
   unreadMessages: number;
   pendingRequests: number;
   upcomingBookings: number;
+  /** SSE connection state (connected / reconnecting / polling / …). */
+  liveStatus: LiveStatus;
+  /** Latest realtime events — pages read + reset them (at = Date.now()). */
+  liveMessage: LiveMessageEvent | null;
+  liveTyping: LiveTypingEvent | null;
+  liveClassroom: LiveClassroomEvent | null;
+  liveSession: LiveSessionEvent | null;
+  clearLiveMessage: () => void;
 };
 
 const EMPTY_REQUESTS: RequestStatus = { sla_hours: 48, mine: [], joined: [] };
@@ -150,6 +168,65 @@ export function DashboardProvider({
     setData((d) => (d ? { ...d, conversations: next } : d));
   }, []);
 
+  /* ---------- Realtime: one SSE stream for the whole shell ---------- */
+
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
+  const [liveMessage, setLiveMessage] = useState<LiveMessageEvent | null>(null);
+  const [liveTyping, setLiveTyping] = useState<LiveTypingEvent | null>(null);
+  const [liveClassroom, setLiveClassroom] = useState<LiveClassroomEvent | null>(null);
+  const [liveSession, setLiveSession] = useState<LiveSessionEvent | null>(null);
+  const clearLiveMessage = useCallback(() => setLiveMessage(null), []);
+
+  const liveStatusRef = useRef<LiveStatus>("idle");
+  liveStatusRef.current = liveStatus;
+
+  const live = useLiveStream(
+    {
+      message: (p) => {
+        setLiveMessage({ ...p, at: Date.now() });
+        setData((d) => {
+          if (!d) return d;
+          const i = d.conversations.findIndex((c) => c.id === p.conversation_id);
+          if (i === -1) return d; // unknown conversation — the next refresh adds it
+          const list = [...d.conversations];
+          const prev = list[i];
+          const mine = p.message.sender_id === d.profile?.id;
+          list[i] = {
+            ...prev,
+            last_body: p.message.body,
+            last_at: p.message.created_at,
+            unread: mine ? Number(prev.unread) || 0 : (Number(prev.unread) || 0) + 1,
+          };
+          list.sort((a, b) =>
+            Date.parse(b.last_at || b.updated_at) - Date.parse(a.last_at || a.updated_at)
+          );
+          return { ...d, conversations: list };
+        });
+      },
+      notification: (p) => {
+        setData((d) =>
+          d && !d.notifications.some((n) => n.id === p.notification.id)
+            ? { ...d, notifications: [p.notification, ...d.notifications].slice(0, 50) }
+            : d
+        );
+      },
+      typing: (p) => setLiveTyping({ ...p, at: Date.now() }),
+      "classroom-message": (p) => setLiveClassroom({ ...p, at: Date.now() }),
+      session: (p) => setLiveSession({ ...p, at: Date.now() }),
+    },
+    {
+      enabled: !publicMode && !!data?.profile,
+      /* Light polling fallback while the socket is down: refresh the two
+         badge-driving lists so counts stay honest without realtime. */
+      onPoll: () => {
+        if (liveStatusRef.current === "connected") return;
+        api.conversations().then(setConversations).catch(() => undefined);
+        api.notifications().then(setNotifications).catch(() => undefined);
+      },
+    }
+  );
+  useEffect(() => setLiveStatus(live), [live]);
+
   const unreadNotifications = useMemo(
     () => (data?.notifications ?? []).filter((n) => !n.is_read).length,
     [data?.notifications]
@@ -180,6 +257,12 @@ export function DashboardProvider({
     unreadMessages,
     pendingRequests,
     upcomingBookings,
+    liveStatus,
+    liveMessage,
+    liveTyping,
+    liveClassroom,
+    liveSession,
+    clearLiveMessage,
   };
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;

@@ -1,258 +1,407 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { useToast } from "@/components/dashboard/preferences";
 import { PageHead } from "@/components/dashboard/shell";
 import { Icon } from "@/components/ui/icons";
-import { EmptyState, LoadingGrid, timeAgo } from "@/components/ui/primitives";
-import { api, type Conversation, type Message } from "@/lib/dashboard-api";
-import { useMutation } from "@/lib/use-dashboard";
+import { initials, timeAgo } from "@/components/ui/primitives";
+import { api, apiFetch, type Conversation, type Message } from "@/lib/dashboard-api";
 
 /*
-  Messages — real conversations from /messages/conversations, real threads from
-  /messages/conversations/:id, real sends via POST.
+  Messages — ported from demo/rebuild-learner.html (#/messages): a conversation
+  list and a thread, with the list↔thread flow working on a phone (the shell's
+  `fit` mode plus data-open collapse the list when a thread is open).
 
-  Conversation list uses role="listbox" with aria-selected, and the thread is a
-  labelled region with a polite live region so new replies are announced.
+  Real endpoints only: GET /messages/conversations, GET /messages/conversations/:id
+  (?since=), POST (reply + attachment), POST .../read, POST /messages/uploads,
+  POST /messages/typing. New messages arrive over the shell's SSE stream.
+  The open thread is mirrored into the URL (?c=<id>) so back/forward work.
 */
 
 export default function MessagesPage() {
-  const { data, loading, failures, reload, setConversations } = useDashboard();
+  const { data, setConversations, liveMessage, liveTyping, clearLiveMessage } = useDashboard();
   const { push } = useToast();
+
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [threadLoading, setThreadLoading] = useState(false);
-  const [threadError, setThreadError] = useState("");
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [attachment, setAttachment] = useState<{ key: string; name: string; kind: string } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [subject, setSubject] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [starting, setStarting] = useState(false);
+  const [typing, setTyping] = useState(false);
+
+  const logRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const lastTypingRef = useRef(0);
 
   const conversations = data?.conversations ?? [];
   const active = conversations.find((c) => c.id === activeId) ?? null;
+  const me = data?.profile?.id;
 
-  /* Load a thread from the server. */
+  /* URL is the source of truth for which thread is open. */
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("c");
+    if (fromUrl) setActiveId(fromUrl);
+  }, []);
+
+  const select = useCallback((id: string | null) => {
+    setActiveId(id);
+    setReplyTo(null);
+    setAttachment(null);
+    setError("");
+    const url = new URL(window.location.href);
+    if (id) url.searchParams.set("c", id);
+    else url.searchParams.delete("c");
+    window.history.replaceState(null, "", url.toString());
+  }, []);
+
   const loadThread = useCallback(async (id: string) => {
-    setThreadLoading(true);
-    setThreadError("");
+    setLoadingThread(true);
+    setError("");
     try {
       setMessages(await api.conversation(id));
+      // Opening the thread is the read receipt.
+      const r = await api.markConversationRead(id);
+      api
+        .conversations()
+        .then(setConversations)
+        .catch(() => undefined);
+      if (r.read > 0) setTyping(false);
     } catch (e: unknown) {
-      setThreadError(e instanceof Error ? e.message : "Could not load this conversation.");
+      setError(e instanceof Error ? e.message : "Could not load this conversation.");
       setMessages([]);
     } finally {
-      setThreadLoading(false);
+      setLoadingThread(false);
     }
-  }, []);
+  }, [setConversations]);
 
   useEffect(() => {
     if (activeId) void loadThread(activeId);
   }, [activeId, loadThread]);
 
-  /* Keep the newest message in view. */
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [messages.length]);
 
-  const newConversation = useMutation(async (s: string) => {
-    const c = await api.createConversation(s);
-    const fresh = await api.conversations();
-    setConversations(fresh);
-    setActiveId(c.id);
-    push("Conversation started.");
-    return c;
-  });
+  /* Realtime: append incoming messages, and answer with a read receipt. */
+  useEffect(() => {
+    if (!liveMessage) return;
+    if (liveMessage.conversation_id !== activeId) return;
+    setMessages((prev) => (prev.some((m) => m.id === liveMessage.message.id) ? prev : [...prev, liveMessage.message]));
+    clearLiveMessage();
+    void api.markConversationRead(activeId).catch(() => undefined);
+  }, [liveMessage, activeId, clearLiveMessage]);
 
-  const send = useMutation(async (id: string, body: string) => {
-    const m = await api.sendMessage(id, body);
-    setMessages((prev) => [...prev, m]);
-    // Refresh counts so the sidebar badge is accurate.
-    api.conversations().then(setConversations).catch(() => undefined);
-    return m;
-  });
+  /* Typing indicator from the other side (ephemeral, no DB write). */
+  useEffect(() => {
+    if (!liveTyping || liveTyping.conversation_id !== activeId || liveTyping.user_id === me) return;
+    setTyping(true);
+    const t = setTimeout(() => setTyping(false), 4000);
+    return () => clearTimeout(t);
+  }, [liveTyping, activeId, me]);
 
-  async function onStart(e: React.FormEvent) {
+  function onDraft(v: string) {
+    setDraft(v);
+    if (!activeId) return;
+    const now = Date.now();
+    if (now - lastTypingRef.current > 2500) {
+      lastTypingRef.current = now;
+      void api.sendTyping(activeId).catch(() => undefined);
+    }
+  }
+
+  async function startConversation(e: React.FormEvent) {
     e.preventDefault();
     const s = subject.trim();
     if (!s) return;
-    const r = await newConversation.run(s);
-    if (r) setSubject("");
+    setStarting(true);
+    setError("");
+    try {
+      const c = await api.createConversation(s);
+      const fresh = await api.conversations();
+      setConversations(fresh);
+      setSubject("");
+      push("Conversation started.");
+      select(c.id);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not start the conversation.");
+    } finally {
+      setStarting(false);
+    }
   }
 
-  async function onSend(e: React.FormEvent) {
+  async function pickFile(file: File) {
+    setUploading(true);
+    setError("");
+    try {
+      const up = await api.uploadMessageFile(file);
+      setAttachment({ key: up.key, name: up.name, kind: up.kind });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not attach that file.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function send(e: React.FormEvent) {
     e.preventDefault();
     const body = draft.trim();
-    if (!activeId || !body) return;
-    const r = await send.run(activeId, body);
-    if (r) setDraft("");
+    if (!activeId || (!body && !attachment) || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const posted = await api.sendMessage(activeId, {
+        body,
+        parent_id: replyTo?.id ?? null,
+        attachment: attachment ?? null,
+      });
+      setMessages((prev) => (prev.some((m) => m.id === posted.id) ? prev : [...prev, posted]));
+      setDraft("");
+      setReplyTo(null);
+      setAttachment(null);
+      api
+        .conversations()
+        .then(setConversations)
+        .catch(() => undefined);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not send your message.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function openAttachment(m: Message) {
+    if (!m.attachment) return;
+    setError("");
+    try {
+      // Private file: fetch the signed URL first, then open it.
+      const signed = await apiFetch<{ url: string }>(`/files/message/${encodeURIComponent(m.id)}`);
+      window.open(signed.url, "_blank", "noopener");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not open that attachment.");
+    }
   }
 
   return (
     <>
       <PageHead title="Messages" sub="Your direct line to instructors and support." />
 
-      {failures.length > 0 && (
-        <div className="fc-alert fc-alert-danger" role="alert">
+      {error && (
+        <div className="alert danger" role="alert" style={{ marginBottom: 12 }}>
           <Icon name="alertCircle" size={17} />
-          <span style={{ flex: 1 }}>Could not load your conversations.</span>
-          <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={reload}>
-            <Icon name="refresh" size={14} /> Retry
+          <span style={{ flex: 1 }}>{error}</span>
+          <button type="button" className="btn ghost sm" onClick={() => setError("")}>
+            Dismiss
           </button>
         </div>
       )}
 
-      <form className="fc-toolbar" onSubmit={onStart}>
-        <label className="fc-sr-only" htmlFor="fc-new-subject">
-          New conversation subject
-        </label>
-        <input
-          id="fc-new-subject"
-          className="fc-input"
-          style={{ maxWidth: 340 }}
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="Start a new conversation…"
-          required
-        />
-        <button type="submit" className="fc-btn fc-btn-primary" disabled={newConversation.pending}>
-          <Icon name="plus" size={15} />
-          {newConversation.pending ? "Starting…" : "Start conversation"}
-        </button>
-        {newConversation.error && (
-          <span style={{ color: "var(--fc-danger-fg)", fontSize: 13 }} role="alert">
-            {newConversation.error}
-          </span>
-        )}
-      </form>
+      <div className="msgpage" data-open={activeId ? "1" : "0"} style={{ height: "calc(100vh - 210px)", borderRadius: "var(--r4)", border: "1px solid var(--border)", overflow: "hidden" }}>
+        {/* ---- Conversation list ---- */}
+        <div className="msglist">
+          <div className="mlhead">
+            <form onSubmit={startConversation} style={{ display: "flex", gap: 8 }}>
+              <div className="field-wrap">
+                <Icon name="plus" size={14} />
+                <label className="fc-sr-only" htmlFor="new-conv">New conversation subject</label>
+                <input
+                  id="new-conv"
+                  className="input"
+                  style={{ background: "transparent", border: 0, padding: "8px 0" }}
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Start a conversation…"
+                />
+              </div>
+              <button type="submit" className="btn pri sm" disabled={starting || !subject.trim()}>
+                {starting ? "…" : "Start"}
+              </button>
+            </form>
+          </div>
 
-      {loading ? (
-        <LoadingGrid height={280} count={2} />
-      ) : conversations.length === 0 ? (
-        <EmptyState
-          icon="messageSquare"
-          title="No conversations yet"
-          body="Start one above and your instructor will pick it up from there."
-        />
-      ) : (
-        <div className="fc-msg-layout">
-          <div className="fc-card" style={{ padding: 10 }}>
-            <h2 className="fc-sr-only">Conversations</h2>
-            <div role="listbox" aria-label="Conversations" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {conversations.map((c: Conversation) => (
+          <div className="mlitems" role="listbox" aria-label="Conversations" style={{ overflowY: "auto", flex: 1, padding: 8 }}>
+            {conversations.length === 0 ? (
+              <div className="empty" style={{ padding: "30px 10px" }}>
+                <div className="ico"><Icon name="messageSquare" size={22} /></div>
+                <h3>No conversations yet</h3>
+                <p>Start one above — instructors reply here.</p>
+              </div>
+            ) : (
+              conversations.map((c: Conversation) => (
                 <button
                   key={c.id}
                   type="button"
                   role="option"
                   aria-selected={activeId === c.id}
-                  className="fc-conv"
-                  onClick={() => {
-                    setActiveId(c.id);
-                    setConfirmDelete(false);
-                  }}
+                  className={`conv${activeId === c.id ? " on" : ""}`}
+                  onClick={() => select(c.id)}
                 >
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="fc-conv-title">{c.subject || "Conversation"}</span>
-                    <span className="fc-conv-preview">Updated {timeAgo(c.updated_at)}</span>
+                  <span className="cname">
+                    <span className="avatar" style={{ width: 40, height: 40, position: "static" }}>
+                      {initials(c.admin_name || c.subject || "Ferix")}
+                    </span>
                   </span>
-                  {Number(c.unread) > 0 && (
-                    <span className="fc-unread" aria-label={`${c.unread} unread`}>
-                      {c.unread}
-                    </span>
-                  )}
+                  <span className="cbody">
+                    <b className="csub" style={{ opacity: 1 }}>{c.admin_name || c.subject || "FerixCourse support"}</b>
+                    <span className="csub">{c.subject || "No subject"}</span>
+                    <span className="cprev">{c.last_body || "No messages yet"}</span>
+                  </span>
+                  <span className="crow" style={{ flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                    {Number(c.unread) > 0 && <span className="cnt alert" aria-label={`${c.unread} unread`}>{c.unread}</span>}
+                    <span className="hint">{timeAgo(c.last_at || c.updated_at)}</span>
+                  </span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="fc-card" aria-live="polite">
-            {!active ? (
-              <EmptyState icon="messageSquare" title="Select a conversation" body="Choose one on the left to read and reply." />
-            ) : (
-              <>
-                <div className="fc-sec-head">
-                  <h2 className="fc-sec-title">{active.subject || "Conversation"}</h2>
-                  <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                    <button type="button" className="fc-btn fc-btn-ghost fc-btn-sm" onClick={() => void loadThread(active.id)}>
-                      <Icon name="refresh" size={14} /> Refresh
-                    </button>
-                    <button
-                      type="button"
-                      className="fc-btn fc-btn-ghost fc-btn-sm"
-                      onClick={() => setConfirmDelete(true)}
-                      aria-label="Close this conversation"
-                    >
-                      <Icon name="x" size={14} /> Close
-                    </button>
-                  </div>
-                </div>
-
-                {confirmDelete && (
-                  <div className="fc-alert fc-alert-danger" role="alert">
-                    <Icon name="alertTriangle" size={17} />
-                    <span style={{ flex: 1 }}>
-                      Closing a conversation needs a server-side action that does not exist yet, so nothing was changed. Ask
-                      support to archive it for you.
-                    </span>
-                    <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={() => setConfirmDelete(false)}>
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-
-                {threadError && (
-                  <div className="fc-alert fc-alert-danger" role="alert">
-                    <Icon name="alertCircle" size={17} />
-                    <span style={{ flex: 1 }}>{threadError}</span>
-                    <button type="button" className="fc-btn fc-btn-sm fc-btn-ghost" onClick={() => void loadThread(active.id)}>
-                      Retry
-                    </button>
-                  </div>
-                )}
-
-                <div className="fc-thread" ref={scrollRef} role="log" aria-label={`Messages in ${active.subject || "conversation"}`}>
-                  {threadLoading && <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>Loading messages…</p>}
-                  {!threadLoading && messages.length === 0 && (
-                    <p style={{ fontSize: 13, color: "var(--fc-muted)" }}>No messages yet — say hello.</p>
-                  )}
-                  {messages.map((m) => {
-                    const mine = m.sender_id === data?.profile?.id;
-                    return (
-                      <div key={m.id} style={{ maxWidth: "100%" }}>
-                        <p className="fc-thread-meta">
-                          {mine ? "You" : "Instructor"} · {new Date(m.created_at).toLocaleString()}
-                        </p>
-                        <p className={`fc-bubble${mine ? " me" : ""}`}>{m.body}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <form className="fc-toolbar" style={{ marginBottom: 0, marginTop: 16 }} onSubmit={onSend}>
-                  <label className="fc-sr-only" htmlFor="fc-reply">
-                    Write a message
-                  </label>
-                  <input
-                    id="fc-reply"
-                    className="fc-input"
-                    style={{ maxWidth: "none", flex: 1 }}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    placeholder="Write a message…"
-                  />
-                  <button type="submit" className="fc-btn fc-btn-primary" disabled={send.pending || !draft.trim()}>
-                    <Icon name="arrowRight" size={15} /> {send.pending ? "Sending…" : "Send"}
-                  </button>
-                </form>
-                {send.error && (
-                  <p style={{ color: "var(--fc-danger-fg)", fontSize: 13, marginTop: 8 }} role="alert">
-                    {send.error}
-                  </p>
-                )}
-              </>
+              ))
             )}
           </div>
         </div>
-      )}
+
+        {/* ---- Thread ---- */}
+        <div className="msgthread">
+          {!active ? (
+            <div className="thr-empty">
+              <div>
+                <div className="ico" style={{ margin: "0 auto 12px", width: 48, height: 48, borderRadius: 16, display: "grid", placeItems: "center", background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <Icon name="messageSquare" size={24} />
+                </div>
+                <p className="sub">Choose a conversation to read and reply.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="thrhead">
+                <button type="button" className="backbtn" onClick={() => select(null)} aria-label="Back to conversations">
+                  <Icon name="arrowLeft" size={16} />
+                </button>
+                <span className="avatar" style={{ width: 34, height: 34 }}>{initials(active.admin_name || "Ferix")}</span>
+                <span style={{ minWidth: 0 }}>
+                  <b style={{ display: "block", fontSize: 14 }}>{active.admin_name || "FerixCourse support"}</b>
+                  <span className="hint">{typing ? "typing…" : active.subject || "No subject"}</span>
+                </span>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  style={{ marginLeft: "auto" }}
+                  onClick={() => activeId && void loadThread(activeId)}
+                  aria-label="Refresh this thread"
+                >
+                  <Icon name="refresh" size={14} />
+                </button>
+              </div>
+
+              <div className="thrlog" ref={logRef} role="log" aria-live="polite" style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+                {loadingThread && <p className="sub">Loading messages…</p>}
+                {!loadingThread && messages.length === 0 && <p className="sub">No messages yet — say hello.</p>}
+                {messages.map((m) => {
+                  const mine = m.sender_id === me;
+                  return (
+                    <div key={m.id} className={`gm ${mine ? "mine" : ""}`}>
+                      {!mine && <span className="avatar" aria-hidden="true">{initials(m.sender_name ?? "Ferix")}</span>}
+                      <div className="gbody">
+                        <div className="gname">
+                          <b>{mine ? "You" : m.sender_name ?? "FerixCourse"}</b>
+                          <span className="hint">{timeAgo(m.created_at)}</span>
+                        </div>
+
+                        {m.parent_body && (
+                          <div className="reply-strip">
+                            <Icon name="arrowLeft" size={12} />
+                            <span style={{ minWidth: 0 }}>
+                              <b>{m.parent_sender ?? "Earlier"}</b>: {m.parent_body.slice(0, 90)}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="gbub">
+                          {m.body}
+                          {m.attachment && (
+                            <button type="button" className="filecard" style={{ marginTop: 10, width: "100%" }} onClick={() => void openAttachment(m)}>
+                              <Icon name={m.attachment.kind === "pdf" ? "fileText" : "paperclip"} size={16} />
+                              <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                <b style={{ fontSize: 13 }}>{m.attachment.name}</b>
+                                <span className="hint" style={{ display: "block" }}>Attachment</span>
+                              </span>
+                              <Icon name="externalLink" size={14} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="seenrow">
+                          <button type="button" className="btn ghost sm" onClick={() => setReplyTo(m)} style={{ padding: "2px 8px" }}>
+                            <Icon name="arrowRight" size={12} /> Reply
+                          </button>
+                          {mine && m.is_read && <span className="seen"><Icon name="check" size={11} /> Read</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {typing && <p className="hint" style={{ marginTop: 10 }}>Instructor is typing…</p>}
+              </div>
+
+              <form className="composer" onSubmit={send} style={{ flexWrap: "wrap" }}>
+                {replyTo && (
+                  <div className="reply-strip" style={{ width: "100%", marginBottom: 8 }}>
+                    <Icon name="arrowLeft" size={12} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      Replying to <b>{replyTo.sender_name ?? "message"}</b>: {replyTo.body.slice(0, 60)}
+                    </span>
+                    <button type="button" className="btn ghost sm" onClick={() => setReplyTo(null)} aria-label="Cancel reply">
+                      <Icon name="x" size={13} />
+                    </button>
+                  </div>
+                )}
+                {attachment && (
+                  <div className="reply-strip" style={{ width: "100%", marginBottom: 8 }}>
+                    <Icon name="paperclip" size={12} />
+                    <span style={{ flex: 1, minWidth: 0 }}>{attachment.name}</span>
+                    <button type="button" className="btn ghost sm" onClick={() => setAttachment(null)} aria-label="Remove attachment">
+                      <Icon name="x" size={13} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="field-wrap">
+                  <input
+                    className="input"
+                    style={{ background: "transparent", border: 0, padding: "9px 0" }}
+                    value={draft}
+                    onChange={(e) => onDraft(e.target.value)}
+                    placeholder={replyTo ? "Write a reply…" : "Write a message…"}
+                    aria-label="Write a message"
+                  />
+                  <button type="button" className="btn ghost sm" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach a file" style={{ padding: 6 }}>
+                    <Icon name={uploading ? "loader" : "paperclip"} size={15} />
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="fc-sr-only"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void pickFile(f);
+                    }}
+                  />
+                </div>
+                <button type="submit" className="sendbtn" disabled={sending || (!draft.trim() && !attachment)} aria-label="Send message">
+                  <Icon name={sending ? "loader" : "send"} size={16} />
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+
+      <p className="hint" style={{ marginTop: 12 }}>
+        Need a class instead of a conversation? <Link href="/request" style={{ color: "var(--brand-text)" }}>Request training</Link>.
+      </p>
     </>
   );
 }
