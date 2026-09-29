@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./console.css";
+import "./rebuild.css";
 
 export const metadata: Metadata = {
   title: "FerixCourse Admin",
@@ -14,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Sora:wght@600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>

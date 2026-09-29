@@ -329,3 +329,114 @@ export type AttendanceRow = {
 };
 
 export type LiveToken = { url: string; token: string; room: string };
+
+/* ==========================================================================
+   Rebuild additions — shapes added by the new/realigned endpoints
+   (products, categories, broadcast, reports, enriched conversations and
+   classroom messages). Same rule as above: every property is selected by
+   SQL in Backend/src/routes/*.ts.
+   ========================================================================== */
+
+export type ProductRow = {
+  id: string;
+  kind: "Course" | "Classroom";
+  title: string;
+  slug: string;
+  level: string;
+  category_id: string | null;
+  category_name: string | null;
+  price_kobo: number;
+  currency: string;
+  is_published: boolean;
+  cover_url: string | null;
+  enrolled: number;
+  capacity: number | null;
+  starts_at: string | null;
+  schedule_text: string | null;
+  created_at: string;
+};
+
+export type ProductInput = {
+  kind: "Course" | "Classroom";
+  title: string;
+  slug?: string;
+  level?: string;
+  category_id?: string | null;
+  price_kobo?: number;
+  short_description?: string;
+  description?: string;
+  capacity?: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  schedule_text?: string;
+  is_published?: boolean;
+  cover_url?: string | null;
+};
+
+export type CategoryRow = {
+  id: string;
+  name: string;
+  slug: string;
+  course_count: number;
+  created_at: string;
+};
+
+export type BroadcastAudience = "all" | "students" | "instructors" | "active";
+
+export type BroadcastRow = {
+  id: string;
+  title: string;
+  body: string;
+  audience: BroadcastAudience;
+  recipient_count: number;
+  sent_by?: string | null;
+  created_at: string;
+};
+
+export type ReportsData = {
+  range: { from: string; to: string };
+  revenue: Array<{ month: string; kobo: number }>;
+  enrollments: Array<{ month: string; count: number }>;
+  signups: Array<{ month: string; count: number }>;
+  top: Array<{ kind: string; title: string; enrolled: number; revenue_kobo: number }>;
+  totals: {
+    students: number;
+    courses: number;
+    classrooms: number;
+    enrollments: number;
+    revenue_kobo: number;
+    successful_payments: number;
+    open_requests: number;
+    pending_bookings: number;
+  };
+  funnel: { requests: number; bookings: number; enrollments: number };
+};
+
+export type FileAttachment = { key: string; name: string; kind: string; url: string };
+
+export type ConversationRow = Conversation & {
+  student_name: string | null;
+  last_body: string | null;
+  last_at: string | null;
+  unread: number;
+};
+
+export type MessageRow = Message & {
+  sender_name: string | null;
+  parent_id: string | null;
+  parent_body: string | null;
+  parent_sender: string | null;
+  attachment: FileAttachment | null;
+};
+
+export type ClassroomMessageRow = ClassroomMessage & {
+  parent_id: string | null;
+  parent_body: string | null;
+  parent_sender: string | null;
+  is_issue: boolean;
+  is_solved: boolean;
+  attachment: FileAttachment | null;
+  seen_count: number;
+};
+
+export type Health = { ok: boolean; service: string; revision: string; db: boolean };

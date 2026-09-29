@@ -168,3 +168,176 @@ export function durationMin(sec: number | null | undefined): string {
   const m = Math.round((Number(sec) || 0) / 60);
   return m < 1 ? "< 1 min" : `${m} min`;
 }
+
+/* ==========================================================================
+   Rebuild helpers � thin, typed wrappers over the same adminFetch.
+
+   Everything here is a real endpoint from Backend/src/routes/*.ts; nothing is
+   simulated. `post/patch/del` only exist so pages read as intent rather than
+   RequestInit plumbing � the token, 401 handling and error normalisation are
+   still adminFetch's job alone.
+   ========================================================================== */
+
+import type {
+  BroadcastAudience,
+  BroadcastRow,
+  CategoryRow,
+  ClassroomMessageRow,
+  ConversationRow,
+  Health,
+  MessageRow,
+  ProductInput,
+  ProductRow,
+  ReportsData,
+} from "./admin-types";
+
+export async function post<T = any>(path: string, body: unknown): Promise<T> {
+  return adminFetch<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) });
+}
+
+export async function patch<T = any>(path: string, body: unknown): Promise<T> {
+  return adminFetch<T>(path, { method: "PATCH", body: JSON.stringify(body ?? {}) });
+}
+
+export async function put<T = any>(path: string, body: unknown): Promise<T> {
+  return adminFetch<T>(path, { method: "PUT", body: JSON.stringify(body ?? {}) });
+}
+
+export async function del<T = any>(path: string): Promise<T> {
+  return adminFetch<T>(path, { method: "DELETE" });
+}
+
+/**
+ * Multipart upload to any endpoint (POST /admin/uploads, POST /messages/uploads,
+ * field name "file"). Deliberately NOT through adminFetch: that always sets
+ * Content-Type: application/json, which would strip the multipart boundary and
+ * the server would see no file at all.
+ */
+export async function adminUpload<T = any>(path: string, file: File, field = "file"): Promise<T> {
+  const token = adminToken();
+  if (!token) throw new AdminApiError("Not logged in. Please log in as admin.", 401);
+  if (!apiUrl) throw new AdminApiError("API URL is not configured.", 0);
+
+  const form = new FormData();
+  form.append(field, file);
+
+  let r: Response;
+  try {
+    r = await fetch(`${apiUrl}${path}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+  } catch {
+    throw new AdminApiError("Could not reach the API while uploading.", 0);
+  }
+  if (r.status === 401) {
+    handleAuthFailure();
+    throw new AdminApiError("Session expired. Please log in again.", 401);
+  }
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (r.status === 503) {
+      throw new AdminApiError("File storage is not configured on the server (R2 credentials missing).", 503);
+    }
+    if (r.status === 413) throw new AdminApiError("That file is larger than the upload limit.", 413);
+    throw new AdminApiError(body?.error ?? "Upload failed.", r.status, body ?? {});
+  }
+  return body as T;
+}
+
+/**
+ * Resolve a file endpoint such as `/files/message/<id>` to a signed URL.
+ * Every /files route requires the bearer token, so a plain <a href> can never
+ * open one � the JSON step has to happen first.
+ */
+export async function fileSignedUrl(path: string): Promise<string> {
+  const res = await adminFetch<{ url: string; expires_in: number }>(path);
+  return res.url;
+}
+
+/** GET /health � the one honest liveness signal the backend exposes. */
+export function apiHealth(): Promise<Health> {
+  if (!apiUrl) return Promise.reject(new AdminApiError("API URL is not configured.", 0));
+  return fetch(`${apiUrl}/health`).then((r) => r.json());
+}
+
+/* ---------- products & categories ---------- */
+
+export const getProducts = () => adminFetch<ProductRow[]>("/admin/products");
+export const createProduct = (body: ProductInput) => post<ProductRow>("/admin/products", body);
+
+export const getCategories = () => adminFetch<CategoryRow[]>("/admin/categories");
+export const createCategory = (body: { name: string; slug?: string }) => post<CategoryRow>("/admin/categories", body);
+export const updateCategory = (id: string, body: { name?: string; slug?: string }) =>
+  patch<CategoryRow>(`/admin/categories/${id}`, body);
+export const deleteCategory = (id: string) => del<{ ok: boolean }>(`/admin/categories/${id}`);
+
+/* ---------- broadcast & reports ---------- */
+
+export const sendBroadcast = (body: { title: string; body: string; audience: BroadcastAudience }) =>
+  post<{ id: string; sent: number; broadcast: BroadcastRow }>("/admin/broadcast", body);
+export const getBroadcasts = () => adminFetch<BroadcastRow[]>("/admin/broadcasts");
+export const getReports = () => adminFetch<ReportsData>("/admin/reports");
+
+/* ---------- conversations (inbox) ---------- */
+
+export const getConversations = () => adminFetch<ConversationRow[]>("/admin/conversations");
+export const getThread = (id: string) => adminFetch<MessageRow[]>(`/admin/conversations/${id}`);
+export const replyToConversation = (
+  id: string,
+  body: { body: string; parent_id?: string | null; attachment?: { key: string; name: string; kind: string } | null }
+) => post<MessageRow>(`/admin/conversations/${id}`, body);
+export const markThreadRead = (id: string) => post<{ ok: boolean; read: number }>(`/admin/conversations/${id}/read`, {});
+export const uploadMessageFile = (file: File) => adminUpload<{ key: string; name: string; kind: string; size: number }>("/messages/uploads", file);
+
+/* ---------- classroom discussion ---------- */
+
+export const getClassroomMessages = (classroomId: string) =>
+  adminFetch<ClassroomMessageRow[]>(`/admin/classrooms/${classroomId}/messages`);
+export const postClassroomMessage = (
+  classroomId: string,
+  body: { body: string; parent_id?: string | null; is_issue?: boolean; attachment?: { key: string; name: string; kind: string } | null; notify?: boolean }
+) => post<ClassroomMessageRow & { notified?: number }>(`/admin/classrooms/${classroomId}/messages`, body);
+export const solveClassroomMessage = (classroomId: string, mid: string, is_solved: boolean) =>
+  patch<ClassroomMessageRow>(`/admin/classrooms/${classroomId}/messages/${mid}`, { is_solved });
+
+/* ---------- live control room ---------- */
+
+export type LiveOverviewData = {
+  sessions: Array<{
+    id: string;
+    title: string;
+    starts_at: string | null;
+    status: "scheduled" | "live" | "ended";
+    recording_status: string;
+    livekit_room: string;
+    classroom_id: string | null;
+    classroom_title: string | null;
+    classroom_slug: string | null;
+    members: number;
+    attended: number;
+  }>;
+  classrooms: Array<{ id: string; title: string; livekit_room: string; is_published: boolean; members: number }>;
+};
+
+export const getLiveOverview = () => adminFetch<LiveOverviewData>("/admin/live/overview");
+export const goLive = (sessionId: string) => patch(`/admin/sessions/${sessionId}`, { status: "live" });
+export const endSession = (sessionId: string) => patch(`/admin/sessions/${sessionId}`, { status: "ended" });
+export const createSession = (body: { classroom_id: string; title: string; starts_at?: string | null; ends_at?: string | null }) =>
+  post<{ id: string }>("/admin/sessions", body);
+export const getAttendance = (sessionId: string) =>
+  adminFetch<Array<{ joined_at: string; user_id: string; full_name: string | null; email: string | null }>>(
+    `/admin/sessions/${sessionId}/attendance`
+  );
+export const startRecording = (sessionId: string) =>
+  post<{ egress_id: string; storage_key: string }>(`/admin/sessions/${sessionId}/recording/start`, {});
+export const stopRecording = (sessionId: string) => post<{ ok: boolean }>(`/admin/sessions/${sessionId}/recording/stop`, {});
+/* POST /live/token takes { classroom_id } (or booking_id) — one room per
+   classroom, membership-checked. */
+export const liveToken = (body: { classroom_id?: string; booking_id?: string }) =>
+  post<{ url: string; token: string; room: string }>("/live/token", body);
+
+/* ---------- settings ---------- */
+
+export const updateSetting = (key: string, value: unknown) => put(`/admin/settings/${key}`, { value });
