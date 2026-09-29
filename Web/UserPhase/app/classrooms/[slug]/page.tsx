@@ -51,7 +51,7 @@ export default async function ClassroomPage({ params }: { params: { slug: string
                 Includes {c.material_count} private file{c.material_count === 1 ? "" : "s"} — visible to members after enrollment.
               </p>
             )}
-            <ClassroomWorkspace classroomId={c.id} slug={c.slug} />
+            <ClassroomWorkspace classroomId={c.id} slug={c.slug} title={c.title} />
           </div>
           <Reveal delay={0.15}>
             <div className="h-fit rounded-[28px] border border-white/12 bg-stone-900/85 p-7 backdrop-blur lg:sticky lg:top-28">

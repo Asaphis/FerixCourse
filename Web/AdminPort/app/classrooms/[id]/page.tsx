@@ -1,39 +1,34 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Icon } from "@/components/icons";
-import {
-  Alert, Avatar, Badge, DangerButton, EmptyState, ErrorNote, Field, PageHead,
-  SectionHead, Skeleton, StatusBadge,
-} from "@/components/ui";
-import { adminFetch, bytes, shortDateTime } from "@/lib/admin";
+import { Badge, Emp, Err, Ic, Ph, SecHead, Sk, ToastHost, toast } from "@/components/reb-ui";
+import { adminFetch, bytes, fileSignedUrl, initials, money, shortDate, shortDateTime } from "@/lib/admin";
 import { uploadFile } from "@/lib/upload";
 import { useAdmin, useAdminPoll } from "@/lib/use-admin";
-import type { ClassroomDetail, ClassroomMessage, Session } from "@/lib/admin-types";
+import type { ClassroomDetail, ClassroomMessageRow, Session } from "@/lib/admin-types";
 
 /*
-  One classroom: everything an admin needs to run it.
+  Manage one classroom — Discussion, Members, Sessions, Materials,
+  Announcements and Assignments.
 
-  Endpoints (all real, all staff-guarded):
-    GET    /admin/classrooms/:id                    room + members + sessions + materials + announcements + assignments
-    POST   /admin/classrooms/:id/members            add a registered learner by email
-    DELETE /admin/classrooms/:id/members/:userId    remove a member
-    GET    /admin/classrooms/:id/messages           the discussion learners read
-    POST   /admin/classrooms/:id/messages           post into it (optional member notification)
-    POST   /admin/uploads                           put bytes in storage
-    POST   /admin/materials                         register the uploaded file
-    POST   /admin/materials/classroom/:id/notify    tell members a file arrived
-    DELETE /admin/materials/classroom/:id           remove a file record
-    GET    /files/classroom-material/:id            15-minute signed download URL
-    POST   /admin/announcements                     broadcast (notifies members)
-    POST   /admin/sessions, PATCH /admin/sessions/:id
+  Endpoints:
+    GET    /admin/classrooms/:id                 room + members + sessions + materials + announcements + assignments
+    PATCH  /admin/classrooms/:id                 publish state (and other room fields)
+    GET    /admin/classrooms/:id/messages        the discussion learners read (polled)
+    POST   /admin/classrooms/:id/messages        post into it (optional member notification)
+    PATCH  /admin/classrooms/:id/messages/:mid   { is_solved } — close an issue
+    POST   /admin/classrooms/:id members / DELETE members/:userId
+    POST   /admin/sessions + PATCH /admin/sessions/:sid
+    POST   /admin/uploads + POST /admin/materials + DELETE /admin/materials/classroom/:id
+    GET    /files/classroom-material/:id         15-minute signed URL
+    POST   /admin/announcements                  notifies every member
     POST   /admin/assignments
 */
 
 type TabId = "discussion" | "members" | "sessions" | "materials" | "announcements" | "assignments";
 
-const TABS: { id: TabId; label: string; icon: string }[] = [
+const TABS: { id: TabId; label: string; icon: Parameters<typeof Ic>[0]["name"] }[] = [
   { id: "discussion", label: "Discussion", icon: "messageSquare" },
   { id: "members", label: "Members", icon: "users" },
   { id: "sessions", label: "Sessions", icon: "calendar" },
@@ -42,6 +37,14 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "assignments", label: "Assignments", icon: "clipboard" },
 ];
 
+function statusTone(status: string): "" | "ok" | "warn" | "danger" | "info" {
+  if (status === "live" || status === "recording") return "danger";
+  if (status === "scheduled" || status === "processing") return "info";
+  if (status === "ready") return "ok";
+  if (status === "failed") return "warn";
+  return "";
+}
+
 export default function ManageClassroomPage({ params }: { params: { id: string } }) {
   const id = params.id;
   const detail = useAdmin<ClassroomDetail>(`/admin/classrooms/${id}`);
@@ -49,16 +52,15 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
 
   const [tab, setTab] = useState<TabId>("discussion");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState("");
 
   /* ---------- discussion ---------- */
+  const messages = useAdminPoll<ClassroomMessageRow[]>(`/admin/classrooms/${id}/messages`, 8000);
   const [draft, setDraft] = useState("");
   const [notifyMembers, setNotifyMembers] = useState(false);
-  const messages = useAdminPoll<ClassroomMessage[]>(`/admin/classrooms/${id}/messages`, 8000);
   const logRef = useRef<HTMLDivElement | null>(null);
-
   const messageCount = (messages.data ?? []).length;
+
   useEffect(() => {
     const el = logRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -78,7 +80,7 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
       setDraft("");
       setNotifyMembers(false);
       messages.reload();
-      setNotice("Message posted to the classroom discussion.");
+      toast("Posted to the classroom discussion");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not send the message.");
     } finally {
@@ -86,24 +88,53 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
     }
   };
 
+  const toggleSolved = async (m: ClassroomMessageRow) => {
+    setBusy(`sol-${m.id}`);
+    setError("");
+    try {
+      await adminFetch(`/admin/classrooms/${id}/messages/${m.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_solved: !m.is_solved }),
+      });
+      messages.reload();
+      toast(m.is_solved ? "Issue reopened" : "Issue marked solved");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not update the issue.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const openMessageFile = async (m: ClassroomMessageRow) => {
+    if (!m.attachment) return;
+    setError("");
+    try {
+      window.open(await fileSignedUrl(`/files/classroom-message/${m.id}`), "_blank", "noopener");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not open that attachment.");
+    }
+  };
+
   /* ---------- members ---------- */
   const [memberEmail, setMemberEmail] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState("");
+
   const addMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberEmail.trim()) return;
-    setBusy("member");
+    const email = memberEmail.trim();
+    if (!email) return;
+    setBusy("add");
     setError("");
-    setNotice("");
     try {
       const r = await adminFetch<{ already_enrolled?: boolean }>(`/admin/classrooms/${id}/members`, {
         method: "POST",
-        body: JSON.stringify({ email: memberEmail.trim() }),
+        body: JSON.stringify({ email }),
       });
       setMemberEmail("");
       detail.reload();
-      setNotice(r?.already_enrolled ? "That learner is already in this classroom." : "Member added and notified.");
+      toast(r?.already_enrolled ? "That learner is already in this classroom" : "Member added and notified");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not add the member.");
+      setError(err instanceof Error ? err.message : "Could not add that member.");
     } finally {
       setBusy("");
     }
@@ -112,37 +143,55 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
   const removeMember = async (userId: string) => {
     setBusy(`rm-${userId}`);
     setError("");
+    setConfirmRemove("");
     try {
       await adminFetch(`/admin/classrooms/${id}/members/${userId}`, { method: "DELETE" });
       detail.reload();
-      setNotice("Member removed.");
+      toast("Member removed");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not remove the member.");
+      setError(err instanceof Error ? err.message : "Could not remove that member.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  /* ---------- publish ---------- */
+  const togglePublish = async () => {
+    if (!room) return;
+    setBusy("pub");
+    setError("");
+    try {
+      await adminFetch(`/admin/classrooms/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_published: !room.is_published }),
+      });
+      detail.reload();
+      toast(room.is_published ? "Classroom unpublished" : "Classroom published to the catalog");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not change the publish state.");
     } finally {
       setBusy("");
     }
   };
 
   /* ---------- sessions ---------- */
-  const [sessTitle, setSessTitle] = useState("");
-  const [sessStart, setSessStart] = useState("");
+  const [sessionTitle, setSessionTitle] = useState("");
+
   const createSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy("session");
+    setBusy("sess");
     setError("");
     try {
-      await adminFetch<Session>("/admin/sessions", {
+      await adminFetch("/admin/sessions", {
         method: "POST",
         body: JSON.stringify({
           classroom_id: id,
-          title: sessTitle.trim() || `${room?.title ?? "Classroom"} — live session`,
-          starts_at: sessStart ? new Date(sessStart).toISOString() : null,
+          title: sessionTitle.trim() || `${room?.title ?? "Classroom"} — live session`,
         }),
       });
-      setSessTitle("");
-      setSessStart("");
+      setSessionTitle("");
       detail.reload();
-      setNotice("Session created. Start it from Live control.");
+      toast("Session created — start it from the control room");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not create the session.");
     } finally {
@@ -150,16 +199,13 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
     }
   };
 
-  const setSessionStatus = async (sessionId: string, status: "live" | "ended") => {
-    setBusy(`s-${sessionId}`);
+  const setSessionStatus = async (sid: string, status: "live" | "ended" | "scheduled") => {
+    setBusy(`st-${sid}`);
     setError("");
     try {
-      await adminFetch(`/admin/sessions/${sessionId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
+      await adminFetch(`/admin/sessions/${sid}`, { method: "PATCH", body: JSON.stringify({ status }) });
       detail.reload();
-      setNotice(status === "live" ? "Session is live — members notified." : "Session ended.");
+      toast(status === "live" ? "Session is live — members notified" : status === "ended" ? "Session ended" : "Session rescheduled");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not update the session.");
     } finally {
@@ -167,18 +213,18 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
     }
   };
 
-  /* ---------- materials: upload -> register -> optionally notify ---------- */
-  const [pickedFile, setPickedFile] = useState<File | null>(null);
-  const [notifyMaterial, setNotifyMaterial] = useState(true);
+  /* ---------- materials ---------- */
+  const [file, setFile] = useState<File | null>(null);
+  const [notifyFile, setNotifyFile] = useState(true);
+  const [confirmFile, setConfirmFile] = useState("");
 
   const uploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pickedFile) return;
-    setBusy("upload");
+    if (!file) return;
+    setBusy("up");
     setError("");
-    setNotice("");
     try {
-      const stored = await uploadFile(pickedFile);
+      const stored = await uploadFile(file);
       const created = await adminFetch<{ id: string }>("/admin/materials", {
         method: "POST",
         body: JSON.stringify({
@@ -189,14 +235,14 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
           size_bytes: stored.size_bytes,
         }),
       });
-      if (notifyMaterial) {
+      if (notifyFile) {
         await adminFetch(`/admin/materials/classroom/${created.id}/notify`, { method: "POST" }).catch(() => null);
       }
-      setPickedFile(null);
-      const input = document.getElementById("ad-material-file") as HTMLInputElement | null;
+      setFile(null);
+      const input = document.getElementById("cm-file") as HTMLInputElement | null;
       if (input) input.value = "";
       detail.reload();
-      setNotice(notifyMaterial ? "File uploaded and members notified." : "File uploaded.");
+      toast(notifyFile ? "Uploaded — every member notified" : "File uploaded");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not upload the file.");
     } finally {
@@ -204,23 +250,23 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
     }
   };
 
-  const openMaterial = async (materialId: string) => {
+  const openMaterial = async (mid: string) => {
     setError("");
     try {
-      const r = await adminFetch<{ url: string }>(`/files/classroom-material/${materialId}`);
-      window.open(r.url, "_blank", "noopener");
+      window.open(await fileSignedUrl(`/files/classroom-material/${mid}`), "_blank", "noopener");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not open the file.");
+      setError(err instanceof Error ? err.message : "Could not open that file.");
     }
   };
 
-  const deleteMaterial = async (materialId: string) => {
-    setBusy(`m-${materialId}`);
+  const removeMaterial = async (mid: string) => {
+    setBusy(`dm-${mid}`);
     setError("");
+    setConfirmFile("");
     try {
-      await adminFetch(`/admin/materials/classroom/${materialId}`, { method: "DELETE" });
+      await adminFetch(`/admin/materials/classroom/${mid}`, { method: "DELETE" });
       detail.reload();
-      setNotice("File removed from this classroom.");
+      toast("File removed");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not remove the file.");
     } finally {
@@ -232,7 +278,7 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
   const [ann, setAnn] = useState({ title: "", body: "" });
   const postAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ann.title.trim() || !ann.body.trim()) return;
+    if (!ann.title.trim()) return;
     setBusy("ann");
     setError("");
     try {
@@ -242,7 +288,7 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
       });
       setAnn({ title: "", body: "" });
       detail.reload();
-      setNotice("Announcement posted and members notified.");
+      toast("Announcement posted and members notified");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not post the announcement.");
     } finally {
@@ -269,7 +315,7 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
       });
       setAsg({ title: "", description: "", due_at: "" });
       detail.reload();
-      setNotice("Assignment created.");
+      toast("Assignment created");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not create the assignment.");
     } finally {
@@ -277,574 +323,657 @@ export default function ManageClassroomPage({ params }: { params: { id: string }
     }
   };
 
-  /* ---------- tabs: real ARIA + arrow keys ---------- */
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const onTabKey = (e: React.KeyboardEvent, index: number) => {
-    let next = -1;
-    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
-    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = TABS.length - 1;
-    if (next < 0) return;
-    e.preventDefault();
-    setTab(TABS[next].id);
-    tabRefs.current[next]?.focus();
-  };
-
-  const members = useMemo(() => detail.data?.members ?? [], [detail.data]);
-  const materials = useMemo(() => detail.data?.materials ?? [], [detail.data]);
-  const sessions = useMemo(() => detail.data?.sessions ?? [], [detail.data]);
   const announcements = useMemo(() => detail.data?.announcements ?? [], [detail.data]);
   const assignments = useMemo(() => detail.data?.assignments ?? [], [detail.data]);
+  const members = detail.data?.members ?? [];
+  const sessions = detail.data?.sessions ?? [];
+  const materials = detail.data?.materials ?? [];
 
   return (
     <Shell>
-      <PageHead
+      <Ph
         title={room?.title ?? "Classroom"}
         sub={
           room
-            ? `${room.enrolled} enrolled · ${room.schedule_text || "No schedule set"} · ${room.is_published ? "Published" : "Draft"}`
+            ? `${room.schedule_text || "No schedule yet"} · ${room.level} · ${money(room.price_kobo, room.currency)}`
             : "Manage members, sessions, files and discussion."
         }
         actions={
           <>
-            <button type="button" className="ad-btn ad-btn-ghost" onClick={() => detail.reload()}>
-              <Icon name="refresh" size={14} /> Refresh
+            <button
+              type="button"
+              className={`reb-btn sm ${room?.is_published ? "ghost" : "pri"}`}
+              disabled={busy === "pub" || !room}
+              onClick={togglePublish}
+            >
+              <Ic name={room?.is_published ? "x" : "check"} size={14} />
+              {busy === "pub" ? "Saving…" : room?.is_published ? "Unpublish" : "Publish"}
             </button>
-            <Link className="ad-btn ad-btn-primary" href="/live">
-              <Icon name="radio" size={14} /> Live control
+            <Link
+              className="reb-btn ghost sm"
+              href={`/classrooms/${room?.slug ?? id}`}
+              target="_blank"
+            >
+              <Ic name="external" size={14} /> Learner view
             </Link>
+            <button type="button" className="reb-btn ghost sm" onClick={() => detail.reload()}>
+              <Ic name="refresh" size={14} /> Refresh
+            </button>
           </>
         }
       />
 
-      {error ? <ErrorNote message={error} onRetry={() => setError("")} /> : null}
-      {notice ? (
-        <Alert tone="ok" icon="check">
-          {notice}
-        </Alert>
-      ) : null}
-      {detail.error ? <ErrorNote message={detail.error} onRetry={detail.reload} /> : null}
-      {detail.loading && !detail.data ? <Skeleton height={200} count={2} /> : null}
+      {error ? <Err msg={error} onRetry={() => setError("")} /> : null}
+      {detail.error ? <Err msg={detail.error} onRetry={detail.reload} /> : null}
+      {detail.loading && !detail.data ? <Sk h={120} mb={10} /> : null}
 
-      {detail.data ? (
-        <>
-          <div className="ad-tabs" role="tablist" aria-label="Classroom sections">
-            {TABS.map((t, i) => (
-              <button
-                key={t.id}
-                ref={(el) => {
-                  tabRefs.current[i] = el;
-                }}
-                type="button"
-                role="tab"
-                id={`ad-tab-${t.id}`}
-                aria-selected={tab === t.id}
-                aria-controls={`ad-panel-${t.id}`}
-                tabIndex={tab === t.id ? 0 : -1}
-                className="ad-tab"
-                onClick={() => setTab(t.id)}
-                onKeyDown={(e) => onTabKey(e, i)}
-              >
-                <Icon name={t.icon} size={15} />
-                {t.label}
-                {t.id === "members" && members.length ? <span className="ad-nav-count">{members.length}</span> : null}
-                {t.id === "materials" && materials.length ? <span className="ad-nav-count">{materials.length}</span> : null}
-              </button>
-            ))}
+      {room ? (
+        <div className="statline" style={{ marginBottom: 16 }}>
+          <div className="tile">
+            <h3>
+              <Ic name="users" size={14} /> Members
+            </h3>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>
+              {members.length}/{room.capacity}
+            </div>
+            <p className="hint">seats filled</p>
           </div>
+          <div className="tile">
+            <h3>
+              <Ic name="calendar" size={14} /> Sessions
+            </h3>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{sessions.length}</div>
+            <p className="hint">{sessions.filter((s) => s.status === "live").length} live now</p>
+          </div>
+          <div className="tile">
+            <h3>
+              <Ic name="folder" size={14} /> Files
+            </h3>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{materials.length}</div>
+            <p className="hint">in the library</p>
+          </div>
+          <div className="tile">
+            <h3>
+              <Ic name="messageSquare" size={14} /> Discussion
+            </h3>
+            <div style={{ fontSize: 24, fontWeight: 800 }}>{messageCount}</div>
+            <p className="hint">
+              {(messages.data ?? []).filter((m) => m.is_issue && !m.is_solved).length} open issues
+            </p>
+          </div>
+        </div>
+      ) : null}
 
-          {/* ---------------- discussion ---------------- */}
-          {tab === "discussion" ? (
-            <div role="tabpanel" id="ad-panel-discussion" aria-labelledby="ad-tab-discussion" tabIndex={-1}>
-              <div className="ad-card ad-card-pad-0">
-                <div className="ad-card-head">
-                  <span className="ad-card-title">Classroom discussion</span>
-                  <Badge>{messageCount}</Badge>
-                  <span className="ad-hint" style={{ marginLeft: "auto" }}>
-                    The same thread learners see in their Discuss tab.
-                  </span>
-                </div>
+      <div className="tabs" role="tablist" aria-label="Classroom sections" style={{ marginBottom: 16 }}>
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            className={tab === t.id ? "on" : undefined}
+            onClick={() => setTab(t.id)}
+          >
+            <Ic name={t.icon} size={14} /> {t.label}
+          </button>
+        ))}
+      </div>
 
-                {messages.error ? (
-                  <div style={{ padding: 16 }}>
-                    <ErrorNote message={messages.error} onRetry={messages.reload} />
+      {/* ---------------- discussion ---------------- */}
+      {tab === "discussion" ? (
+        <div className="grid2">
+          <section className="reb-card" style={{ gridColumn: "1 / -1" }}>
+            <SecHead
+              icon="messageSquare"
+              title="Classroom discussion"
+              right={
+                <button type="button" className="reb-btn ghost sm" onClick={() => messages.reload()}>
+                  <Ic name="refresh" size={13} /> Refresh
+                </button>
+              }
+            />
+            <p className="hint" style={{ marginTop: -6, marginBottom: 12 }}>
+              The same thread learners see in their Discuss tab.
+            </p>
+
+            <div
+              ref={logRef}
+              role="log"
+              aria-live="polite"
+              style={{ maxHeight: 420, overflowY: "auto", padding: "4px 2px 12px" }}
+            >
+              {messages.loading && messageCount === 0 ? (
+                <Sk h={70} mb={8} />
+              ) : messages.error ? (
+                <Err msg={messages.error} onRetry={messages.reload} />
+              ) : messageCount === 0 ? (
+                <Emp
+                  icon="messageSquare"
+                  title="No messages yet"
+                  note="Post the first message below — learners read it in their classroom."
+                />
+              ) : (
+                (messages.data ?? []).map((m) => (
+                  <div key={m.id} className="gm">
+                    <span className="avatar">{initials(m.sender_name || m.sender_email || "Ferix")}</span>
+                    <div className="gbody">
+                      <div className="gname">
+                        <b>
+                          {m.sender_name || m.sender_email || "Member"}
+                          {m.sender_role === "ADMIN" || m.sender_role === "INSTRUCTOR" ? ` · ${m.sender_role.toLowerCase()}` : ""}
+                        </b>
+                        <span className="hint">{shortDateTime(m.created_at)}</span>
+                        {m.is_issue ? (
+                          <span className={m.is_solved ? "solved-tag" : "issue-tag"}>
+                            {m.is_solved ? "solved" : "issue"}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {m.parent_body ? (
+                        <div className="reply-strip">
+                          <Ic name="arrowLeft" size={12} />
+                          <span style={{ minWidth: 0 }}>
+                            <b>{m.parent_sender ?? "Earlier"}</b>: {m.parent_body.slice(0, 90)}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      <div className="gbub">
+                        {m.body}
+                        {m.attachment ? (
+                          <button
+                            type="button"
+                            className="filecard"
+                            style={{ marginTop: 10, width: "100%" }}
+                            onClick={() => void openMessageFile(m)}
+                          >
+                            <Ic name="fileText" size={16} />
+                            <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                              <b style={{ fontSize: 13 }}>{m.attachment.name}</b>
+                              <span className="hint" style={{ display: "block" }}>
+                                {m.attachment.kind.toUpperCase()}
+                              </span>
+                            </span>
+                            <Ic name="external" size={14} />
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="seenrow">
+                        {typeof m.seen_count === "number" ? (
+                          <span className="hint">
+                            <Ic name="eye" size={11} /> {m.seen_count} seen
+                          </span>
+                        ) : null}
+                        {m.is_issue ? (
+                          <button
+                            type="button"
+                            className="reb-btn ghost sm"
+                            style={{ padding: "2px 8px" }}
+                            disabled={busy === `sol-${m.id}`}
+                            onClick={() => toggleSolved(m)}
+                          >
+                            <Ic name={m.is_solved ? "refresh" : "check"} size={12} />
+                            {m.is_solved ? "Reopen" : "Mark solved"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                ) : null}
+                ))
+              )}
+            </div>
 
-                <div className="ad-chat">
-                  <div className="ad-chat-scroll" ref={logRef}>
-                    {messages.loading && messageCount === 0 ? (
-                      <Skeleton height={44} count={4} />
-                    ) : messageCount === 0 ? (
-                      <EmptyState
-                        icon="messageSquare"
-                        title="No messages yet"
-                        body="Start the conversation — anything you send here appears for every member of this classroom."
-                      />
+            <form onSubmit={send} style={{ display: "grid", gap: 10, marginTop: 6 }}>
+              <label className="hint" style={{ position: "absolute", left: -9999 }} htmlFor="cm-draft">
+                Message the classroom
+              </label>
+              <textarea
+                id="cm-draft"
+                className="textarea"
+                rows={3}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Post into the classroom discussion…"
+              />
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <label className="hint" style={{ display: "inline-flex", gap: 7, alignItems: "center", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={notifyMembers}
+                    onChange={(e) => setNotifyMembers(e.target.checked)}
+                  />
+                  Notify every member
+                </label>
+                <button
+                  type="submit"
+                  className="reb-btn pri"
+                  style={{ marginLeft: "auto" }}
+                  disabled={busy === "send" || !draft.trim()}
+                >
+                  <Ic name="send" size={14} /> {busy === "send" ? "Posting…" : "Post message"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {/* ---------------- members ---------------- */}
+      {tab === "members" ? (
+        <div className="grid2">
+          <section className="reb-card">
+            <SecHead icon="users" title={`Members · ${members.length}`} />
+            {members.length === 0 ? (
+              <Emp icon="users" title="No members yet" note="Add a learner by email on the left, or wait for them to enroll." />
+            ) : (
+              <div>
+                {members.map((m) => (
+                  <div key={m.id} className="qa" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <span className="avatar" style={{ width: 34, height: 34, fontSize: 12 }}>
+                      {initials(m.full_name || m.email)}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <b style={{ fontSize: 13 }}>{m.full_name || m.email}</b>
+                      <span className="hint" style={{ display: "block" }}>
+                        {m.email} · joined {shortDate(m.enrolled_at)}
+                      </span>
+                    </span>
+                    <Badge tone={m.role === "ADMIN" ? "brand" : m.is_active ? "info" : "danger"}>
+                      {m.role.toLowerCase()}
+                    </Badge>
+                    <Link className="reb-btn ghost sm" href={`/users/${m.id}`}>
+                      <Ic name="eye" size={13} />
+                    </Link>
+                    {confirmRemove === m.id ? (
+                      <span style={{ display: "inline-flex", gap: 6 }}>
+                        <button
+                          type="button"
+                          className="reb-btn danger sm"
+                          disabled={busy === `rm-${m.id}`}
+                          onClick={() => removeMember(m.id)}
+                        >
+                          Confirm
+                        </button>
+                        <button type="button" className="reb-btn ghost sm" onClick={() => setConfirmRemove("")}>
+                          Keep
+                        </button>
+                      </span>
                     ) : (
-                      (messages.data ?? []).map((m) => {
-                        const mine = m.sender_role === "ADMIN";
-                        return (
-                          <div key={m.id} className={`ad-chat-msg${mine ? " is-mine" : ""}`}>
-                            <p className="ad-chat-meta">
-                              {m.sender_name || "Member"}
-                              {mine ? " · Admin" : ""} · {shortDateTime(m.created_at)}
-                            </p>
-                            <p className="ad-bubble">{m.body}</p>
-                          </div>
-                        );
-                      })
+                      <button
+                        type="button"
+                        className="reb-btn ghost sm"
+                        onClick={() => setConfirmRemove(m.id)}
+                        aria-label={`Remove ${m.full_name || m.email}`}
+                      >
+                        <Ic name="x" size={13} />
+                      </button>
                     )}
                   </div>
-
-                  <form className="ad-chat-compose" onSubmit={send}>
-                    <label className="ad-sr-only" htmlFor="ad-msg">
-                      Message the classroom
-                    </label>
-                    <input
-                      id="ad-msg"
-                      className="ad-input"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      placeholder="Write a message to the classroom…"
-                      style={{ flex: 1 }}
-                    />
-                    <label className="ad-sm ad-muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <input
-                        type="checkbox"
-                        checked={notifyMembers}
-                        onChange={(e) => setNotifyMembers(e.target.checked)}
-                      />
-                      Notify
-                    </label>
-                    <button type="submit" className="ad-btn ad-btn-primary" disabled={busy === "send" || !draft.trim()}>
-                      <Icon name="send" size={15} /> {busy === "send" ? "Sending…" : "Send"}
-                    </button>
-                  </form>
-                </div>
+                ))}
               </div>
-            </div>
-          ) : null}
+            )}
+          </section>
 
-          {/* ---------------- members ---------------- */}
-          {tab === "members" ? (
-            <div role="tabpanel" id="ad-panel-members" aria-labelledby="ad-tab-members" tabIndex={-1}>
-              <div className="ad-card">
-                <SectionHead title="Add a learner" />
-                <form onSubmit={addMember} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <div style={{ flex: "1 1 260px" }}>
-                    <Field
-                      label="Email of a registered account"
-                      id="ad-member-email"
-                      hint="They must already have a FerixCourse account."
-                    >
-                      <input
-                        id="ad-member-email"
-                        className="ad-input"
-                        type="email"
-                        value={memberEmail}
-                        onChange={(e) => setMemberEmail(e.target.value)}
-                        placeholder="learner@example.com"
-                      />
-                    </Field>
-                  </div>
-                  <button type="submit" className="ad-btn ad-btn-primary" disabled={busy === "member" || !memberEmail.trim()}>
-                    <Icon name="usersPlus" size={14} /> {busy === "member" ? "Adding…" : "Add member"}
-                  </button>
-                </form>
-              </div>
-
-              <SectionHead title="Members" count={members.length} />
-              {members.length === 0 ? (
-                <EmptyState
-                  icon="users"
-                  title="No members yet"
-                  body="Add learners by email, or let them enroll from the catalog."
+          <section className="reb-card">
+            <SecHead icon="plus" title="Add a learner" />
+            <form onSubmit={addMember} style={{ display: "grid", gap: 10 }}>
+              <div className="field">
+                <label className="kind" htmlFor="cm-email">
+                  Email
+                </label>
+                <input
+                  id="cm-email"
+                  className="reb-input"
+                  type="email"
+                  value={memberEmail}
+                  onChange={(e) => setMemberEmail(e.target.value)}
+                  placeholder="learner@example.com"
+                  required
                 />
-              ) : (
-                <div className="ad-card ad-card-pad-0">
-                  <div className="ad-table-wrap">
-                    <table className="ad-table">
-                      <caption className="ad-sr-only">Learners enrolled in this classroom</caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">Learner</th>
-                          <th scope="col">Email</th>
-                          <th scope="col">Joined</th>
-                          <th scope="col">Status</th>
-                          <th scope="col">
-                            <span className="ad-sr-only">Actions</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {members.map((m) => (
-                          <tr key={m.enrollment_id}>
-                            <td>
-                              <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <Avatar name={m.full_name || m.email} />
-                                <span>
-                                  <Link className="ad-row-title" href={`/users/${m.id}`}>
-                                    {m.full_name || "—"}
-                                  </Link>
-                                  <span className="ad-row-meta">{m.role}</span>
-                                </span>
-                              </span>
-                            </td>
-                            <td className="ad-muted">{m.email}</td>
-                            <td className="ad-muted">{shortDateTime(m.enrolled_at)}</td>
-                            <td>{m.is_active ? <Badge tone="ok">Active</Badge> : <Badge tone="danger">Disabled</Badge>}</td>
-                            <td>
-                              <span className="ad-row-actions">
-                                <Link className="ad-btn ad-btn-ghost ad-btn-sm" href={`/users/${m.id}`}>
-                                  <Icon name="eye" size={13} /> View
-                                </Link>
-                                <DangerButton
-                                  label="Remove"
-                                  confirmLabel="Confirm remove"
-                                  pending={busy === `rm-${m.id}`}
-                                  onConfirm={() => removeMember(m.id)}
-                                />
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {/* ---------------- sessions ---------------- */}
-          {tab === "sessions" ? (
-            <div role="tabpanel" id="ad-panel-sessions" aria-labelledby="ad-tab-sessions" tabIndex={-1}>
-              <div className="ad-card">
-                <SectionHead title="Schedule a session" />
-                <form onSubmit={createSession} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <div style={{ flex: "1 1 260px" }}>
-                    <Field label="Title" id="ad-sess-title">
-                      <input
-                        id="ad-sess-title"
-                        className="ad-input"
-                        value={sessTitle}
-                        onChange={(e) => setSessTitle(e.target.value)}
-                        placeholder="Week 1 — orientation"
-                      />
-                    </Field>
-                  </div>
-                  <div style={{ flex: "0 1 220px" }}>
-                    <Field label="Starts" id="ad-sess-start">
-                      <input
-                        id="ad-sess-start"
-                        className="ad-input"
-                        type="datetime-local"
-                        value={sessStart}
-                        onChange={(e) => setSessStart(e.target.value)}
-                      />
-                    </Field>
-                  </div>
-                  <button type="submit" className="ad-btn ad-btn-primary" disabled={busy === "session"}>
-                    <Icon name="plus" size={14} /> {busy === "session" ? "Creating…" : "Create session"}
-                  </button>
-                </form>
+                <span className="hint">Existing accounts are added instantly and notified.</span>
               </div>
+              <button type="submit" className="reb-btn pri" disabled={busy === "add" || !memberEmail.trim()}>
+                <Ic name="plus" size={14} /> {busy === "add" ? "Adding…" : "Add to classroom"}
+              </button>
+            </form>
+          </section>
+        </div>
+      ) : null}
 
-              <SectionHead title="Sessions" count={sessions.length} />
-              {sessions.length === 0 ? (
-                <EmptyState icon="calendar" title="No sessions scheduled" body="Create one above, then start it from Live control." />
-              ) : (
-                <div className="ad-card ad-card-pad-0">
-                  <div className="ad-table-wrap">
-                    <table className="ad-table">
-                      <caption className="ad-sr-only">Sessions for this classroom</caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">Title</th>
-                          <th scope="col">Starts</th>
-                          <th scope="col">Status</th>
-                          <th scope="col">Recording</th>
-                          <th scope="col">
-                            <span className="ad-sr-only">Actions</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sessions.map((s) => (
-                          <tr key={s.id}>
-                            <td className="ad-row-title">{s.title}</td>
-                            <td className="ad-muted">{shortDateTime(s.starts_at)}</td>
-                            <td>
-                              <StatusBadge status={s.status} />
-                            </td>
-                            <td>
-                              <StatusBadge status={s.recording_status} />
-                            </td>
-                            <td>
-                              <span className="ad-row-actions">
-                                {s.status !== "live" ? (
-                                  <button
-                                    type="button"
-                                    className="ad-btn ad-btn-ghost ad-btn-sm"
-                                    disabled={busy === `s-${s.id}`}
-                                    onClick={() => setSessionStatus(s.id, "live")}
-                                  >
-                                    <Icon name="play" size={13} /> Go live
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className="ad-btn ad-btn-ghost ad-btn-sm"
-                                    disabled={busy === `s-${s.id}`}
-                                    onClick={() => setSessionStatus(s.id, "ended")}
-                                  >
-                                    <Icon name="stop" size={13} /> End
-                                  </button>
-                                )}
-                                <Link className="ad-btn ad-btn-ghost ad-btn-sm" href="/live">
-                                  <Icon name="radio" size={13} /> Control room
-                                </Link>
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {/* ---------------- materials ---------------- */}
-          {tab === "materials" ? (
-            <div role="tabpanel" id="ad-panel-materials" aria-labelledby="ad-tab-materials" tabIndex={-1}>
-              <div className="ad-card">
-                <SectionHead title="Upload a file for this classroom" />
-                <form onSubmit={uploadMaterial} style={{ display: "grid", gap: 12 }}>
-                  <Field
-                    label="File"
-                    id="ad-material-file"
-                    hint="Up to 200 MB. The file goes into storage, then is attached to this classroom."
-                  >
-                    <input
-                      id="ad-material-file"
-                      className="ad-input"
-                      type="file"
-                      onChange={(e) => setPickedFile(e.target.files?.[0] ?? null)}
-                    />
-                  </Field>
-                  <label className="ad-sm ad-muted" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-                    <input
-                      type="checkbox"
-                      checked={notifyMaterial}
-                      onChange={(e) => setNotifyMaterial(e.target.checked)}
-                    />
-                    Notify every member when the file is ready
-                  </label>
-                  <div>
-                    <button type="submit" className="ad-btn ad-btn-primary" disabled={!pickedFile || busy === "upload"}>
-                      <Icon name="upload" size={14} />
-                      {busy === "upload" ? "Uploading…" : "Upload file"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <SectionHead title="Files" count={materials.length} />
-              {materials.length === 0 ? (
-                <EmptyState
-                  icon="folder"
-                  title="No files yet"
-                  body="Upload a PDF, slide deck or recording to share with this classroom."
+      {/* ---------------- sessions ---------------- */}
+      {tab === "sessions" ? (
+        <>
+          <section className="reb-card" style={{ marginBottom: 16 }}>
+            <SecHead icon="calendar" title="Schedule a session" />
+            <form onSubmit={createSession} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <label className="kind" htmlFor="cm-sess-title">
+                  Title
+                </label>
+                <input
+                  id="cm-sess-title"
+                  className="reb-input"
+                  value={sessionTitle}
+                  onChange={(e) => setSessionTitle(e.target.value)}
+                  placeholder="e.g. Week 3 — deep dive"
                 />
-              ) : (
-                <div className="ad-card ad-card-pad-0">
-                  <div className="ad-table-wrap">
-                    <table className="ad-table">
-                      <caption className="ad-sr-only">Files attached to this classroom</caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">File</th>
-                          <th scope="col">Type</th>
-                          <th scope="col">Size</th>
-                          <th scope="col">Added</th>
-                          <th scope="col">
-                            <span className="ad-sr-only">Actions</span>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {materials.map((m) => (
-                          <tr key={m.id}>
-                            <td className="ad-row-title">{m.title}</td>
-                            <td className="ad-muted ad-mono">{m.mime}</td>
-                            <td className="ad-muted">{bytes(m.size_bytes)}</td>
-                            <td className="ad-muted">{shortDateTime(m.created_at)}</td>
-                            <td>
-                              <span className="ad-row-actions">
-                                <button type="button" className="ad-btn ad-btn-ghost ad-btn-sm" onClick={() => openMaterial(m.id)}>
-                                  <Icon name="download" size={13} /> Open
-                                </button>
-                                <DangerButton
-                                  label="Delete"
-                                  confirmLabel="Confirm delete"
-                                  pending={busy === `m-${m.id}`}
-                                  onConfirm={() => deleteMaterial(m.id)}
-                                />
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {/* ---------------- announcements ---------------- */}
-          {tab === "announcements" ? (
-            <div role="tabpanel" id="ad-panel-announcements" aria-labelledby="ad-tab-announcements" tabIndex={-1}>
-              <div className="ad-card">
-                <SectionHead title="Post an announcement" />
-                <form onSubmit={postAnnouncement} style={{ display: "grid", gap: 12 }}>
-                  <Field label="Title" id="ad-ann-title">
-                    <input
-                      id="ad-ann-title"
-                      className="ad-input"
-                      value={ann.title}
-                      onChange={(e) => setAnn({ ...ann, title: e.target.value })}
-                      placeholder="Schedule change for week 4"
-                    />
-                  </Field>
-                  <Field label="Message" id="ad-ann-body">
-                    <textarea
-                      id="ad-ann-body"
-                      className="ad-textarea"
-                      value={ann.body}
-                      onChange={(e) => setAnn({ ...ann, body: e.target.value })}
-                      placeholder="What do members need to know?"
-                    />
-                  </Field>
-                  <div>
-                    <button
-                      type="submit"
-                      className="ad-btn ad-btn-primary"
-                      disabled={busy === "ann" || !ann.title.trim() || !ann.body.trim()}
-                    >
-                      <Icon name="megaphone" size={14} /> {busy === "ann" ? "Posting…" : "Post & notify members"}
-                    </button>
-                  </div>
-                </form>
               </div>
+              <button type="submit" className="reb-btn pri" disabled={busy === "sess"}>
+                <Ic name="plus" size={14} /> {busy === "sess" ? "Creating…" : "Create session"}
+              </button>
+            </form>
+          </section>
 
-              <SectionHead title="Posted" count={announcements.length} />
-              {announcements.length === 0 ? (
-                <EmptyState
-                  icon="megaphone"
-                  title="No announcements yet"
-                  body="Announcements notify every member of this classroom."
-                />
-              ) : (
-                <div className="ad-card ad-card-pad-0">
-                  {announcements.map((a) => (
-                    <div className="ad-row" key={a.id} style={{ alignItems: "flex-start" }}>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span className="ad-row-title">{a.title}</span>
-                        <span className="ad-row-meta">{shortDateTime(a.created_at)}</span>
-                        <p className="ad-sm" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
-                          {a.body}
-                        </p>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {/* ---------------- assignments ---------------- */}
-          {tab === "assignments" ? (
-            <div role="tabpanel" id="ad-panel-assignments" aria-labelledby="ad-tab-assignments" tabIndex={-1}>
-              <div className="ad-card">
-                <SectionHead title="Create an assignment" />
-                <form onSubmit={createAssignment} style={{ display: "grid", gap: 12 }}>
-                  <Field label="Title" id="ad-asg-title">
-                    <input
-                      id="ad-asg-title"
-                      className="ad-input"
-                      value={asg.title}
-                      onChange={(e) => setAsg({ ...asg, title: e.target.value })}
-                      placeholder="Build a landing page"
-                    />
-                  </Field>
-                  <Field label="Brief" id="ad-asg-desc">
-                    <textarea
-                      id="ad-asg-desc"
-                      className="ad-textarea"
-                      value={asg.description}
-                      onChange={(e) => setAsg({ ...asg, description: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Due" id="ad-asg-due">
-                    <input
-                      id="ad-asg-due"
-                      className="ad-input"
-                      type="datetime-local"
-                      value={asg.due_at}
-                      onChange={(e) => setAsg({ ...asg, due_at: e.target.value })}
-                    />
-                  </Field>
-                  <div>
-                    <button type="submit" className="ad-btn ad-btn-primary" disabled={busy === "asg" || !asg.title.trim()}>
-                      <Icon name="plus" size={14} /> {busy === "asg" ? "Creating…" : "Create assignment"}
-                    </button>
-                  </div>
-                </form>
+          <section className="reb-card">
+            <SecHead
+              icon="radio"
+              title={`Sessions · ${sessions.length}`}
+              right={
+                <Link href="/live" className="reb-btn ghost sm">
+                  <Ic name="radio" size={13} /> Control room
+                </Link>
+              }
+            />
+            {sessions.length === 0 ? (
+              <Emp icon="calendar" title="No sessions yet" note="Create one above — the control room starts them." />
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="tbl">
+                  <caption style={{ display: "none" }}>Sessions in this classroom</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Session</th>
+                      <th scope="col">Starts</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Recording</th>
+                      <th scope="col">
+                        <span>Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map((s: Session) => (
+                      <tr key={s.id}>
+                        <td>
+                          <b>{s.title}</b>
+                        </td>
+                        <td className="hint">{shortDateTime(s.starts_at)}</td>
+                        <td>
+                          <Badge tone={statusTone(s.status)}>{s.status}</Badge>
+                        </td>
+                        <td>
+                          <Badge tone={statusTone(s.recording_status)}>{s.recording_status}</Badge>
+                        </td>
+                        <td>
+                          <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {s.status !== "live" ? (
+                              <button
+                                type="button"
+                                className="reb-btn ghost sm"
+                                disabled={busy === `st-${s.id}`}
+                                onClick={() => setSessionStatus(s.id, "live")}
+                              >
+                                <Ic name="play" size={13} /> Go live
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="reb-btn ghost sm"
+                                disabled={busy === `st-${s.id}`}
+                                onClick={() => setSessionStatus(s.id, "ended")}
+                              >
+                                <Ic name="stop" size={13} /> End
+                              </button>
+                            )}
+                            <Link className="reb-btn ghost sm" href="/live">
+                              <Ic name="radio" size={13} /> Open
+                            </Link>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-
-              <SectionHead title="Assignments" count={assignments.length} />
-              {assignments.length === 0 ? (
-                <EmptyState
-                  icon="clipboard"
-                  title="No assignments yet"
-                  body="Create one above to collect learner submissions."
-                />
-              ) : (
-                <div className="ad-card ad-card-pad-0">
-                  <div className="ad-table-wrap">
-                    <table className="ad-table">
-                      <caption className="ad-sr-only">Assignments in this classroom</caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">Title</th>
-                          <th scope="col">Due</th>
-                          <th scope="col" className="num">
-                            Submissions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {assignments.map((a) => (
-                          <tr key={a.id}>
-                            <td className="ad-row-title">{a.title}</td>
-                            <td className="ad-muted">{shortDateTime(a.due_at)}</td>
-                            <td className="num">{a.submissions}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
+            )}
+          </section>
         </>
       ) : null}
+
+      {/* ---------------- materials ---------------- */}
+      {tab === "materials" ? (
+        <>
+          <section className="reb-card" style={{ marginBottom: 16 }}>
+            <SecHead icon="upload" title="Upload a file for this classroom" />
+            <form onSubmit={uploadMaterial} style={{ display: "grid", gap: 10 }}>
+              <div className="field">
+                <label className="kind" htmlFor="cm-file">
+                  File
+                </label>
+                <input
+                  id="cm-file"
+                  className="reb-input"
+                  type="file"
+                  required
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+                <span className="hint">Up to 200 MB. Members only — never in the public catalog.</span>
+              </div>
+              <label className="hint" style={{ display: "inline-flex", gap: 7, alignItems: "center", cursor: "pointer" }}>
+                <input type="checkbox" checked={notifyFile} onChange={(e) => setNotifyFile(e.target.checked)} />
+                Notify every member when the file is ready
+              </label>
+              <div>
+                <button type="submit" className="reb-btn pri" disabled={busy === "up" || !file}>
+                  <Ic name="upload" size={14} /> {busy === "up" ? "Uploading…" : "Upload & save"}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="reb-card">
+            <SecHead icon="folder" title={`Files · ${materials.length}`} />
+            {materials.length === 0 ? (
+              <Emp icon="folder" title="No files yet" note="Upload one above — members get notified when you share it." />
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="tbl">
+                  <caption style={{ display: "none" }}>Files in this classroom</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">File</th>
+                      <th scope="col">Size</th>
+                      <th scope="col">Added</th>
+                      <th scope="col">
+                        <span>Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {materials.map((m) => (
+                      <tr key={m.id}>
+                        <td>
+                          <b>{m.title}</b>
+                        </td>
+                        <td className="hint">{bytes(m.size_bytes)}</td>
+                        <td className="hint">{shortDate(m.created_at)}</td>
+                        <td>
+                          <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                            <button type="button" className="reb-btn ghost sm" onClick={() => void openMaterial(m.id)}>
+                              <Ic name="download" size={13} /> Open
+                            </button>
+                            {confirmFile === m.id ? (
+                              <span style={{ display: "inline-flex", gap: 6 }}>
+                                <button
+                                  type="button"
+                                  className="reb-btn danger sm"
+                                  disabled={busy === `dm-${m.id}`}
+                                  onClick={() => removeMaterial(m.id)}
+                                >
+                                  Confirm
+                                </button>
+                                <button type="button" className="reb-btn ghost sm" onClick={() => setConfirmFile("")}>
+                                  Keep
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="reb-btn ghost sm"
+                                onClick={() => setConfirmFile(m.id)}
+                                aria-label={`Delete ${m.title}`}
+                              >
+                                <Ic name="trash" size={13} />
+                              </button>
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      ) : null}
+
+      {/* ---------------- announcements ---------------- */}
+      {tab === "announcements" ? (
+        <div className="grid2">
+          <section className="reb-card">
+            <SecHead icon="megaphone" title="Post an announcement" />
+            <form onSubmit={postAnnouncement} style={{ display: "grid", gap: 10 }}>
+              <div className="field">
+                <label className="kind" htmlFor="cm-ann-title">
+                  Title
+                </label>
+                <input
+                  id="cm-ann-title"
+                  className="reb-input"
+                  value={ann.title}
+                  onChange={(e) => setAnn({ ...ann, title: e.target.value })}
+                  placeholder="e.g. Class moves to Thursday this week"
+                  required
+                />
+              </div>
+              <div className="field">
+                <label className="kind" htmlFor="cm-ann-body">
+                  Message
+                </label>
+                <textarea
+                  id="cm-ann-body"
+                  className="textarea"
+                  rows={4}
+                  value={ann.body}
+                  onChange={(e) => setAnn({ ...ann, body: e.target.value })}
+                  placeholder="What should the cohort know?"
+                />
+              </div>
+              <button type="submit" className="reb-btn pri" disabled={busy === "ann" || !ann.title.trim()}>
+                <Ic name="megaphone" size={14} /> {busy === "ann" ? "Posting…" : "Post announcement"}
+              </button>
+            </form>
+          </section>
+
+          <section className="reb-card">
+            <SecHead icon="bell" title={`Posted · ${announcements.length}`} />
+            {announcements.length === 0 ? (
+              <Emp icon="megaphone" title="No announcements yet" note="Announcements notify every member of this classroom." />
+            ) : (
+              <div>
+                {announcements.map((a) => (
+                  <article key={a.id} className="qa">
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <b style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{a.title}</b>
+                      <span className="hint">{shortDateTime(a.created_at)}</span>
+                    </div>
+                    {a.body ? <p className="sub" style={{ marginTop: 4 }}>{a.body}</p> : null}
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
+
+      {/* ---------------- assignments ---------------- */}
+      {tab === "assignments" ? (
+        <div className="grid2">
+          <section className="reb-card">
+            <SecHead icon="clipboard" title="Create an assignment" />
+            <form onSubmit={createAssignment} style={{ display: "grid", gap: 10 }}>
+              <div className="field">
+                <label className="kind" htmlFor="cm-asg-title">
+                  Title
+                </label>
+                <input
+                  id="cm-asg-title"
+                  className="reb-input"
+                  value={asg.title}
+                  onChange={(e) => setAsg({ ...asg, title: e.target.value })}
+                  placeholder="e.g. Ship the auth flow"
+                  required
+                />
+              </div>
+              <div className="field">
+                <label className="kind" htmlFor="cm-asg-desc">
+                  Instructions
+                </label>
+                <textarea
+                  id="cm-asg-desc"
+                  className="textarea"
+                  rows={4}
+                  value={asg.description}
+                  onChange={(e) => setAsg({ ...asg, description: e.target.value })}
+                  placeholder="What should learners submit?"
+                />
+              </div>
+              <div className="field">
+                <label className="kind" htmlFor="cm-asg-due">
+                  Due date
+                </label>
+                <input
+                  id="cm-asg-due"
+                  className="reb-input"
+                  type="datetime-local"
+                  value={asg.due_at}
+                  onChange={(e) => setAsg({ ...asg, due_at: e.target.value })}
+                />
+              </div>
+              <button type="submit" className="reb-btn pri" disabled={busy === "asg" || !asg.title.trim()}>
+                <Ic name="plus" size={14} /> {busy === "asg" ? "Creating…" : "Create assignment"}
+              </button>
+            </form>
+          </section>
+
+          <section className="reb-card">
+            <SecHead icon="list" title={`Assignments · ${assignments.length}`} />
+            {assignments.length === 0 ? (
+              <Emp icon="clipboard" title="No assignments yet" note="Learners submit against assignments you create here." />
+            ) : (
+              <div>
+                {assignments.map((a) => (
+                  <article key={a.id} className="qa">
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <b style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>{a.title}</b>
+                      <Badge tone="info">{a.submissions} submitted</Badge>
+                    </div>
+                    {a.description ? <p className="sub" style={{ marginTop: 4 }}>{a.description}</p> : null}
+                    <p className="hint" style={{ marginTop: 6 }}>
+                      {a.due_at ? `Due ${shortDateTime(a.due_at)}` : "No due date"} · created {shortDate(a.created_at)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
+
+      <ToastHost />
     </Shell>
   );
 }

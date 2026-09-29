@@ -2,8 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Icon } from "@/components/icons";
-import { Alert, Badge, DangerButton, EmptyState, ErrorNote, Field, PageHead, SectionHead, Skeleton } from "@/components/ui";
+import { Badge, Emp, Err, Ic, Ph, SecHead, Sk, ToastHost, toast } from "@/components/reb-ui";
 import { adminFetch, bytes, shortDate } from "@/lib/admin";
 import { uploadFile } from "@/lib/upload";
 import { useAdmin } from "@/lib/use-admin";
@@ -12,10 +11,7 @@ import type { Classroom, Course, CourseMaterial, ClassroomMaterial } from "@/lib
 /*
   Materials library.
 
-  The previous version asked the admin to type an R2 storage key by hand — there
-  was no way to actually put a file into storage, so this form only worked for
-  someone who had uploaded the bytes elsewhere first. It now uploads for real:
-
+  Uploads for real:
     POST   /admin/uploads                     -> { storage_key, title, mime, size_bytes }
     POST   /admin/materials                   -> register against a classroom OR a course
     DELETE /admin/materials/classroom/:id
@@ -39,7 +35,7 @@ export default function MaterialsPage() {
   const [notify, setNotify] = useState(true);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
-  const [msg, setMsg] = useState("");
+  const [confirmId, setConfirmId] = useState("");
 
   const classroomFiles = library.data?.classroom ?? [];
   const courseFiles = library.data?.courses ?? [];
@@ -49,7 +45,6 @@ export default function MaterialsPage() {
     if (!file || !destId) return;
     setBusy("upload");
     setErr("");
-    setMsg("");
     try {
       const stored = await uploadFile(file);
       const created = await adminFetch<{ id: string }>("/admin/materials", {
@@ -68,14 +63,10 @@ export default function MaterialsPage() {
         await adminFetch(`/admin/materials/classroom/${created.id}/notify`, { method: "POST" }).catch(() => null);
       }
       setFile(null);
-      const input = document.getElementById("ad-file") as HTMLInputElement | null;
+      const input = document.getElementById("mt-file") as HTMLInputElement | null;
       if (input) input.value = "";
       library.reload();
-      setMsg(
-        dest === "classroom" && notify
-          ? "File uploaded and every member notified."
-          : "File uploaded."
-      );
+      toast(dest === "classroom" && notify ? "Uploaded — every member notified" : "File uploaded");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Could not upload the file.");
     } finally {
@@ -98,10 +89,11 @@ export default function MaterialsPage() {
   const remove = async (id: string, scope: "classroom" | "course") => {
     setBusy(`del-${id}`);
     setErr("");
+    setConfirmId("");
     try {
       await adminFetch(`/admin/materials/${scope}/${id}`, { method: "DELETE" });
       library.reload();
-      setMsg("File removed.");
+      toast("File removed");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Could not remove the file.");
     } finally {
@@ -114,51 +106,131 @@ export default function MaterialsPage() {
       ? (rooms.data ?? []).map((c) => ({ id: c.id, title: c.title }))
       : (courses.data ?? []).map((c) => ({ id: c.id, title: c.title }));
 
+  const delBtn = (id: string, scope: "classroom" | "course", title: string) =>
+    confirmId === id ? (
+      <span style={{ display: "inline-flex", gap: 6 }}>
+        <button
+          type="button"
+          className="reb-btn danger sm"
+          disabled={busy === `del-${id}`}
+          onClick={() => remove(id, scope)}
+        >
+          {busy === `del-${id}` ? "Deleting…" : "Confirm delete"}
+        </button>
+        <button type="button" className="reb-btn ghost sm" onClick={() => setConfirmId("")}>
+          Keep
+        </button>
+      </span>
+    ) : (
+      <button
+        type="button"
+        className="reb-btn ghost sm"
+        onClick={() => setConfirmId(id)}
+        aria-label={`Delete ${title}`}
+      >
+        <Ic name="trash" size={13} />
+      </button>
+    );
+
+  const filesTable = (rows: (ClassroomMaterial | CourseMaterial)[], scope: "classroom" | "course") => (
+    <div style={{ overflowX: "auto" }}>
+      <table className="tbl">
+        <caption style={{ display: "none" }}>
+          {scope === "classroom" ? "Files attached to classrooms" : "Files attached to courses"}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">File</th>
+            <th scope="col">{scope === "classroom" ? "Classroom" : "Course"}</th>
+            <th scope="col">Size</th>
+            <th scope="col">Added</th>
+            <th scope="col">
+              <span>Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m) => (
+            <tr key={m.id}>
+              <td>
+                <b>{m.title}</b>
+              </td>
+              <td className="hint">
+                {scope === "classroom"
+                  ? ((m as ClassroomMaterial).classroom_title ?? "—")
+                  : (m as CourseMaterial).course_id ? (
+                      <Link href={`/courses/${(m as CourseMaterial).course_id}`} style={{ color: "var(--brand-text)" }}>
+                        {(m as CourseMaterial).course_title ?? "Open course"}
+                      </Link>
+                    ) : (
+                      ((m as CourseMaterial).course_title ?? "—")
+                    )}
+              </td>
+              <td className="hint">{bytes(m.size_bytes)}</td>
+              <td className="hint">{shortDate(m.created_at)}</td>
+              <td>
+                <span style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" className="reb-btn ghost sm" onClick={() => open(m.id, scope)}>
+                    <Ic name="download" size={13} /> Open
+                  </button>
+                  {delBtn(m.id, scope, m.title)}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <Shell>
-      <PageHead
+      <Ph
         title="Materials"
         sub="Upload files and place each one in a single destination — a classroom (members only) or a course (buyers only)."
         actions={
-          <button type="button" className="ad-btn ad-btn-ghost" onClick={() => library.reload()}>
-            <Icon name="refresh" size={14} /> Refresh
+          <button type="button" className="reb-btn ghost sm" onClick={() => library.reload()}>
+            <Ic name="refresh" size={14} /> Refresh
           </button>
         }
       />
 
-      {err ? <ErrorNote message={err} onRetry={() => setErr("")} /> : null}
-      {msg ? (
-        <Alert tone="ok" icon="check">
-          {msg}
-        </Alert>
-      ) : null}
+      {err ? <Err msg={err} onRetry={() => setErr("")} /> : null}
 
-      <div className="ad-card">
-        <SectionHead title="Upload a file" />
+      <section className="reb-card" style={{ marginBottom: 18 }}>
+        <SecHead icon="upload" title="Upload a file" />
         <form onSubmit={upload} style={{ display: "grid", gap: 12 }}>
-          <div className="ad-tabs" role="tablist" aria-label="Destination type" style={{ marginBottom: 0 }}>
+          <div className="tabs" role="tablist" aria-label="Destination type" style={{ marginBottom: 0 }}>
             {(["classroom", "course"] as const).map((d) => (
               <button
                 key={d}
                 type="button"
                 role="tab"
                 aria-selected={dest === d}
-                tabIndex={dest === d ? 0 : -1}
-                className="ad-tab"
+                className={dest === d ? "on" : undefined}
                 onClick={() => {
                   setDest(d);
                   setDestId("");
                 }}
               >
-                <Icon name={d === "classroom" ? "layers" : "bookOpen"} size={15} />
+                <Ic name={d === "classroom" ? "layers" : "bookOpen"} size={15} />
                 {d === "classroom" ? "To a classroom (members only)" : "To a course (buyers only)"}
               </button>
             ))}
           </div>
 
-          <div className="ad-grid ad-grid-2">
-            <Field label={dest === "classroom" ? "Destination classroom" : "Destination course"} id="ad-dest">
-              <select id="ad-dest" className="ad-select" value={destId} onChange={(e) => setDestId(e.target.value)} required>
+          <div className="kgrid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+            <div className="field">
+              <label className="kind" htmlFor="mt-dest">
+                {dest === "classroom" ? "Destination classroom" : "Destination course"}
+              </label>
+              <select
+                id="mt-dest"
+                className="select"
+                value={destId}
+                onChange={(e) => setDestId(e.target.value)}
+                required
+              >
                 <option value="">Select…</option>
                 {destinations.map((d) => (
                   <option key={d.id} value={d.id}>
@@ -166,138 +238,63 @@ export default function MaterialsPage() {
                   </option>
                 ))}
               </select>
-            </Field>
-            <Field label="File" id="ad-file" hint="Up to 200 MB.">
+            </div>
+            <div className="field">
+              <label className="kind" htmlFor="mt-file">
+                File
+              </label>
               <input
-                id="ad-file"
-                className="ad-input"
+                id="mt-file"
+                className="reb-input"
                 type="file"
                 required
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
-            </Field>
+              <span className="hint">Up to 200 MB.</span>
+            </div>
           </div>
 
           {dest === "classroom" ? (
-            <label className="ad-sm ad-muted" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <label className="hint" style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer" }}>
               <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
               Notify every member of the classroom when the file is ready
             </label>
           ) : null}
 
           <div>
-            <button type="submit" className="ad-btn ad-btn-primary" disabled={!file || !destId || busy === "upload"}>
-              <Icon name="upload" size={14} /> {busy === "upload" ? "Uploading…" : "Upload & save"}
+            <button
+              type="submit"
+              className="reb-btn pri"
+              disabled={!file || !destId || busy === "upload"}
+            >
+              <Ic name="upload" size={14} /> {busy === "upload" ? "Uploading…" : "Upload & save"}
             </button>
           </div>
         </form>
-      </div>
+      </section>
 
-      {library.error ? <ErrorNote message={library.error} onRetry={library.reload} /> : null}
+      {library.error ? <Err msg={library.error} onRetry={library.reload} /> : null}
 
-      <SectionHead title="Classroom files" count={classroomFiles.length} />
-      {library.loading && classroomFiles.length === 0 ? (
-        <Skeleton height={52} count={3} />
-      ) : classroomFiles.length === 0 ? (
-        <EmptyState icon="folder" title="No classroom files" body="Upload one above, or from inside a classroom." />
-      ) : (
-        <div className="ad-card ad-card-pad-0">
-          <div className="ad-table-wrap">
-            <table className="ad-table">
-              <caption className="ad-sr-only">Files attached to classrooms</caption>
-              <thead>
-                <tr>
-                  <th scope="col">File</th>
-                  <th scope="col">Classroom</th>
-                  <th scope="col">Size</th>
-                  <th scope="col">Added</th>
-                  <th scope="col">
-                    <span className="ad-sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {classroomFiles.map((m) => (
-                  <tr key={m.id}>
-                    <td className="ad-row-title">{m.title}</td>
-                    <td className="ad-muted">{m.classroom_title ?? "—"}</td>
-                    <td className="ad-muted">{bytes(m.size_bytes)}</td>
-                    <td className="ad-muted">{shortDate(m.created_at)}</td>
-                    <td>
-                      <span className="ad-row-actions">
-                        <button type="button" className="ad-btn ad-btn-ghost ad-btn-sm" onClick={() => open(m.id, "classroom")}>
-                          <Icon name="download" size={13} /> Open
-                        </button>
-                        <DangerButton
-                          label="Delete"
-                          confirmLabel="Confirm delete"
-                          pending={busy === `del-${m.id}`}
-                          onConfirm={() => remove(m.id, "classroom")}
-                        />
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <section className="reb-card" style={{ marginBottom: 16 }}>
+        <SecHead icon="folder" title={`Classroom files · ${classroomFiles.length}`} />
+        {library.loading && classroomFiles.length === 0 ? (
+          <Sk h={52} mb={8} />
+        ) : classroomFiles.length === 0 ? (
+          <Emp icon="folder" title="No classroom files" note="Upload one above, or from inside a classroom." />
+        ) : (
+          filesTable(classroomFiles, "classroom")
+        )}
+      </section>
 
-      <SectionHead title="Course files" count={courseFiles.length} />
-      {courseFiles.length === 0 ? (
-        <EmptyState icon="bookOpen" title="No course files" body="Upload one above, or from inside a course editor." />
-      ) : (
-        <div className="ad-card ad-card-pad-0">
-          <div className="ad-table-wrap">
-            <table className="ad-table">
-              <caption className="ad-sr-only">Files attached to courses</caption>
-              <thead>
-                <tr>
-                  <th scope="col">File</th>
-                  <th scope="col">Course</th>
-                  <th scope="col">Size</th>
-                  <th scope="col">Added</th>
-                  <th scope="col">
-                    <span className="ad-sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {courseFiles.map((m) => (
-                  <tr key={m.id}>
-                    <td className="ad-row-title">{m.title}</td>
-                    <td className="ad-muted">
-                      {m.course_id ? (
-                        <Link className="ad-row-title" href={`/courses/${m.course_id}`}>
-                          {m.course_title ?? "Open course"}
-                        </Link>
-                      ) : (
-                        (m.course_title ?? "—")
-                      )}
-                    </td>
-                    <td className="ad-muted">{bytes(m.size_bytes)}</td>
-                    <td className="ad-muted">{shortDate(m.created_at)}</td>
-                    <td>
-                      <span className="ad-row-actions">
-                        <button type="button" className="ad-btn ad-btn-ghost ad-btn-sm" onClick={() => open(m.id, "course")}>
-                          <Icon name="download" size={13} /> Open
-                        </button>
-                        <DangerButton
-                          label="Delete"
-                          confirmLabel="Confirm delete"
-                          pending={busy === `del-${m.id}`}
-                          onConfirm={() => remove(m.id, "course")}
-                        />
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <section className="reb-card">
+        <SecHead icon="bookOpen" title={`Course files · ${courseFiles.length}`} />
+        {courseFiles.length === 0 ? (
+          <Emp icon="bookOpen" title="No course files" note="Upload one above, or from inside a course editor." />
+        ) : (
+          filesTable(courseFiles, "course")
+        )}
+      </section>
+      <ToastHost />
     </Shell>
   );
 }

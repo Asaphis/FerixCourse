@@ -2,19 +2,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Icon } from "@/components/icons";
-import { Avatar, Badge, EmptyState, ErrorNote, PageHead, SectionHead, Skeleton } from "@/components/ui";
-import { shortDate } from "@/lib/admin";
+import { Badge, Emp, Err, Ic, Ph, SecHead, Sk } from "@/components/reb-ui";
+import { initials, shortDate } from "@/lib/admin";
 import { useAdmin } from "@/lib/use-admin";
 import type { Profile } from "@/lib/admin-types";
 
 /*
-  Learner directory.
-
-  Previously this list rendered rows that could not be opened, so the console
-  could see that a learner existed but not inspect or fix anything about them.
-  Every row now links to /users/:id, where access, role and payments are
-  editable — and /admin/users/:id is the endpoint behind it.
+  Learner directory — every row links to /users/:id, where access, role and
+  payments are editable (GET/PUT /admin/users/:id behind it).
 */
 
 export default function UsersPage() {
@@ -26,117 +21,118 @@ export default function UsersPage() {
 
   return (
     <Shell>
-      <PageHead
+      <Ph
         title="Learners"
         sub="Search accounts, open a profile, and manage access, roles and payments."
         actions={
-          <button type="button" className="ad-btn ad-btn-ghost" onClick={() => users.reload()}>
-            <Icon name="refresh" size={14} /> Refresh
+          <button type="button" className="reb-btn ghost sm" onClick={() => users.reload()}>
+            <Ic name="refresh" size={14} /> Refresh
           </button>
         }
       />
 
       <form
-        className="ad-toolbar"
+        className="qa"
+        role="search"
         onSubmit={(e) => {
           e.preventDefault();
           setApplied(q);
         }}
-        role="search"
+        style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}
       >
-        <div className="ad-field" style={{ flex: "1 1 320px" }}>
-          <label className="ad-label" htmlFor="ad-user-search">
+        <div className="field-wrap" style={{ flex: "1 1 300px" }}>
+          <Ic name="search" size={15} />
+          <label className="sr-only" htmlFor="ad-user-search" style={{ position: "absolute", left: -9999 }}>
             Search by name or email
           </label>
           <input
             id="ad-user-search"
-            className="ad-input"
+            className="reb-input"
             type="search"
+            style={{ background: "transparent", border: 0, padding: "9px 0" }}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="e.g. ada@example.com"
+            placeholder="Search by name or email…"
           />
         </div>
-        <button type="submit" className="ad-btn ad-btn-primary">
-          <Icon name="search" size={14} /> Search
+        <button type="submit" className="reb-btn pri sm">
+          <Ic name="search" size={14} /> Search
         </button>
         {applied ? (
           <button
             type="button"
-            className="ad-btn ad-btn-ghost"
+            className="reb-btn ghost sm"
             onClick={() => {
               setQ("");
               setApplied("");
             }}
           >
-            <Icon name="x" size={14} /> Clear
+            <Ic name="x" size={14} /> Clear
           </button>
         ) : null}
       </form>
 
-      {users.error ? <ErrorNote message={users.error} onRetry={users.reload} /> : null}
+      {users.error ? <Err msg={users.error} onRetry={users.reload} /> : null}
 
-      {users.loading && rows.length === 0 ? (
-        <Skeleton height={62} count={5} />
-      ) : rows.length === 0 && !users.error ? (
-        <EmptyState
-          icon="users"
-          title={applied ? `No accounts match “${applied}”` : "No learners yet"}
-          body={applied ? "Try a different name or email." : "Accounts appear here as soon as learners register."}
-        />
-      ) : (
-        <>
-          <SectionHead title="Accounts" count={rows.length} />
-          <div className="ad-card ad-card-pad-0">
-            <div className="ad-table-wrap">
-              <table className="ad-table">
-                <caption className="ad-sr-only">Registered accounts</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Account</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Joined</th>
-                    <th scope="col">
-                      <span className="ad-sr-only">Actions</span>
-                    </th>
+      <section className="reb-card">
+        <SecHead icon="users" title={`Accounts · ${rows.length}`} />
+        {users.loading && rows.length === 0 ? (
+          <Sk h={54} mb={8} />
+        ) : rows.length === 0 && !users.error ? (
+          <Emp
+            icon="users"
+            title={applied ? `No accounts match "${applied}"` : "No learners yet"}
+            note={applied ? "Try a different name or email." : "Accounts appear here as soon as learners register."}
+          />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="tbl">
+              <caption style={{ display: "none" }}>Registered accounts</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Account</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Joined</th>
+                  <th scope="col">
+                    <span>Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((u) => (
+                  <tr key={u.id}>
+                    <td>
+                      <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className="avatar" style={{ width: 30, height: 30, fontSize: 11 }}>
+                          {initials(u.full_name || u.email)}
+                        </span>
+                        <Link href={`/users/${u.id}`} style={{ fontWeight: 700, color: "inherit" }}>
+                          {u.full_name || "—"}
+                        </Link>
+                      </span>
+                    </td>
+                    <td className="hint">{u.email}</td>
+                    <td>
+                      <Badge tone={u.role === "ADMIN" ? "brand" : u.role === "INSTRUCTOR" ? "info" : ""}>
+                        {u.role}
+                      </Badge>
+                    </td>
+                    <td>{u.is_active ? <Badge tone="ok">Active</Badge> : <Badge tone="danger">Disabled</Badge>}</td>
+                    <td className="hint">{shortDate(u.created_at)}</td>
+                    <td>
+                      <Link className="reb-btn ghost sm" href={`/users/${u.id}`}>
+                        <Ic name="eye" size={13} /> Manage
+                      </Link>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.map((u) => (
-                    <tr key={u.id}>
-                      <td>
-                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <Avatar name={u.full_name || u.email} />
-                          <Link className="ad-row-title" href={`/users/${u.id}`}>
-                            {u.full_name || "—"}
-                          </Link>
-                        </span>
-                      </td>
-                      <td className="ad-muted">{u.email}</td>
-                      <td>
-                        <Badge tone={u.role === "ADMIN" ? "brand" : u.role === "INSTRUCTOR" ? "info" : "neutral"}>
-                          {u.role}
-                        </Badge>
-                      </td>
-                      <td>{u.is_active ? <Badge tone="ok">Active</Badge> : <Badge tone="danger">Disabled</Badge>}</td>
-                      <td className="ad-muted">{shortDate(u.created_at)}</td>
-                      <td>
-                        <span className="ad-row-actions">
-                          <Link className="ad-btn ad-btn-ghost ad-btn-sm" href={`/users/${u.id}`}>
-                            <Icon name="eye" size={13} /> Manage
-                          </Link>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
-      )}
+        )}
+      </section>
     </Shell>
   );
 }

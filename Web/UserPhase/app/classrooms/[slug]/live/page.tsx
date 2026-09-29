@@ -16,8 +16,9 @@ import { api, type CatalogClassroom, type ClassroomSession } from "@/lib/dashboa
 
 /*
   Live room — deliberately full-screen and outside the dashboard chrome, because
-  a video call needs the whole viewport. Restyled onto the dashboard tokens so
-  it reads as the same product, with the same focus ring and live indicator.
+  a video call needs the whole viewport. It re-uses the rebuild tokens by
+  mounting inside a `.reb` scope, so the gate screen and the in-room bar read as
+  the same product as the dashboard.
 */
 
 function RoomView({ slug }: { slug: string }) {
@@ -37,14 +38,18 @@ function RoomView({ slug }: { slug: string }) {
           alignItems: "center",
           gap: 10,
           padding: "10px 16px",
-          borderBottom: "1px solid var(--fc-border)",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--rail)",
         }}
       >
-        <Link href={`/classrooms/${slug}`} className="fc-btn fc-btn-ghost fc-btn-sm">
-          <Icon name="arrowRight" size={14} style={{ transform: "rotate(180deg)" }} /> Classroom
+        <Link href={`/classrooms/${slug}`} className="btn ghost sm">
+          <Icon name="arrowLeft" size={14} /> Classroom
         </Link>
-        <span className="fc-live-pill">
-          <span className="fc-dot" /> LIVE
+        <span className="live-pill">
+          <i aria-hidden="true" /> LIVE
+        </span>
+        <span className="hint" style={{ marginLeft: "auto" }}>
+          Camera and screen share are on — the instructor&apos;s screen takes over the grid when shared.
         </span>
       </div>
       <div style={{ flex: 1, minHeight: 0, padding: 12 }}>
@@ -52,7 +57,7 @@ function RoomView({ slug }: { slug: string }) {
           <ParticipantTile />
         </GridLayout>
       </div>
-      <div style={{ borderTop: "1px solid var(--fc-border)", padding: 12 }}>
+      <div style={{ borderTop: "1px solid var(--border)", padding: 12, background: "var(--rail)" }}>
         <ControlBar variation="minimal" saveUserChoices />
       </div>
       <RoomAudioRenderer />
@@ -103,7 +108,7 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
 
   if (connect && token) {
     return (
-      <div className="fc-dash" data-theme="dark" style={{ height: "100vh" }}>
+      <div className="reb" data-theme="dark" style={{ height: "100vh" }}>
         <LiveKitRoom
           serverUrl={wsUrl}
           token={token}
@@ -124,51 +129,64 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
 
   return (
     <div
-      className="fc-dash"
+      className="reb"
       data-theme="dark"
-      style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+      style={{
+        minHeight: "100vh",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+        overflow: "auto",
+      }}
     >
-      <div className="fc-card" style={{ width: "100%", maxWidth: 440, textAlign: "center", padding: 32 }}>
-        <span
-          className="fc-empty-ico"
-          style={{ margin: "0 auto 16px", ...(live ? { background: "var(--fc-danger-bg)", color: "var(--fc-danger-fg)", borderColor: "transparent" } : undefined) }}
-          aria-hidden="true"
-        >
-          <Icon name="radio" size={22} />
-        </span>
-        <h1 style={{ fontSize: 20 }}>{classroom?.title ?? "Live classroom"}</h1>
-
-        {err && (
-          <div className="fc-alert fc-alert-danger" role="alert" style={{ marginTop: 16, textAlign: "left" }}>
-            <Icon name="alertCircle" size={17} />
-            <span>{err}</span>
+      <div className="card" style={{ width: "100%", maxWidth: 440, textAlign: "center", padding: 32 }}>
+        <div className="empty" style={{ padding: 0 }}>
+          <div
+            className="ico"
+            style={{
+              margin: "0 auto 16px",
+              ...(live
+                ? { background: "rgba(248, 113, 113, 0.14)", color: "#fca5a5", borderColor: "rgba(248, 113, 113, 0.4)" }
+                : undefined),
+            }}
+            aria-hidden="true"
+          >
+            <Icon name="radio" size={22} />
           </div>
-        )}
+          <h3>{classroom?.title ?? "Live classroom"}</h3>
 
-        {!classroom && !err && <p style={{ marginTop: 10, fontSize: 13.5, color: "var(--fc-muted)" }}>Loading…</p>}
+          {err && (
+            <div className="alert danger" role="alert" style={{ marginTop: 16, textAlign: "left" }}>
+              <Icon name="alertCircle" size={17} />
+              <span>{err}</span>
+            </div>
+          )}
 
-        {classroom && !live && (
-          <>
-            <p style={{ marginTop: 8, fontSize: 13.5, color: "var(--fc-muted)" }}>
-              No live session right now. You will be notified the second the instructor starts — members only.
-            </p>
-            <Link href={`/classrooms/${params.slug}`} className="fc-btn fc-btn-ghost" style={{ marginTop: 20 }}>
-              Back to classroom
-            </Link>
-          </>
-        )}
+          {!classroom && !err && <p className="sub">Loading…</p>}
 
-        {classroom && live && (
-          <>
-            <p style={{ marginTop: 8, fontSize: 13.5, color: "var(--fc-muted)" }}>
-              <strong style={{ color: "var(--fc-text)" }}>{live.title}</strong> is live now. Join with camera and mic —
-              screen sharing included.
-            </p>
-            <button type="button" onClick={join} disabled={busy} className="fc-btn fc-btn-primary fc-btn-block" style={{ marginTop: 20 }}>
-              <Icon name="video" size={16} /> {busy ? "Checking access…" : "Join live classroom"}
-            </button>
-          </>
-        )}
+          {classroom && !live && (
+            <>
+              <p className="sub">
+                No live session right now. You will be notified the second the instructor starts — members only.
+              </p>
+              <Link href={`/classrooms/${params.slug}`} className="btn ghost" style={{ marginTop: 20 }}>
+                Back to classroom
+              </Link>
+            </>
+          )}
+
+          {classroom && live && (
+            <>
+              <p className="sub">
+                <strong style={{ color: "var(--text)" }}>{live.title}</strong> is live now. Join with camera and mic —
+                screen sharing included.
+              </p>
+              <button type="button" onClick={join} disabled={busy} className="btn pri" style={{ marginTop: 20, width: "100%" }}>
+                <Icon name="video" size={16} /> {busy ? "Checking access…" : "Join live classroom"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

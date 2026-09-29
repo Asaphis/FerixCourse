@@ -2,23 +2,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Icon } from "@/components/icons";
-import { Badge, EmptyState, ErrorNote, Field, PageHead, SectionHead, Skeleton, StatusBadge } from "@/components/ui";
+import { Badge, Emp, Err, Ic, Ph, SecHead, Sk, ToastHost, toast } from "@/components/reb-ui";
 import { adminFetch, money, shortDate, slugify } from "@/lib/admin";
 import { useAdmin } from "@/lib/use-admin";
 import type { Course } from "@/lib/admin-types";
 
 /*
-  Course list.
+  Course list — create a course, then open /courses/:id to author its sections,
+  lessons and files. Slug is suggested from the title (still editable), price is
+  entered in naira and stored as kobo.
 
-  Two changes over the previous version:
-    - each course links to /courses/:id, where its sections, lessons and files
-      are authored. Before this, a course could be created and published but
-      never filled with content.
-    - slug is suggested from the title (still editable) instead of being typed
-      from scratch, and currency is sent explicitly rather than left implicit.
-      The price field now takes the major unit a human thinks in, and the API
-      stores kobo.
+  The Products screen shows the same courses next to classrooms; this screen is
+  the authoring entry point.
 */
 
 const EMPTY = {
@@ -33,7 +28,7 @@ export default function CoursesPage() {
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
-  const [msg, setMsg] = useState("");
+  const [openForm, setOpenForm] = useState(true);
 
   const courses = useAdmin<Course[]>("/admin/courses");
   const rows = courses.data ?? [];
@@ -41,7 +36,6 @@ export default function CoursesPage() {
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    setMsg("");
     setBusy("create");
     try {
       await adminFetch("/admin/courses", {
@@ -56,8 +50,9 @@ export default function CoursesPage() {
         }),
       });
       setForm(EMPTY);
+      setOpenForm(false);
       courses.reload();
-      setMsg("Course created. Open it to add sections, lessons and files.");
+      toast("Course created — open it to add sections and lessons");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Could not create the course.");
     } finally {
@@ -67,7 +62,6 @@ export default function CoursesPage() {
 
   async function toggle(c: Course) {
     setErr("");
-    setMsg("");
     setBusy(`toggle-${c.id}`);
     try {
       await adminFetch(`/admin/courses/${c.id}`, {
@@ -75,7 +69,7 @@ export default function CoursesPage() {
         body: JSON.stringify({ is_published: !c.is_published }),
       });
       courses.reload();
-      setMsg(c.is_published ? "Course unpublished and hidden from the catalog." : "Course published to the catalog.");
+      toast(c.is_published ? "Course unpublished and hidden from the catalog" : "Course published to the catalog");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Could not update the course.");
     } finally {
@@ -85,110 +79,138 @@ export default function CoursesPage() {
 
   return (
     <Shell>
-      <PageHead
+      <Ph
         title="Courses"
         sub="Create courses, author their lessons and files, and control what appears in the catalog."
         actions={
-          <button type="button" className="ad-btn ad-btn-ghost" onClick={() => courses.reload()}>
-            <Icon name="refresh" size={14} /> Refresh
-          </button>
+          <>
+            <button type="button" className="reb-btn ghost sm" onClick={() => setOpenForm((v) => !v)}>
+              <Ic name={openForm ? "x" : "plus"} size={14} /> {openForm ? "Close" : "New course"}
+            </button>
+            <button type="button" className="reb-btn ghost sm" onClick={() => courses.reload()}>
+              <Ic name="refresh" size={14} /> Refresh
+            </button>
+          </>
         }
       />
 
-      {err ? <ErrorNote message={err} onRetry={() => setErr("")} /> : null}
-      {msg ? (
-        <div className="ad-alert ad-alert-ok" role="status">
-          <Icon name="check" size={17} />
-          <span>{msg}</span>
-        </div>
+      {err ? <Err msg={err} onRetry={() => setErr("")} /> : null}
+
+      {openForm ? (
+        <section className="reb-card" style={{ marginBottom: 18 }}>
+          <SecHead icon="plus" title="New course" />
+          <form onSubmit={create} style={{ display: "grid", gap: 12 }}>
+            <div className="kgrid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+              <div className="field">
+                <label className="kind" htmlFor="nc-title">
+                  Title
+                </label>
+                <input
+                  id="nc-title"
+                  className="reb-input"
+                  required
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.slug || slugify(e.target.value) })}
+                  placeholder="Frontend Engineering Fundamentals"
+                />
+              </div>
+              <div className="field">
+                <label className="kind" htmlFor="nc-slug">
+                  Slug
+                </label>
+                <input
+                  id="nc-slug"
+                  className="reb-input"
+                  required
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
+                  placeholder="frontend-engineering-fundamentals"
+                />
+                <span className="hint">Used in the public URL.</span>
+              </div>
+              <div className="field">
+                <label className="kind" htmlFor="nc-level">
+                  Level
+                </label>
+                <select
+                  id="nc-level"
+                  className="select"
+                  value={form.level}
+                  onChange={(e) => setForm({ ...form, level: e.target.value })}
+                >
+                  <option>Beginner</option>
+                  <option>Intermediate</option>
+                  <option>Advanced</option>
+                </select>
+              </div>
+              <div className="field">
+                <label className="kind" htmlFor="nc-price">
+                  Price (NGN)
+                </label>
+                <input
+                  id="nc-price"
+                  className="reb-input"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  placeholder="45000"
+                />
+                <span className="hint">Enter naira — stored as kobo.</span>
+              </div>
+            </div>
+            <div className="field">
+              <label className="kind" htmlFor="nc-desc">
+                Short description
+              </label>
+              <input
+                id="nc-desc"
+                className="reb-input"
+                value={form.short_description}
+                onChange={(e) => setForm({ ...form, short_description: e.target.value })}
+                placeholder="What a learner gets from this course, in one line."
+              />
+            </div>
+            <div>
+              <button type="submit" className="reb-btn pri" disabled={busy === "create"}>
+                <Ic name="plus" size={14} /> {busy === "create" ? "Creating…" : "Create course"}
+              </button>
+            </div>
+          </form>
+        </section>
       ) : null}
 
-      <div className="ad-card">
-        <SectionHead title="New course" />
-        <form onSubmit={create} style={{ display: "grid", gap: 12 }}>
-          <div className="ad-grid ad-grid-2">
-            <Field label="Title" id="ad-nc-title">
-              <input
-                id="ad-nc-title"
-                className="ad-input"
-                required
-                value={form.title}
-                onChange={(e) =>
-                  setForm({ ...form, title: e.target.value, slug: form.slug || slugify(e.target.value) })
-                }
-                placeholder="Frontend Engineering Fundamentals"
-              />
-            </Field>
-            <Field label="Slug" id="ad-nc-slug" hint="Used in the public URL.">
-              <input
-                id="ad-nc-slug"
-                className="ad-input"
-                required
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
-                placeholder="frontend-engineering-fundamentals"
-              />
-            </Field>
-            <Field label="Level" id="ad-nc-level">
-              <select id="ad-nc-level" className="ad-select" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })}>
-                <option>Beginner</option>
-                <option>Intermediate</option>
-                <option>Advanced</option>
-              </select>
-            </Field>
-            <Field label="Price (NGN)" id="ad-nc-price" hint="Enter the amount in naira — stored as kobo.">
-              <input
-                id="ad-nc-price"
-                className="ad-input"
-                type="number"
-                min={0}
-                step="0.01"
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                placeholder="45000"
-              />
-            </Field>
-          </div>
-          <Field label="Short description" id="ad-nc-desc">
-            <input
-              id="ad-nc-desc"
-              className="ad-input"
-              value={form.short_description}
-              onChange={(e) => setForm({ ...form, short_description: e.target.value })}
-              placeholder="What a learner gets from this course, in one line."
-            />
-          </Field>
-          <div>
-            <button type="submit" className="ad-btn ad-btn-primary" disabled={busy === "create"}>
-              <Icon name="plus" size={14} /> {busy === "create" ? "Creating…" : "Create course"}
-            </button>
-          </div>
-        </form>
-      </div>
+      {courses.error ? <Err msg={courses.error} onRetry={courses.reload} /> : null}
 
-      {courses.error ? <ErrorNote message={courses.error} onRetry={courses.reload} /> : null}
-
-      <SectionHead title="All courses" count={rows.length} />
-      {courses.loading && rows.length === 0 ? (
-        <Skeleton height={70} count={4} />
-      ) : rows.length === 0 && !courses.error ? (
-        <EmptyState icon="bookOpen" title="No courses yet" body="Create the first course above, then add its sections and lessons." />
-      ) : (
-        <div className="ad-card ad-card-pad-0">
-          <div className="ad-table-wrap">
-            <table className="ad-table">
-              <caption className="ad-sr-only">All courses</caption>
+      <section className="reb-card">
+        <SecHead icon="bookOpen" title={`All courses · ${rows.length}`} />
+        {courses.loading && rows.length === 0 ? (
+          <Sk h={64} mb={8} />
+        ) : rows.length === 0 && !courses.error ? (
+          <Emp
+            icon="bookOpen"
+            title="No courses yet"
+            note="Create the first course above, then add its sections and lessons."
+            action={
+              <button type="button" className="reb-btn pri sm" onClick={() => setOpenForm(true)}>
+                <Ic name="plus" size={14} /> New course
+              </button>
+            }
+          />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table className="tbl">
+              <caption style={{ display: "none" }}>All courses</caption>
               <thead>
                 <tr>
                   <th scope="col">Course</th>
                   <th scope="col">Level</th>
-                  <th scope="col" className="num">
-                    Price
-                  </th>
+                  <th scope="col">Price</th>
                   <th scope="col">Status</th>
                   <th scope="col">Created</th>
                   <th scope="col">
-                    <span className="ad-sr-only">Actions</span>
+                    <span>Actions</span>
                   </th>
                 </tr>
               </thead>
@@ -196,31 +218,35 @@ export default function CoursesPage() {
                 {rows.map((c) => (
                   <tr key={c.id}>
                     <td>
-                      <Link className="ad-row-title" href={`/courses/${c.id}`}>
+                      <Link href={`/courses/${c.id}`} style={{ fontWeight: 700, color: "inherit" }}>
                         {c.title}
                       </Link>
-                      <span className="ad-row-meta ad-mono">{c.slug}</span>
+                      <span className="hint" style={{ display: "block" }}>
+                        /{c.slug}
+                      </span>
                     </td>
                     <td>
                       <Badge>{c.level}</Badge>
                     </td>
-                    <td className="num">{money(c.price_kobo, c.currency)}</td>
                     <td>
-                      <StatusBadge status={c.is_published ? "published" : "draft"} />
+                      <b>{money(c.price_kobo, c.currency)}</b>
                     </td>
-                    <td className="ad-muted">{shortDate(c.created_at)}</td>
                     <td>
-                      <span className="ad-row-actions">
-                        <Link className="ad-btn ad-btn-ghost ad-btn-sm" href={`/courses/${c.id}`}>
-                          <Icon name="edit" size={13} /> Manage
+                      <Badge tone={c.is_published ? "ok" : ""}>{c.is_published ? "published" : "draft"}</Badge>
+                    </td>
+                    <td className="hint">{shortDate(c.created_at)}</td>
+                    <td>
+                      <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <Link className="reb-btn ghost sm" href={`/courses/${c.id}`}>
+                          <Ic name="edit" size={13} /> Manage
                         </Link>
                         <button
                           type="button"
-                          className="ad-btn ad-btn-ghost ad-btn-sm"
+                          className="reb-btn ghost sm"
                           disabled={busy === `toggle-${c.id}`}
                           onClick={() => toggle(c)}
                         >
-                          <Icon name={c.is_published ? "eye" : "check"} size={13} />
+                          <Ic name={c.is_published ? "eye" : "check"} size={13} />
                           {c.is_published ? "Unpublish" : "Publish"}
                         </button>
                       </span>
@@ -230,8 +256,9 @@ export default function CoursesPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </section>
+      <ToastHost />
     </Shell>
   );
 }

@@ -2,9 +2,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
-import { Icon } from "@/components/icons";
-import { Alert, Avatar, Badge, EmptyState, ErrorNote, PageHead, SectionHead, Skeleton, StatusBadge } from "@/components/ui";
-import { adminFetch, money, shortDate, shortDateTime } from "@/lib/admin";
+import { Badge, Emp, Err, Ic, Ph, SecHead, Sk, ToastHost, toast } from "@/components/reb-ui";
+import { adminFetch, initials, money, shortDate, shortDateTime } from "@/lib/admin";
 import { useAdmin } from "@/lib/use-admin";
 import type { UserDetail } from "@/lib/admin-types";
 
@@ -17,11 +16,14 @@ import type { UserDetail } from "@/lib/admin-types";
     POST   /admin/users/:id/enrollments       grant access to a course or classroom
     DELETE /admin/users/:id/enrollments/:eid  revoke it
     GET    /admin/courses, /admin/classrooms  the pickable products
-
-  The console previously had no learner detail view at all — the list showed
-  rows you could not open, so nothing that exists on the learner side (their
-  enrollments, payments, bookings, submissions) could be inspected or corrected.
 */
+
+function tone(status: string): "" | "ok" | "warn" | "danger" | "info" {
+  if (status === "success" || status === "paid" || status === "active" || status === "solved") return "ok";
+  if (status === "pending" || status === "processing" || status === "open") return "info";
+  if (status === "failed" || status === "disabled" || status === "cancelled") return "danger";
+  return "";
+}
 
 export default function UserDetailPage({ params }: { params: { id: string } }) {
   const id = params.id;
@@ -30,7 +32,6 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
   const classrooms = useAdmin<any[]>("/admin/classrooms");
 
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState("");
   const [grant, setGrant] = useState({ product_type: "course", product_id: "" });
 
@@ -59,11 +60,10 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
   const patch = async (body: Record<string, unknown>, ok: string) => {
     setBusy(Object.keys(body)[0]);
     setError("");
-    setNotice("");
     try {
       await adminFetch(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
       detail.reload();
-      setNotice(ok);
+      toast(ok);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not update this learner.");
     } finally {
@@ -76,7 +76,6 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     if (!grant.product_id) return;
     setBusy("grant");
     setError("");
-    setNotice("");
     try {
       const r = await adminFetch<{ already_enrolled?: boolean }>(`/admin/users/${id}/enrollments`, {
         method: "POST",
@@ -84,7 +83,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
       });
       setGrant({ product_type: grant.product_type, product_id: "" });
       detail.reload();
-      setNotice(r?.already_enrolled ? "They already had access to that." : "Access granted and the learner notified.");
+      toast(r?.already_enrolled ? "They already had access to that" : "Access granted and the learner notified");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not grant access.");
     } finally {
@@ -98,7 +97,7 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
     try {
       await adminFetch(`/admin/users/${id}/enrollments/${enrollmentId}`, { method: "DELETE" });
       detail.reload();
-      setNotice("Access revoked.");
+      toast("Access revoked");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not revoke access.");
     } finally {
@@ -113,124 +112,117 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <Shell>
-      <PageHead
+      <Ph
         title={p?.full_name || p?.email || "Learner"}
         sub={p ? `${p.email} · joined ${shortDate(p.created_at)}` : "Profile, access and payment history."}
         actions={
           <>
-            <Link className="ad-btn ad-btn-ghost" href="/users">
-              <Icon name="arrowLeft" size={14} /> All learners
+            <Link className="reb-btn ghost sm" href="/users">
+              <Ic name="arrowLeft" size={14} /> All learners
             </Link>
-            <button type="button" className="ad-btn ad-btn-ghost" onClick={() => detail.reload()}>
-              <Icon name="refresh" size={14} /> Refresh
+            <button type="button" className="reb-btn ghost sm" onClick={() => detail.reload()}>
+              <Ic name="refresh" size={14} /> Refresh
             </button>
           </>
         }
       />
 
-      {error ? <ErrorNote message={error} onRetry={() => setError("")} /> : null}
-      {notice ? (
-        <Alert tone="ok" icon="check">
-          {notice}
-        </Alert>
-      ) : null}
-      {detail.error ? <ErrorNote message={detail.error} onRetry={detail.reload} /> : null}
-      {detail.loading && !detail.data ? <Skeleton height={140} count={3} /> : null}
+      {error ? <Err msg={error} onRetry={() => setError("")} /> : null}
+      {detail.error ? <Err msg={detail.error} onRetry={detail.reload} /> : null}
+      {detail.loading && !detail.data ? <Sk h={140} mb={10} /> : null}
 
       {detail.data ? (
         <>
-          {/* ---------- identity + moderation ---------- */}
-          <div className="ad-grid ad-grid-3">
-            <div className="ad-card">
+          {/* ---------- identity + moderation + glance ---------- */}
+          <div className="kgrid" style={{ marginBottom: 16 }}>
+            <div className="reb-card">
               <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
-                <Avatar name={p?.full_name || p?.email} />
+                <span className="avatar" style={{ width: 46, height: 46, fontSize: 15 }}>
+                  {initials(p?.full_name || p?.email)}
+                </span>
                 <div style={{ minWidth: 0 }}>
-                  <p className="ad-row-title">{p?.full_name || "—"}</p>
-                  <p className="ad-row-meta">{p?.email}</p>
+                  <p style={{ fontWeight: 800 }}>{p?.full_name || "—"}</p>
+                  <p className="hint">{p?.email}</p>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-                <Badge tone={p?.role === "ADMIN" ? "brand" : "neutral"}>{p?.role}</Badge>
+                <Badge tone={p?.role === "ADMIN" ? "brand" : ""}>{p?.role}</Badge>
                 {p?.is_active ? <Badge tone="ok">Active</Badge> : <Badge tone="danger">Disabled</Badge>}
                 {p?.email_verified ? <Badge tone="ok">Email verified</Badge> : <Badge tone="warn">Unverified</Badge>}
               </div>
             </div>
 
-            <div className="ad-card">
-              <p className="ad-sec-title">Moderation</p>
-              <div className="ad-stack" style={{ marginTop: 12, gap: 10 }}>
-                <button
-                  type="button"
-                  className={`ad-btn ${p?.is_active ? "ad-btn-danger" : "ad-btn-primary"} ad-btn-block`}
-                  disabled={busy === "is_active"}
-                  onClick={() =>
-                    patch(
-                      { is_active: !p?.is_active },
-                      p?.is_active ? "Account disabled and the learner notified." : "Account re-activated."
-                    )
-                  }
+            <div className="reb-card">
+              <SecHead icon="shield" title="Moderation" />
+              <button
+                type="button"
+                className={`reb-btn block ${p?.is_active ? "danger" : "pri"}`}
+                disabled={busy === "is_active"}
+                onClick={() =>
+                  patch(
+                    { is_active: !p?.is_active },
+                    p?.is_active ? "Account disabled and the learner notified" : "Account re-activated"
+                  )
+                }
+              >
+                <Ic name={p?.is_active ? "lock" : "check"} size={14} />
+                {busy === "is_active" ? "Saving…" : p?.is_active ? "Disable account" : "Re-activate account"}
+              </button>
+              <div className="field" style={{ marginTop: 12 }}>
+                <label className="kind" htmlFor="ud-role">
+                  Role
+                </label>
+                <select
+                  id="ud-role"
+                  className="select"
+                  value={p?.role ?? "STUDENT"}
+                  disabled={busy === "role"}
+                  onChange={(e) => patch({ role: e.target.value }, "Role updated")}
                 >
-                  <Icon name={p?.is_active ? "lock" : "check"} size={14} />
-                  {busy === "is_active" ? "Saving…" : p?.is_active ? "Disable account" : "Re-activate account"}
-                </button>
-                <div className="ad-field">
-                  <label className="ad-label" htmlFor="ad-role">
-                    Role
-                  </label>
-                  <select
-                    id="ad-role"
-                    className="ad-select"
-                    value={p?.role ?? "STUDENT"}
-                    disabled={busy === "role"}
-                    onChange={(e) => patch({ role: e.target.value }, "Role updated.")}
-                  >
-                    <option value="STUDENT">Student</option>
-                    <option value="INSTRUCTOR">Instructor</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                  <span className="ad-hint">Promoting to admin grants this console. You cannot demote yourself.</span>
-                </div>
+                  <option value="STUDENT">Student</option>
+                  <option value="INSTRUCTOR">Instructor</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+                <span className="hint">Promoting to admin grants this console. You cannot demote yourself.</span>
               </div>
             </div>
 
-            <div className="ad-card">
-              <p className="ad-sec-title">At a glance</p>
-              <dl className="ad-sm" style={{ display: "grid", gap: 8, marginTop: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <dt className="ad-faint">Courses</dt>
-                  <dd>{(detail.data.courses ?? []).length}</dd>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <dt className="ad-faint">Classrooms</dt>
-                  <dd>{(detail.data.classrooms ?? []).length}</dd>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <dt className="ad-faint">Transactions</dt>
-                  <dd>{(detail.data.transactions ?? []).length}</dd>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <dt className="ad-faint">Bookings</dt>
-                  <dd>{(detail.data.bookings ?? []).length}</dd>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <dt className="ad-faint">Submissions</dt>
-                  <dd>{(detail.data.submissions ?? []).length}</dd>
-                </div>
-              </dl>
+            <div className="reb-card">
+              <SecHead icon="activity" title="At a glance" />
+              <div className="kv">
+                <b>Courses</b>
+                <span>{(detail.data.courses ?? []).length}</span>
+              </div>
+              <div className="kv">
+                <b>Classrooms</b>
+                <span>{(detail.data.classrooms ?? []).length}</span>
+              </div>
+              <div className="kv">
+                <b>Transactions</b>
+                <span>{(detail.data.transactions ?? []).length}</span>
+              </div>
+              <div className="kv">
+                <b>Bookings</b>
+                <span>{(detail.data.bookings ?? []).length}</span>
+              </div>
+              <div className="kv">
+                <b>Submissions</b>
+                <span>{(detail.data.submissions ?? []).length}</span>
+              </div>
             </div>
           </div>
 
           {/* ---------- access ---------- */}
-          <div className="ad-card" style={{ marginTop: 16 }}>
-            <SectionHead title="Grant access" />
+          <section className="reb-card" style={{ marginBottom: 16 }}>
+            <SecHead icon="plus" title="Grant access" />
             <form onSubmit={grantAccess} style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
               <div style={{ flex: "0 1 180px" }}>
-                <label className="ad-label" htmlFor="ad-grant-type">
+                <label className="kind" htmlFor="ud-grant-type">
                   Type
                 </label>
                 <select
-                  id="ad-grant-type"
-                  className="ad-select"
+                  id="ud-grant-type"
+                  className="select"
                   value={grant.product_type}
                   onChange={(e) => setGrant({ product_type: e.target.value, product_id: "" })}
                 >
@@ -239,12 +231,12 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                 </select>
               </div>
               <div style={{ flex: "1 1 260px" }}>
-                <label className="ad-label" htmlFor="ad-grant-product">
+                <label className="kind" htmlFor="ud-grant-product">
                   {grant.product_type === "course" ? "Course" : "Classroom"}
                 </label>
                 <select
-                  id="ad-grant-product"
-                  className="ad-select"
+                  id="ud-grant-product"
+                  className="select"
                   value={grant.product_id}
                   onChange={(e) => setGrant({ ...grant, product_id: e.target.value })}
                 >
@@ -256,57 +248,59 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   ))}
                 </select>
               </div>
-              <button type="submit" className="ad-btn ad-btn-primary" disabled={busy === "grant" || !grant.product_id}>
-                <Icon name="plus" size={14} /> {busy === "grant" ? "Granting…" : "Grant access"}
+              <button type="submit" className="reb-btn pri" disabled={busy === "grant" || !grant.product_id}>
+                <Ic name="plus" size={14} /> {busy === "grant" ? "Granting…" : "Grant access"}
               </button>
             </form>
-          </div>
+          </section>
 
-          <SectionHead title="Access" count={enrollments.length} />
-          {enrollments.length === 0 ? (
-            <EmptyState
-              icon="graduationCap"
-              title="No access yet"
-              body="Grant access above, or wait for the learner to enroll from the catalog."
-            />
-          ) : (
-            <div className="ad-card ad-card-pad-0">
-              <div className="ad-table-wrap">
-                <table className="ad-table">
-                  <caption className="ad-sr-only">Courses and classrooms this learner can access</caption>
+          <section className="reb-card" style={{ marginBottom: 16 }}>
+            <SecHead icon="graduationCap" title={`Access · ${enrollments.length}`} />
+            {enrollments.length === 0 ? (
+              <Emp
+                icon="graduationCap"
+                title="No access yet"
+                note="Grant access above, or wait for the learner to enroll from the catalog."
+              />
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="tbl">
+                  <caption style={{ display: "none" }}>Courses and classrooms this learner can access</caption>
                   <thead>
                     <tr>
                       <th scope="col">Title</th>
                       <th scope="col">Type</th>
                       <th scope="col">Enrolled</th>
                       <th scope="col">
-                        <span className="ad-sr-only">Actions</span>
+                        <span>Actions</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {enrollments.map((e) => (
                       <tr key={e.enrollment_id}>
-                        <td className="ad-row-title">{e.title}</td>
+                        <td>
+                          <b>{e.title}</b>
+                        </td>
                         <td>
                           <Badge tone={e.kind === "Course" ? "info" : "brand"}>{e.kind}</Badge>
                         </td>
-                        <td className="ad-muted">{shortDateTime(e.enrolled_at)}</td>
+                        <td className="hint">{shortDateTime(e.enrolled_at)}</td>
                         <td>
-                          <span className="ad-row-actions">
+                          <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             <Link
-                              className="ad-btn ad-btn-ghost ad-btn-sm"
+                              className="reb-btn ghost sm"
                               href={e.kind === "Course" ? `/courses/${e.id}` : `/classrooms/${e.id}`}
                             >
-                              <Icon name="eye" size={13} /> Manage
+                              <Ic name="eye" size={13} /> Manage
                             </Link>
                             <button
                               type="button"
-                              className="ad-btn ad-btn-ghost ad-btn-sm"
+                              className="reb-btn ghost sm"
                               disabled={busy === `rev-${e.enrollment_id}`}
                               onClick={() => revoke(e.enrollment_id)}
                             >
-                              <Icon name="x" size={13} /> Revoke
+                              <Ic name="x" size={13} /> Revoke
                             </button>
                           </span>
                         </td>
@@ -315,25 +309,23 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </section>
 
           {/* ---------- payments ---------- */}
-          <SectionHead title="Transactions" count={(detail.data.transactions ?? []).length} />
-          {(detail.data.transactions ?? []).length === 0 ? (
-            <EmptyState icon="receipt" title="No transactions" body="Payments this learner makes will appear here." />
-          ) : (
-            <div className="ad-card ad-card-pad-0">
-              <div className="ad-table-wrap">
-                <table className="ad-table">
-                  <caption className="ad-sr-only">This learner's payment history</caption>
+          <section className="reb-card" style={{ marginBottom: 16 }}>
+            <SecHead icon="receipt" title={`Transactions · ${(detail.data.transactions ?? []).length}`} />
+            {(detail.data.transactions ?? []).length === 0 ? (
+              <Emp icon="receipt" title="No transactions" note="Payments this learner makes will appear here." />
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="tbl">
+                  <caption style={{ display: "none" }}>This learner's payment history</caption>
                   <thead>
                     <tr>
                       <th scope="col">Reference</th>
                       <th scope="col">Product</th>
-                      <th scope="col" className="num">
-                        Amount
-                      </th>
+                      <th scope="col">Amount</th>
                       <th scope="col">Status</th>
                       <th scope="col">Date</th>
                     </tr>
@@ -341,64 +333,69 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
                   <tbody>
                     {(detail.data.transactions ?? []).map((t) => (
                       <tr key={t.id}>
-                        <td className="ad-mono">{t.flutterwave_ref || t.id.slice(0, 8)}</td>
+                        <td className="hint">{t.flutterwave_ref || t.id.slice(0, 8)}</td>
                         <td>{t.product_type}</td>
-                        <td className="num">{money(t.amount_kobo, t.currency)}</td>
                         <td>
-                          <StatusBadge status={t.status} />
+                          <b>{money(t.amount_kobo, t.currency)}</b>
                         </td>
-                        <td className="ad-muted">{shortDate(t.created_at)}</td>
+                        <td>
+                          <Badge tone={tone(t.status)}>{t.status}</Badge>
+                        </td>
+                        <td className="hint">{shortDate(t.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </section>
 
           {/* ---------- requests & bookings ---------- */}
-          <div className="ad-split-even" style={{ marginTop: 16 }}>
-            <div>
-              <SectionHead title="Class requests" count={(detail.data.requests ?? []).length} />
+          <div className="grid2">
+            <section className="reb-card">
+              <SecHead icon="clipboard" title={`Class requests · ${(detail.data.requests ?? []).length}`} />
               {(detail.data.requests ?? []).length === 0 ? (
-                <EmptyState icon="clipboard" title="No requests" />
+                <Emp icon="clipboard" title="No requests" note="Training requests this learner sent will appear here." />
               ) : (
-                <div className="ad-card ad-card-pad-0">
+                <div>
                   {(detail.data.requests ?? []).map((r) => (
-                    <div className="ad-row" key={r.id}>
+                    <div key={r.id} className="qa" style={{ display: "flex", gap: 10, alignItems: "center" }}>
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span className="ad-row-title">{r.topic}</span>
-                        <span className="ad-row-meta">{shortDate(r.created_at)}</span>
+                        <b style={{ fontSize: 13 }}>{r.topic}</b>
+                        <span className="hint" style={{ display: "block" }}>
+                          {shortDate(r.created_at)}
+                        </span>
                       </span>
-                      <StatusBadge status={r.status} />
+                      <Badge tone={tone(r.status)}>{r.status}</Badge>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-            <div>
-              <SectionHead title="Bookings" count={(detail.data.bookings ?? []).length} />
+            </section>
+            <section className="reb-card">
+              <SecHead icon="calendarCheck" title={`Bookings · ${(detail.data.bookings ?? []).length}`} />
               {(detail.data.bookings ?? []).length === 0 ? (
-                <EmptyState icon="calendarCheck" title="No bookings" />
+                <Emp icon="calendarCheck" title="No bookings" note="1-on-1 sessions this learner requested will appear here." />
               ) : (
-                <div className="ad-card ad-card-pad-0">
+                <div>
                   {(detail.data.bookings ?? []).map((b) => (
-                    <div className="ad-row" key={b.id}>
+                    <div key={b.id} className="qa" style={{ display: "flex", gap: 10, alignItems: "center" }}>
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span className="ad-row-title">{b.topic}</span>
-                        <span className="ad-row-meta">
+                        <b style={{ fontSize: 13 }}>{b.topic}</b>
+                        <span className="hint" style={{ display: "block" }}>
                           {b.duration_min} min · {shortDate(b.preferred_date)}
                         </span>
                       </span>
-                      <StatusBadge status={b.status} />
+                      <Badge tone={tone(b.status)}>{b.status}</Badge>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </section>
           </div>
         </>
       ) : null}
+      <ToastHost />
     </Shell>
   );
 }
