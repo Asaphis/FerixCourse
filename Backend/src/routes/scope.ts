@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../config/db.js';
 import { requireUser } from '../middleware/requireUser.js';
+import { emit } from '../lib/bus.js';
 
 const q = async (text: string, params: any[] = []) => (await pool.query(text, params)).rows;
 
@@ -78,21 +79,63 @@ scopeRouter.get('/requests/status', requireUser, async (req, res) => {
 });
 
 // ---- Classroom workspace (members only) ----
+
+/** Row → API shape for classroom messages (attachment object, reply context). */
+function cmToApi(row: any) {
+  const { attachment_key, attachment_name, attachment_kind, ...rest } = row;
+  return {
+    ...rest,
+    attachment: attachment_key
+      ? { key: attachment_key, name: attachment_name ?? 'file', kind: attachment_kind ?? 'file', url: `/files/classroom-message/${row.id}` }
+      : null,
+  };
+}
+
+const CM_ENRICH = `
+  select m.id, m.classroom_id, m.body, m.created_at, m.sender_id,
+         p.full_name as sender_name, p.role as sender_role,
+         m.parent_id, pm.body as parent_body, pp.full_name as parent_sender,
+         m.is_issue, m.is_solved,
+         m.attachment_key, m.attachment_name, m.attachment_kind,
+         (select count(*)::int from classroom_reads cr
+           join enrollments e2 on e2.user_id = cr.user_id
+            and e2.product_type = 'classroom' and e2.product_id = m.classroom_id
+          where cr.classroom_id = m.classroom_id
+            and cr.user_id != m.sender_id
+            and cr.last_read_at >= m.created_at) as seen_count
+  from classroom_messages m
+  left join profiles p on p.id = m.sender_id
+  left join classroom_messages pm on pm.id = m.parent_id
+  left join profiles pp on pp.id = pm.sender_id`;
+
+function emitClassroom(classroomId: string, message: any) {
+  emit(`classroom:${classroomId}`, 'classroom-message', { classroom_id: classroomId, message });
+  emit('admin', 'classroom-message', { classroom_id: classroomId, message });
+}
+
 scopeRouter.get('/classrooms/:id/workspace', requireUser, async (req, res) => {
   try {
     const me = (req as any).user.id;
     if (!(await enrolledIn(me, 'classroom', req.params.id))) {
       return res.status(403).json({ error: "You don't have access to this classroom." });
     }
-    const [sessions, materials, announcements, assignments, recordings, messages] = await Promise.all([
+    const [sessions, materials, announcements, assignments, recordings, messages, members] = await Promise.all([
       q('select id, title, starts_at, ends_at, status, recording_status from classroom_sessions where classroom_id = $1 order by starts_at asc', [req.params.id]).catch(() => []),
       q('select id, title, mime, size_bytes from classroom_materials where classroom_id = $1 order by created_at asc', [req.params.id]).catch(() => []),
       q('select * from announcements where classroom_id = $1 order by created_at desc limit 20', [req.params.id]).catch(() => []),
       q('select a.*, (select count(*)::int from submissions s where s.assignment_id = a.id and s.user_id = $2) as submitted from assignments a where a.classroom_id = $1 order by a.created_at desc', [req.params.id, me]).catch(() => []),
       q(`select r.id, r.duration_sec, r.status, s.title as session_title from classroom_recordings r join classroom_sessions s on s.id = r.session_id where s.classroom_id = $1 and r.status = 'ready' order by r.created_at desc`, [req.params.id]).catch(() => []),
-      q(`select m.*, p.full_name as sender_name from classroom_messages m left join profiles p on p.id = m.sender_id where m.classroom_id = $1 order by m.created_at asc limit 100`, [req.params.id]).catch(() => []),
+      q(`${CM_ENRICH} where m.classroom_id = $1 order by m.created_at asc limit 200`, [req.params.id]).catch(() => []),
+      q(`select e.user_id, p.full_name, p.role, (e.user_id = $2) as is_me
+         from enrollments e join profiles p on p.id = e.user_id
+         where e.product_type = 'classroom' and e.product_id = $1
+         order by p.full_name`, [req.params.id, me]).catch(() => []),
     ]);
-    res.json({ sessions, materials, announcements, assignments, recordings, messages });
+    res.json({
+      sessions, materials, announcements, assignments, recordings,
+      messages: messages.map(cmToApi),
+      members,
+    });
   } catch (e: any) {
     res.status(500).json({ error: 'Could not load workspace.' });
   }
@@ -104,14 +147,46 @@ scopeRouter.post('/classrooms/:id/messages', requireUser, async (req, res) => {
     if (!(await enrolledIn(me, 'classroom', req.params.id))) {
       return res.status(403).json({ error: "You don't have access to this classroom." });
     }
-    if (!req.body?.body?.trim()) return res.status(400).json({ error: 'Message is empty.' });
-    const rows = await q('insert into classroom_messages(classroom_id, sender_id, body) values ($1, $2, $3) returning *',
-      [req.params.id, me, req.body.body.trim()]);
-    res.status(201).json(rows[0]);
+    const body = String(req.body?.body ?? '').trim();
+    const att = req.body?.attachment;
+    if (!body && !att?.key) return res.status(400).json({ error: 'Message is empty.' });
+    if (req.body?.parent_id) {
+      const parent = await q('select id from classroom_messages where id = $1 and classroom_id = $2',
+        [req.body.parent_id, req.params.id]);
+      if (!parent[0]) return res.status(400).json({ error: 'Reply target not found in this classroom.' });
+    }
+    const rows = await q(
+      `insert into classroom_messages(classroom_id, sender_id, body, parent_id, is_issue, attachment_key, attachment_name, attachment_kind)
+       values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`,
+      [req.params.id, me, body, req.body?.parent_id ?? null, Boolean(req.body?.is_issue),
+       att?.key ?? null, att?.name ?? null, att?.kind ?? null]);
+    const [enriched] = await q(`${CM_ENRICH} where m.id = $1`, [rows[0].id]);
+    emitClassroom(req.params.id, cmToApi(enriched));
+    res.status(201).json(cmToApi(enriched));
   } catch (e: any) {
     res.status(500).json({ error: 'Could not send message.' });
   }
 });
+
+// POST /scope/classrooms/:id/read — upsert my read marker (seen counts).
+// Both spellings accepted so the frontend path choice cannot drift.
+const markRead = async (req: any, res: any) => {
+  try {
+    const me = req.user.id;
+    if (!(await enrolledIn(me, 'classroom', req.params.id))) {
+      return res.status(403).json({ error: "You don't have access to this classroom." });
+    }
+    await pool.query(
+      `insert into classroom_reads(classroom_id, user_id, last_read_at) values ($1, $2, now())
+       on conflict (classroom_id, user_id) do update set last_read_at = now()`,
+      [req.params.id, me]);
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not mark as read.' });
+  }
+};
+scopeRouter.post('/classrooms/:id/read', requireUser, markRead);
+scopeRouter.post('/classrooms/:id/messages/read', requireUser, markRead);
 
 // ---- Course learn view (purchasers only) ----
 scopeRouter.get('/courses/:id/learn', requireUser, async (req, res) => {

@@ -151,3 +151,39 @@ authRouter.get('/me', requireUser, async (req, res) => {
     res.status(500).json({ error: 'Could not load profile.' });
   }
 });
+
+// PATCH /auth/me — profile page edits (name, phone, preference flags).
+// preferences is a shallow merge into the existing jsonb so two tabs saving
+// different keys don't clobber each other.
+authRouter.patch('/me', requireUser, async (req, res) => {
+  try {
+    const me = (req as any).user.id;
+    const b = req.body ?? {};
+    const sets: string[] = [];
+    const vals: any[] = [];
+    if (b.full_name !== undefined) {
+      const name = String(b.full_name).trim();
+      if (!name) return res.status(400).json({ error: 'Name cannot be empty.' });
+      vals.push(name);
+      sets.push(`full_name = $${vals.length}`);
+    }
+    if (b.phone !== undefined) {
+      vals.push(String(b.phone).trim());
+      sets.push(`phone = $${vals.length}`);
+    }
+    if (b.preferences !== undefined && typeof b.preferences === 'object' && b.preferences !== null) {
+      vals.push(JSON.stringify(b.preferences));
+      sets.push(`preferences = preferences || $${vals.length}::jsonb`);
+    }
+    if (!sets.length) return res.status(400).json({ error: 'Nothing to update.' });
+    vals.push(me);
+    const rows = await q(
+      `update profiles set ${sets.join(', ')} where id = $${vals.length}
+       returning id, email, full_name, role, avatar_url, phone, preferences, is_active, email_verified, created_at`,
+      vals);
+    if (!rows[0]) return res.status(404).json({ error: 'Account not found.' });
+    res.json(rows[0]);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not update profile.', detail: e?.message });
+  }
+});

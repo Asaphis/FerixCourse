@@ -60,6 +60,27 @@ filesRouter.get('/:scope/:id', requireUser, async (req, res) => {
         return res.status(403).json({ error: "You don't have access to this recording." });
       }
       key = rows[0].storage_key;
+    } else if (req.params.scope === 'message') {
+      // Chat attachment: sender, the conversation's student, or staff.
+      const rows = await q('select * from messages where id = $1', [req.params.id]);
+      if (!rows[0]) return res.status(404).json({ error: 'File not found.' });
+      const conv = await q('select student_id from conversations where id = $1', [rows[0].conversation_id]);
+      const prof = await q('select role from profiles where id = $1', [me]);
+      const staff = prof[0]?.role === 'ADMIN' || prof[0]?.role === 'INSTRUCTOR';
+      if (rows[0].sender_id !== me && conv[0]?.student_id !== me && !staff) {
+        return res.status(403).json({ error: "You don't have access to this file." });
+      }
+      if (!rows[0].attachment_key) return res.status(404).json({ error: 'This message has no attachment.' });
+      key = rows[0].attachment_key;
+    } else if (req.params.scope === 'classroom-message') {
+      // Classroom discussion attachment: enrolled member or staff.
+      const rows = await q('select * from classroom_messages where id = $1', [req.params.id]);
+      if (!rows[0]) return res.status(404).json({ error: 'File not found.' });
+      if (!(await enrolled(me, 'classroom', rows[0].classroom_id))) {
+        return res.status(403).json({ error: "You don't have access to this file." });
+      }
+      if (!rows[0].attachment_key) return res.status(404).json({ error: 'This message has no attachment.' });
+      key = rows[0].attachment_key;
     } else {
       return res.status(400).json({ error: 'Unknown file scope.' });
     }

@@ -116,3 +116,127 @@ publicRouter.get('/transactions/mine', requireUser, async (req, res) => {
     res.status(500).json({ error: 'Could not load transactions.', detail: e?.message });
   }
 });
+
+/*
+  GET /api/dashboard/summary — the learner board in one honest request.
+
+  Every number comes from real tables (enrollments, lesson_progress,
+  classroom_sessions, messages, notifications). Empty account → zeros and
+  nulls, never fixtures.
+*/
+publicRouter.get('/dashboard/summary', requireUser, async (req, res) => {
+  try {
+    const me = (req as any).user.id;
+
+    const [meRows, stats, courses, upNext, recent] = await Promise.all([
+      q('select full_name from profiles where id = $1', [me]),
+      q(
+        `select
+           (select count(*)::int from classroom_sessions s
+              join enrollments e on e.product_type='classroom' and e.product_id = s.classroom_id and e.user_id = $1
+              where s.status = 'live') as live_now,
+           (select count(*)::int from messages m join conversations c on c.id = m.conversation_id
+              where c.student_id = $1 and m.sender_id != $1 and m.is_read = false) as unread,
+           (select count(*)::int from (
+              select distinct on (m.conversation_id) m.conversation_id, m.sender_id
+              from messages m join conversations c on c.id = m.conversation_id
+              where c.student_id = $1
+              order by m.conversation_id, m.created_at desc
+            ) last where last.sender_id = $1) as awaiting_reply,
+           (select count(*)::int from enrollments where user_id = $1 and product_type = 'classroom') as classes_total,
+           (select count(*)::int from enrollments where user_id = $1 and product_type = 'course') as courses_total`,
+        [me]
+      ),
+      // Course with the most recent progress (else latest enrollment).
+      q(
+        `select c.id as course_id, c.title as course_title, c.slug as course_slug,
+                (select count(*)::int from lesson_progress lp
+                   join lessons l on l.id = lp.lesson_id
+                   join course_sections s on s.id = l.section_id
+                  where s.course_id = c.id and lp.user_id = $1 and lp.completed) as done,
+                (select count(*)::int from lessons l join course_sections s on s.id = l.section_id
+                  where s.course_id = c.id) as total,
+                (select max(lp.updated_at) from lesson_progress lp
+                   join lessons l on l.id = lp.lesson_id
+                   join course_sections s on s.id = l.section_id
+                  where s.course_id = c.id and lp.user_id = $1) as last_at
+           from enrollments e join courses c on c.id = e.product_id
+          where e.user_id = $1 and e.product_type = 'course'
+          order by last_at desc nulls last, e.created_at desc`,
+        [me]
+      ).catch(() => []),
+      q(
+        `select s.id as session_id, s.classroom_id, c.title as classroom_title, c.slug as classroom_slug,
+                s.title, s.starts_at, (s.status = 'live') as live
+           from classroom_sessions s
+           join classrooms c on c.id = s.classroom_id
+           join enrollments e on e.product_type = 'classroom' and e.product_id = c.id and e.user_id = $1
+          where s.status = 'live'
+             or (s.status = 'scheduled' and s.starts_at is not null and s.starts_at >= now() - interval '30 minutes')
+          order by (s.status = 'live') desc, coalesce(s.starts_at, now()) asc
+          limit 5`,
+        [me]
+      ).catch(() => []),
+      q('select id, type, title, body, is_read, created_at from notifications where user_id = $1 order by created_at desc limit 8', [me])
+        .catch(() => []),
+    ]);
+
+    // continue_learning: prefer a course that is started but unfinished.
+    let cont: any = null;
+    const pick = courses.find((c: any) => c.total > 0 && c.done > 0 && c.done < c.total)
+      ?? courses.find((c: any) => c.total > 0);
+    if (pick) {
+      const lessons = await q(
+        `select l.title, coalesce(lp.completed, false) as completed
+           from lessons l
+           join course_sections s on s.id = l.section_id
+           left join lesson_progress lp on lp.lesson_id = l.id and lp.user_id = $2
+          where s.course_id = $1
+          order by s.position, l.position`,
+        [pick.course_id, me]).catch(() => []);
+      if (lessons.length) {
+        const done = lessons.filter((l: any) => l.completed).length;
+        const next = lessons.find((l: any) => !l.completed);
+        cont = {
+          course_id: pick.course_id,
+          course_title: pick.course_title,
+          course_slug: pick.course_slug,
+          lesson_title: next?.title ?? lessons[lessons.length - 1].title,
+          progress_pct: Math.round((done / lessons.length) * 100),
+          lessons_done: done,
+          lessons_total: lessons.length,
+        };
+      }
+    }
+
+    const LINKS: Record<string, string> = {
+      live: '/classes',
+      request_update: '/request',
+      request_converted: '/request',
+      booking_update: '/book',
+      booking_price: '/book',
+      enrollment: '/my-courses',
+      material: '/my-courses',
+      feedback: '/my-courses',
+    };
+
+    const s = stats[0] ?? {};
+    const now = new Date();
+    res.json({
+      first_name: (meRows[0]?.full_name ?? '').split(' ')[0] || 'there',
+      date_label: now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
+      stats: {
+        live_now: s.live_now ?? 0,
+        awaiting_reply: s.awaiting_reply ?? 0,
+        unread: s.unread ?? 0,
+        classes_total: s.classes_total ?? 0,
+        courses_total: s.courses_total ?? 0,
+      },
+      continue_learning: cont,
+      up_next: upNext,
+      recent: recent.map((n: any) => ({ ...n, link: LINKS[n.type] ?? '/notifications' })),
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Could not load your board.', detail: e?.message });
+  }
+});

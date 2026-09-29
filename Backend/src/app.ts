@@ -14,6 +14,7 @@ import { liveRouter } from './routes/live.js';
 import { filesRouter } from './routes/files.js';
 import { scopeRouter } from './routes/scope.js';
 import { authRouter } from './routes/auth.js';
+import { userStreamRouter, adminStreamRouter } from './routes/stream.js';
 
 export function createApp() {
   const app = express();
@@ -29,9 +30,12 @@ export function createApp() {
   // Mounted after adminRouter; both are behind requireAdmin and the paths do
   // not overlap.
   app.use('/admin', adminOpsRouter);
+  // SSE event streams (must be mounted where /admin and /messages resolve).
+  app.use('/admin', adminStreamRouter);
   app.use('/requests', requestsRouter);
   app.use('/bookings', bookingsRouter);
   app.use('/messages', messagesRouter);
+  app.use('/messages', userStreamRouter);
   app.use('/notifications', notificationsRouter);
   // Public catalog and authenticated learner summaries. Keep /public as a
   // compatibility alias for older deployments while the frontend uses /api.

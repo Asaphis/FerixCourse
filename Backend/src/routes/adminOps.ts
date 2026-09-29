@@ -5,6 +5,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { pool } from '../config/db.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { notify } from '../lib/notify.js';
+import { emit } from '../lib/bus.js';
 
 /*
   Admin operations that the console needs in order to actually *manage* what a
@@ -461,39 +462,67 @@ adminOpsRouter.post('/classrooms/:id/members', async (req, res) => {
   }
 });
 
-/** GET /admin/classrooms/:id/messages — the room's discussion, as learners see it. */
+/** GET /admin/classrooms/:id/messages — the room's discussion, same rich shape
+ *  learners see (replies, issue/solved flags, attachments, seen counts) so the
+ *  manage screen can render the thread without a second code path. */
 adminOpsRouter.get('/classrooms/:id/messages', async (req, res) => {
   try {
     const rows = await q(
-      `select m.id, m.body, m.created_at, m.sender_id,
-              p.full_name as sender_name, p.email as sender_email, p.role as sender_role
-       from classroom_messages m left join profiles p on p.id = m.sender_id
-       where m.classroom_id = $1 order by m.created_at asc limit 200`,
+      `select m.id, m.body, m.created_at, m.sender_id, m.parent_id, m.is_issue, m.is_solved,
+              m.attachment_key, m.attachment_name, m.attachment_kind,
+              p.full_name as sender_name, p.email as sender_email, p.role as sender_role,
+              pm.body as parent_body, pp.full_name as parent_sender,
+              (select count(*)::int from classroom_reads cr
+                join enrollments e2 on e2.user_id = cr.user_id
+                 and e2.product_type = 'classroom' and e2.product_id = m.classroom_id
+               where cr.classroom_id = m.classroom_id
+                 and cr.user_id != m.sender_id
+                 and cr.last_read_at >= m.created_at) as seen_count
+         from classroom_messages m
+         left join profiles p on p.id = m.sender_id
+         left join classroom_messages pm on pm.id = m.parent_id
+         left join profiles pp on pp.id = pm.sender_id
+        where m.classroom_id = $1 order by m.created_at asc limit 200`,
       [req.params.id]
     );
-    res.json(rows);
+    res.json(rows.map((r: any) => {
+      const { attachment_key, attachment_name, attachment_kind, ...rest } = r;
+      return {
+        ...rest,
+        attachment: attachment_key
+          ? { key: attachment_key, name: attachment_name ?? 'file', kind: attachment_kind ?? 'file', url: `/files/classroom-message/${r.id}` }
+          : null,
+      };
+    }));
   } catch (e: any) {
     fail(res, 'Could not load the classroom discussion.', e);
   }
 });
 
 /**
- * POST /admin/classrooms/:id/messages { body, notify? }
- * Writes into the same thread learners read in their Discuss tab. Notifications
- * are opt-in here (a chat message is not an announcement) — use
- * POST /admin/announcements to broadcast.
+ * POST /admin/classrooms/:id/messages { body, parent_id?, is_issue?, attachment?, notify? }
+ * Writes into the same thread learners read in their Discuss tab (threaded,
+ * with attachments, exactly like a member's post). Notifications are opt-in
+ * here (a chat message is not an announcement) — use POST /admin/announcements
+ * to broadcast.
  */
 adminOpsRouter.post('/classrooms/:id/messages', async (req, res) => {
   try {
     const body = String(req.body?.body ?? '').trim();
-    if (!body) return res.status(400).json({ error: 'Message is empty.' });
+    const att = req.body?.attachment;
+    if (!body && !att?.key) return res.status(400).json({ error: 'Message is empty.' });
     const [room] = await q(`select id, title from classrooms where id = $1`, [req.params.id]);
     if (!room) return res.status(404).json({ error: 'Classroom not found.' });
 
     const rows = await q(
-      `insert into classroom_messages(classroom_id, sender_id, body) values ($1, $2, $3) returning *`,
-      [req.params.id, adminId(req), body]
+      `insert into classroom_messages(classroom_id, sender_id, body, parent_id, is_issue, attachment_key, attachment_name, attachment_kind)
+       values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`,
+      [req.params.id, adminId(req), body, req.body?.parent_id ?? null, Boolean(req.body?.is_issue),
+       att?.key ?? null, att?.name ?? null, att?.kind ?? null]
     );
+
+    emit(`classroom:${req.params.id}`, 'classroom-message', { classroom_id: req.params.id, message: rows[0] });
+    emit('admin', 'classroom-message', { classroom_id: req.params.id, message: rows[0] });
 
     let notified = 0;
     if (req.body?.notify) {
@@ -509,6 +538,35 @@ adminOpsRouter.post('/classrooms/:id/messages', async (req, res) => {
     res.status(201).json({ ...rows[0], notified });
   } catch (e: any) {
     fail(res, 'Could not send the message.', e);
+  }
+});
+
+/**
+ * PATCH /admin/classrooms/:id/messages/:mid { is_solved } — the instructor
+ * closes a learner-reported issue in the Discuss tab.
+ */
+adminOpsRouter.patch('/classrooms/:id/messages/:mid', async (req, res) => {
+  try {
+    if (req.body?.is_solved === undefined) {
+      return res.status(400).json({ error: 'is_solved is required.' });
+    }
+    const rows = await q(
+      `update classroom_messages set is_solved = $1
+        where id = $2 and classroom_id = $3 and is_issue = true
+        returning *`,
+      [Boolean(req.body.is_solved), req.params.mid, req.params.id]
+    );
+    if (!rows[0]) {
+      const [anyRow] = await q('select id from classroom_messages where id = $1 and classroom_id = $2',
+        [req.params.mid, req.params.id]);
+      if (!anyRow) return res.status(404).json({ error: 'Message not found.' });
+      return res.status(400).json({ error: 'Only issue messages can be marked solved.' });
+    }
+    emit(`classroom:${req.params.id}`, 'classroom-message', { classroom_id: req.params.id, message: rows[0] });
+    emit('admin', 'classroom-message', { classroom_id: req.params.id, message: rows[0] });
+    res.json(rows[0]);
+  } catch (e: any) {
+    fail(res, 'Could not update the message.', e);
   }
 });
 
