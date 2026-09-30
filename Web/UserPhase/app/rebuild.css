@@ -346,13 +346,13 @@
   background: linear-gradient(135deg, #14b8a6, #0e7490);
 }
 .reb .avatar.ind {
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  background: linear-gradient(135deg, #fdba74, #f97316);
 }
 .reb .avatar.rose {
   background: linear-gradient(135deg, #fb7185, #e11d48);
 }
 .reb .avatar.plum {
-  background: linear-gradient(135deg, #c084fc, #7e22ce);
+  background: linear-gradient(135deg, #fbbf24, #b45309);
 }
 .reb .avatar.olive {
   background: linear-gradient(135deg, #a3e635, #4d7c0f);
@@ -1379,7 +1379,7 @@
   box-shadow: 0 12px 26px -14px rgba(249, 115, 22, 0.9);
 }
 .reb .cont-cover.ind {
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  background: linear-gradient(135deg, #fdba74, #f97316);
 }
 .reb .cont-cover.teal {
   background: linear-gradient(135deg, #14b8a6, #0e7490);
@@ -2465,7 +2465,7 @@
   font-size: 21px;
 }
 .reb .camtile .ava.ind {
-  background: linear-gradient(135deg, #818cf8, #6366f1);
+  background: linear-gradient(135deg, #fdba74, #f97316);
 }
 .reb .camtile .ava.teal {
   background: linear-gradient(135deg, #14b8a6, #0e7490);
@@ -2477,7 +2477,7 @@
   background: linear-gradient(135deg, #a3e635, #4d7c0f);
 }
 .reb .camtile .ava.plum {
-  background: linear-gradient(135deg, #c084fc, #7e22ce);
+  background: linear-gradient(135deg, #fbbf24, #b45309);
 }
 .reb .camtile .cname {
   position: absolute;

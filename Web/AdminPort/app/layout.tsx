@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./console.css";
 import "./rebuild.css";
+import "./fix.css";
 
 export const metadata: Metadata = {
   title: "FerixCourse Admin",
