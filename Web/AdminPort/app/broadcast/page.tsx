@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getBroadcasts, post, shortDateTime } from "@/lib/admin";
 import type { BroadcastAudience, BroadcastRow } from "@/lib/admin-types";
 import { Badge, Emp, Err, Ic, Ph, SecHead, SkList, toast, ToastHost } from "@/components/reb-ui";
+import { Shell } from "@/components/shell";
 
 /*
   Broadcast — one message to a real audience. POST /admin/broadcast writes a
@@ -71,7 +72,7 @@ export default function BroadcastPage() {
   const chosen = AUDIENCES.find((a) => a.value === audience)!;
 
   return (
-    <>
+    <Shell>
       <Ph title="Broadcast" sub="Send one message to a real audience. Everyone gets it in-app, and by email when configured." />
 
       {error ? <Err msg={error} onRetry={() => void load()} /> : null}
@@ -153,6 +154,6 @@ export default function BroadcastPage() {
         </section>
       </div>
       <ToastHost />
-    </>
+    </Shell>
   );
 }

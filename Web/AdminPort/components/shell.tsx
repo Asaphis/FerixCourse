@@ -80,14 +80,6 @@ function isCurrent(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Screens not part of the rebuild: they render inside console.css's `.ad`. */
-function isLegacyScreen(pathname: string): boolean {
-  if (pathname === "/notifications") return true;
-  if (pathname === "/courses" || pathname.startsWith("/courses/")) return true;
-  if (/^\/users\/.+/.test(pathname)) return true;
-  return false;
-}
-
 const STATUS_COPY: Record<LiveStatus, { text: string; tone: string; dot: string }> = {
   idle: { text: "Live feed idle", tone: "warn", dot: "warn" },
   connecting: { text: "Connecting to live feed…", tone: "warn", dot: "warn" },
@@ -227,15 +219,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const displayName = me.data?.full_name || me.data?.email || "Admin";
   const statusInfo = STATUS_COPY[status];
 
-  const content = isLegacyScreen(pathname) ? (
-    <div className="ad" data-theme={theme} style={{ minHeight: "100%" }}>
-      <div className="ad-content" tabIndex={-1}>
-        <div className="ad-content-inner">{children}</div>
-      </div>
-    </div>
-  ) : (
-    children
-  );
+  /* Every screen is on the rebuild design now — no legacy `.ad` wrapper. */
+  const content = children;
 
   return (
     <div className="reb" data-theme={hydrated ? theme : "dark"}>

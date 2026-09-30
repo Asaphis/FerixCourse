@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin";
 import type { CategoryRow, ProductInput, ProductRow } from "@/lib/admin-types";
 import { Badge, Emp, Err, Ic, Modal, Ph, SkList, toast, ToastHost } from "@/components/reb-ui";
+import { Shell } from "@/components/shell";
 
 /*
   Products — one list across courses and classrooms (GET /admin/products), the
@@ -97,7 +98,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <>
+    <Shell>
       <Ph
         title="Products"
         sub="Courses and live cohorts in one place. Publish state here is what learners see in the catalog."
@@ -378,6 +379,6 @@ export default function ProductsPage() {
         )}
       </Modal>
       <ToastHost />
-    </>
+    </Shell>
   );
 }

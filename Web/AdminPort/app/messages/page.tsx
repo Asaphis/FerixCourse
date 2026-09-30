@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin";
 import type { ConversationRow, MessageRow } from "@/lib/admin-types";
 import { Emp, Err, Ic, Ph, Sk, toast, ToastHost } from "@/components/reb-ui";
+import { Shell } from "@/components/shell";
 import { subscribeAdminEvents } from "@/lib/live-events";
 
 /*
@@ -150,7 +151,7 @@ export default function InboxPage() {
   const unreadTotal = convs.reduce((n, c) => n + (Number(c.unread) || 0), 0);
 
   return (
-    <>
+    <Shell>
       <Ph
         title="Inbox"
         sub={unreadTotal ? `${unreadTotal} unread across ${convs.length} conversations` : `${convs.length} conversations`}
@@ -166,7 +167,7 @@ export default function InboxPage() {
       <div
         className="msgpage"
         data-open={activeId ? "1" : "0"}
-        style={{ height: "calc(100vh - 200px)", borderRadius: "var(--r4)", border: "1px solid var(--border)", overflow: "hidden" }}
+        style={{ borderRadius: "var(--r4)", border: "1px solid var(--border)", overflow: "hidden" }}
       >
         <div className="msglist">
           <div className="mlhead">
@@ -335,6 +336,6 @@ export default function InboxPage() {
         </div>
       </div>
       <ToastHost />
-    </>
+    </Shell>
   );
 }

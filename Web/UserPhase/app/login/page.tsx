@@ -43,14 +43,14 @@ export default function LoginPage() {
     <AuthFrame title="Welcome back" sub="Log in to rejoin your classrooms.">
       <AuthWarn />
       <AuthError msg={err} />
-      {notice && <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">{notice}</p>}
+      {notice && <p className="alert ok mt-4" role="status">{notice}</p>}
       <form onSubmit={submit} className="mt-6 space-y-3.5">
         <label className="block text-[13px] font-medium">Email<input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" placeholder="you@example.com" className={inputCls} /></label>
         <label className="block text-[13px] font-medium">Password<input value={pw} onChange={(e) => setPw(e.target.value)} required type="password" placeholder="Your password" className={inputCls} /></label>
         <div className="flex justify-end">
           <Link href="/forgot-password" className="text-[12.5px] font-semibold text-slate-400 hover:text-white">Forgot password?</Link>
         </div>
-        <button disabled={busy} className="btn-aurora group flex w-full items-center justify-center gap-1.5 rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50">
+        <button disabled={busy} className="btn pri w-full">
           {busy ? "Logging in…" : <>Log in <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" /></>}
         </button>
       </form>

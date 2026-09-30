@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getReports, money } from "@/lib/admin";
 import type { ReportsData } from "@/lib/admin-types";
 import { Badge, Emp, Err, Ic, Ph, SecHead, SkList } from "@/components/reb-ui";
+import { Shell } from "@/components/shell";
 
 /*
   Reports — twelve months of real aggregates from GET /admin/reports. Charts are
@@ -78,7 +79,7 @@ export default function ReportsPage() {
   }, [load]);
 
   return (
-    <>
+    <Shell>
       <Ph
         title="Reports"
         sub={data ? `Last 12 months · from ${new Date(data.range.from).toLocaleDateString()}` : "Last 12 months of real activity."}
@@ -177,6 +178,6 @@ export default function ReportsPage() {
           </section>
         </>
       )}
-    </>
+    </Shell>
   );
 }

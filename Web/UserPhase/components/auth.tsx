@@ -1,10 +1,16 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, GraduationCap, ShieldCheck, Video, Infinity as InfinityIcon } from "lucide-react";
-import { AuroraCanvas } from "./fx";
+import { ArrowLeft, GraduationCap, ShieldCheck, Video, Infinity as InfinityIcon, AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { apiConfigured } from "@/lib/auth";
 
-export const inputCls = "mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none transition placeholder:text-slate-600 focus:border-rose-400/60";
+/*
+  Auth stack frame — rebuilt on the design tokens used everywhere else
+  (`.reb` scope, `--surface` cards, `.btn`/`.input`/`.alert` primitives, Archivo
+  display type, ember gradients). The wrapper overrides the shell's fixed
+  `.reb` positioning inline so a plain scrollable auth page falls out of it.
+*/
+
+export const inputCls = "input mt-1.5";
 
 export function AuthFrame({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   const router = useRouter();
@@ -13,51 +19,136 @@ export function AuthFrame({ title, sub, children }: { title: string; sub: string
     else router.push("/");
   };
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-stone-950 px-4 py-10">
-      <AuroraCanvas variant="hero" />
-      <div className="grain absolute inset-0" />
-      <div className="relative grid w-full max-w-4xl overflow-hidden rounded-[28px] border border-white/10 bg-stone-900/80 shadow-[0_50px_120px_-30px_rgba(2,4,10,.95)] backdrop-blur-xl md:grid-cols-2">
-        <div className="relative hidden flex-col justify-between overflow-hidden p-9 md:flex">
-          <AuroraCanvas variant="dense" />
-          <p className="relative flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 via-rose-500 to-amber-400"><GraduationCap size={18} className="text-white" /></span>
-            <span className="font-display text-lg font-bold">FerixCourse</span>
+    <div
+      className="reb"
+      data-theme="dark"
+      style={{
+        position: "relative",
+        inset: "auto",
+        height: "auto",
+        minHeight: "100vh",
+        overflow: "auto",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "36px 16px",
+        background:
+          "radial-gradient(900px 420px at 12% -8%, rgba(249,115,22,.10), transparent 60%), radial-gradient(760px 420px at 92% 4%, rgba(225,29,72,.08), transparent 55%), var(--bg)",
+      }}
+    >
+      <div
+        className="w-full max-w-4xl md:grid md:grid-cols-2"
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r5)",
+          overflow: "hidden",
+          boxShadow: "var(--shadow)",
+        }}
+      >
+        {/* value panel — wide screens only */}
+        <div
+          className="hidden md:flex"
+          style={{
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: 34,
+            background: "var(--surface2)",
+            borderRight: "1px solid var(--border)",
+          }}
+        >
+          <p
+            className="flex items-center gap-2.5"
+            style={{ fontWeight: 800, fontFamily: "var(--font-d, Archivo, sans-serif)", fontSize: 17, color: "var(--text)" }}
+          >
+            <span
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 10,
+                display: "grid",
+                placeItems: "center",
+                background: "linear-gradient(135deg, #f97316, #e11d48)",
+                color: "#fff",
+              }}
+              aria-hidden="true"
+            >
+              <GraduationCap size={17} />
+            </span>
+            Ferix<span style={{ color: "var(--brand-text)" }}>Course</span>
           </p>
-          <div className="relative">
-            <p className="font-display text-[26px] font-bold leading-tight">One account.<br />Every classroom.</p>
-            <ul className="mt-6 space-y-3 text-[13.5px] text-slate-300">
+          <div>
+            <p
+              style={{
+                fontFamily: "var(--font-d, Archivo, sans-serif)",
+                fontSize: 25,
+                fontWeight: 800,
+                lineHeight: 1.2,
+                letterSpacing: "-0.02em",
+                color: "var(--text)",
+              }}
+            >
+              One account.
+              <br />
+              Every classroom.
+            </p>
+            <ul style={{ marginTop: 22, display: "grid", gap: 12, fontSize: 13.5, color: "var(--muted)", listStyle: "none", padding: 0 }}>
               {[
                 [Video, "Join live cohorts with real instructors"],
                 [InfinityIcon, "Keep every session recording"],
                 [ShieldCheck, "Verified, secure payments"],
               ].map(([Icon, t]: any) => (
-                <li key={t} className="flex items-center gap-2.5"><Icon size={15} className="text-rose-300" /> {t}</li>
+                <li key={t} className="flex items-center gap-2.5">
+                  <Icon size={15} style={{ color: "var(--brand-text)", flexShrink: 0 }} /> {t}
+                </li>
               ))}
             </ul>
           </div>
-          <p className="relative text-[12px] text-slate-400">Learn technology. Ship real software.</p>
+          <p style={{ fontSize: 12, color: "var(--faint)" }}>Learn technology. Ship real software.</p>
         </div>
-        <div className="relative p-8 sm:p-10">
-          <button onClick={back} className="group mb-5 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2 text-[12.5px] font-semibold text-slate-300 transition hover:border-white/25 hover:text-white">
-            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" /> Back
+
+        {/* form panel */}
+        <div className="p-6 sm:p-9">
+          <button type="button" onClick={back} className="btn ghost sm" style={{ marginBottom: 18 }}>
+            <ArrowLeft size={14} /> Back
           </button>
-          <h1 className="font-display text-[26px] font-bold tracking-tight">{title}</h1>
-          <p className="mt-1.5 text-sm text-slate-400">{sub}</p>
+          <h1
+            style={{
+              fontFamily: "var(--font-d, Archivo, sans-serif)",
+              fontSize: 26,
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              color: "var(--text)",
+            }}
+          >
+            {title}
+          </h1>
+          <p style={{ marginTop: 6, fontSize: 14, color: "var(--muted)" }}>{sub}</p>
           {children}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
 export function AuthError({ msg }: { msg: string }) {
   if (!msg) return null;
-  return <p className="mt-4 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-2.5 text-[13px] text-rose-200">{msg}</p>;
+  return (
+    <p className="alert danger" role="alert" style={{ marginTop: 16, marginBottom: 0 }}>
+      <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>{msg}</span>
+    </p>
+  );
 }
 
 export function AuthOk({ msg }: { msg: string }) {
   if (!msg) return null;
-  return <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">{msg}</p>;
+  return (
+    <p className="alert ok" role="status" style={{ marginTop: 16, marginBottom: 0 }}>
+      <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>{msg}</span>
+    </p>
+  );
 }
 
 export function safeNext(fallback = "/dashboard"): string {
@@ -65,7 +156,13 @@ export function safeNext(fallback = "/dashboard"): string {
   const n = new URLSearchParams(window.location.search).get("next");
   return n && n.startsWith("/") && !n.startsWith("//") ? n : fallback;
 }
+
 export function AuthWarn() {
   if (apiConfigured()) return null;
-  return <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3.5 py-2.5 text-[12px] text-amber-200">API URL is not configured. Add NEXT_PUBLIC_API_URL to .env.local.</p>;
+  return (
+    <p className="alert info" style={{ marginTop: 16, marginBottom: 0, fontSize: 12 }}>
+      <Info size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span>API URL is not configured. Add NEXT_PUBLIC_API_URL to .env.local.</span>
+    </p>
+  );
 }

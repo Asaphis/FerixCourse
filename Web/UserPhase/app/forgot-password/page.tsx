@@ -30,7 +30,7 @@ export default function ForgotPage() {
       <AuthOk msg={ok} />
       <form onSubmit={submit} className="mt-6 space-y-3.5">
         <label className="block text-[13px] font-medium">Email<input value={email} onChange={(e) => setEmail(e.target.value)} required type="email" placeholder="you@example.com" className={inputCls} /></label>
-        <button disabled={busy} className="btn-aurora w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50">
+        <button disabled={busy} className="btn pri w-full">
           {busy ? "Sending…" : "Send reset link"}
         </button>
       </form>

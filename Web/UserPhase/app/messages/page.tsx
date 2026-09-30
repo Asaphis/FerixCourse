@@ -203,7 +203,7 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div className="msgpage" data-open={activeId ? "1" : "0"} style={{ height: "calc(100vh - 210px)", borderRadius: "var(--r4)", border: "1px solid var(--border)", overflow: "hidden" }}>
+      <div className="msgpage" data-open={activeId ? "1" : "0"} style={{ borderRadius: "var(--r4)", border: "1px solid var(--border)", overflow: "hidden" }}>
         {/* ---- Conversation list ---- */}
         <div className="msglist">
           <div className="mlhead">

@@ -37,9 +37,11 @@ export default function ResetPasswordPage() {
     <AuthFrame title="Set new password" sub="Choose a fresh password for your account.">
       <AuthError msg={err} />
       {!token ? (
-        <p className="mt-6 rounded-xl border border-white/10 bg-white/[.03] px-4 py-3.5 text-sm text-slate-400">
-          This page needs a reset link. Request a new one from{" "}
-          <Link href="/forgot-password" className="font-bold text-white">forgot password</Link>.
+        <p className="alert info mt-6">
+          <span>
+            This page needs a reset link. Request a new one from{" "}
+            <Link href="/forgot-password" style={{ fontWeight: 700, color: "var(--brand-text)" }}>forgot password</Link>.
+          </span>
         </p>
       ) : (
         <form onSubmit={submit} className="mt-6 space-y-3.5">
@@ -49,7 +51,7 @@ export default function ResetPasswordPage() {
           <label className="block text-[13px] font-medium">Confirm new password
             <input value={pw2} onChange={(e) => setPw2(e.target.value)} required type="password" placeholder="Repeat it" className={inputCls} />
           </label>
-          <button disabled={busy} className="btn-aurora w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50">
+          <button disabled={busy} className="btn pri w-full">
             {busy ? "Saving…" : "Save new password"}
           </button>
         </form>

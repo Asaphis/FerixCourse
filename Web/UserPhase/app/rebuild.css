@@ -3047,3 +3047,11 @@
     display: block;
   }
 }
+
+/* ============ port fixes ============ */
+
+/* Messages: the view becomes a column flex so the inbox fills the actual
+   remaining height below the page head - no viewport math, stays correct at
+   any topbar/padding size (mobile included). */
+.reb .view:has(.msgpage) { display: flex; flex-direction: column; overflow: hidden; }
+.reb .view:has(.msgpage) > .msgpage { flex: 1 1 auto; min-height: 0; height: auto; }

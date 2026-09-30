@@ -45,11 +45,11 @@ export default function RegisterPage() {
     return (
       <AuthFrame title="Check your email" sub={`We sent a verification link to ${pendingEmail}.`}>
         <AuthError msg={err} />
-        {resent && <p className="mt-4 rounded-xl border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-2.5 text-[13px] text-emerald-200">Sent again. Check inbox and spam.</p>}
+        {resent && <p className="alert ok mt-4" role="status">Sent again. Check inbox and spam.</p>}
         <p className="mt-6 text-sm leading-relaxed text-slate-400">
           Click the link to verify your account, then log in. The link expires — request a new one if needed.
         </p>
-        <button onClick={resend} className="btn-aurora mt-6 w-full rounded-2xl py-3.5 text-sm font-bold text-white">Resend verification</button>
+        <button onClick={resend} className="btn pri w-full mt-6">Resend verification</button>
         <p className="mt-5 text-center text-[13px] text-slate-400">Already verified? <Link href={`/login${qs}`} className="font-bold text-white">Log in</Link></p>
       </AuthFrame>
     );
@@ -66,7 +66,7 @@ export default function RegisterPage() {
           <label className="block text-[13px] font-medium">Password<input value={f.pw} onChange={(e) => setF({ ...f, pw: e.target.value })} required type="password" placeholder="8+ characters" className={inputCls} /></label>
           <label className="block text-[13px] font-medium">Confirm<input value={f.pw2} onChange={(e) => setF({ ...f, pw2: e.target.value })} required type="password" placeholder="Repeat it" className={inputCls} /></label>
         </div>
-        <button disabled={busy} className="btn-aurora group flex w-full items-center justify-center gap-1.5 rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-50">
+        <button disabled={busy} className="btn pri w-full">
           {busy ? "Creating account…" : <>Create account <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" /></>}
         </button>
       </form>

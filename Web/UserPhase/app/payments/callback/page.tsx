@@ -8,7 +8,8 @@ import { apiFetch, money } from "@/lib/dashboard-api";
 /*
   Payment result. Confirmed against the transaction record on the server — the
   browser is never trusted. Polling window and behaviour are unchanged from the
-  original implementation; only the presentation moved to the dashboard design.
+  original implementation; presentation is on the rebuild design (card / btn /
+  token colors).
 */
 
 type TxLike = {
@@ -20,6 +21,14 @@ type TxLike = {
 };
 
 type State = "loading" | "ok" | "pending" | "failed" | "error";
+
+const STATE_TONE: Record<State, { bg: string; fg: string }> = {
+  loading: { bg: "var(--surface2)", fg: "var(--muted)" },
+  ok: { bg: "rgba(52, 211, 153, 0.09)", fg: "var(--ok)" },
+  pending: { bg: "rgba(251, 191, 36, 0.10)", fg: "var(--warn)" },
+  failed: { bg: "rgba(248, 113, 113, 0.10)", fg: "var(--danger)" },
+  error: { bg: "rgba(248, 113, 113, 0.10)", fg: "var(--danger)" },
+};
 
 export default function PaymentCallbackPage() {
   const [state, setState] = useState<State>("loading");
@@ -57,50 +66,55 @@ export default function PaymentCallbackPage() {
 
   const icon =
     state === "ok" ? "checkCircle" : state === "failed" ? "circleSlash" : state === "pending" ? "clock" : "loader";
+  const tone = STATE_TONE[state];
 
   return (
     <>
       <PageHead title="Payment result" sub="Verified against the transaction record — never the browser." />
 
-      <div className="fc-card" style={{ maxWidth: 560, textAlign: "center", padding: 36 }}>
+      <div className="card" style={{ maxWidth: 560, margin: "0 auto", textAlign: "center", padding: 36 }}>
         <span
-          className="fc-empty-ico"
           style={{
+            width: 56,
+            height: 56,
             margin: "0 auto 16px",
-            ...(state === "ok"
-              ? { background: "var(--fc-ok-bg)", color: "var(--fc-ok-fg)", borderColor: "transparent" }
-              : state === "failed"
-                ? { background: "var(--fc-danger-bg)", color: "var(--fc-danger-fg)", borderColor: "transparent" }
-                : state === "pending"
-                  ? { background: "var(--fc-warn-bg)", color: "var(--fc-warn-fg)", borderColor: "transparent" }
-                  : undefined),
+            borderRadius: 18,
+            display: "grid",
+            placeItems: "center",
+            background: tone.bg,
+            color: tone.fg,
+            border: "1px solid var(--border)",
           }}
           aria-hidden="true"
         >
-          <Icon name={icon} size={22} style={state === "loading" ? { animation: "fcSpin 0.8s linear infinite" } : undefined} />
+          <Icon
+            name={icon}
+            size={22}
+            style={state === "loading" ? { animation: "rebSpin 0.8s linear infinite" } : undefined}
+          />
         </span>
 
         {state === "loading" && (
           <>
-            <h2 style={{ fontSize: 19 }}>Confirming your payment…</h2>
-            <p style={{ fontSize: 13.5, color: "var(--fc-muted)", marginTop: 6 }}>This usually takes a few seconds.</p>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 19, fontWeight: 800 }}>Confirming your payment…</h2>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 6 }}>This usually takes a few seconds.</p>
           </>
         )}
 
         {state === "ok" && (
           <>
-            <h2 style={{ fontSize: 19 }}>Payment confirmed</h2>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 19, fontWeight: 800 }}>Payment confirmed</h2>
             {tx && (
-              <p style={{ fontSize: 13.5, color: "var(--fc-muted)", marginTop: 6 }}>
+              <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 6 }}>
                 {money(tx.amount_kobo, tx.currency)} · {tx.product_type}
                 {tx.flutterwave_ref ? ` · ref ${tx.flutterwave_ref}` : ""}
               </p>
             )}
             <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
-              <Link href="/my-courses" className="fc-btn fc-btn-primary">
+              <Link href="/my-courses" className="btn pri">
                 My Courses
               </Link>
-              <Link href="/classes" className="fc-btn fc-btn-ghost">
+              <Link href="/classes" className="btn ghost">
                 My Classrooms
               </Link>
             </div>
@@ -109,11 +123,11 @@ export default function PaymentCallbackPage() {
 
         {state === "pending" && (
           <>
-            <h2 style={{ fontSize: 19 }}>Still confirming</h2>
-            <p style={{ fontSize: 13.5, color: "var(--fc-muted)", marginTop: 6 }}>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 19, fontWeight: 800 }}>Still confirming</h2>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 6 }}>
               The provider has not confirmed yet. Your receipt will appear under Transactions the moment it lands.
             </p>
-            <Link href="/transactions" className="fc-btn fc-btn-ghost" style={{ marginTop: 22 }}>
+            <Link href="/transactions" className="btn ghost" style={{ marginTop: 22 }}>
               View transactions
             </Link>
           </>
@@ -121,11 +135,11 @@ export default function PaymentCallbackPage() {
 
         {state === "failed" && (
           <>
-            <h2 style={{ fontSize: 19 }}>Payment did not complete</h2>
-            <p style={{ fontSize: 13.5, color: "var(--fc-muted)", marginTop: 6 }}>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 19, fontWeight: 800 }}>Payment did not complete</h2>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 6 }}>
               No access was granted and nothing was charged on our side. You can try again.
             </p>
-            <Link href="/learn" className="fc-btn fc-btn-primary" style={{ marginTop: 22 }}>
+            <Link href="/catalog" className="btn pri" style={{ marginTop: 22 }}>
               Back to catalog
             </Link>
           </>
@@ -133,15 +147,15 @@ export default function PaymentCallbackPage() {
 
         {state === "error" && (
           <>
-            <h2 style={{ fontSize: 19 }}>Could not verify this payment</h2>
-            <p style={{ fontSize: 13.5, color: "var(--fc-muted)", marginTop: 6 }}>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: 19, fontWeight: 800 }}>Could not verify this payment</h2>
+            <p style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 6 }}>
               Check your Transactions list or message support — nothing is lost.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
-              <Link href="/transactions" className="fc-btn fc-btn-ghost">
+              <Link href="/transactions" className="btn ghost">
                 Transactions
               </Link>
-              <Link href="/messages" className="fc-btn fc-btn-ghost">
+              <Link href="/messages" className="btn ghost">
                 Contact support
               </Link>
             </div>
