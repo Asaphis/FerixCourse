@@ -351,13 +351,13 @@
   background: linear-gradient(135deg, #14b8a6, #0e7490);
 }
 .avatar.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #818cf8, #6366f1);
 }
 .avatar.rose {
   background: linear-gradient(135deg, #fb7185, #e11d48);
 }
 .avatar.plum {
-  background: linear-gradient(135deg, #fbbf24, #b45309);
+  background: linear-gradient(135deg, #c084fc, #7e22ce);
 }
 .avatar.olive {
   background: linear-gradient(135deg, #a3e635, #4d7c0f);
@@ -1391,7 +1391,7 @@
   box-shadow: 0 12px 26px -14px rgba(249, 115, 22, 0.9);
 }
 .cont-cover.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #818cf8, #6366f1);
 }
 .cont-cover.teal {
   background: linear-gradient(135deg, #14b8a6, #0e7490);
@@ -2472,7 +2472,7 @@
   font-size: 21px;
 }
 .camtile .ava.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #818cf8, #6366f1);
 }
 .camtile .ava.teal {
   background: linear-gradient(135deg, #14b8a6, #0e7490);
@@ -2484,7 +2484,7 @@
   background: linear-gradient(135deg, #a3e635, #4d7c0f);
 }
 .camtile .ava.plum {
-  background: linear-gradient(135deg, #fbbf24, #b45309);
+  background: linear-gradient(135deg, #c084fc, #7e22ce);
 }
 .camtile .cname {
   position: absolute;
@@ -3091,7 +3091,7 @@
   background: linear-gradient(135deg, #f97316, #be123c);
 }
 .cover.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #818cf8, #6366f1);
 }
 .cover.teal {
   background: linear-gradient(135deg, #14b8a6, #0e7490);
@@ -3103,7 +3103,7 @@
   background: linear-gradient(135deg, #fb7185, #e11d48);
 }
 .cover.plum {
-  background: linear-gradient(135deg, #fbbf24, #b45309);
+  background: linear-gradient(135deg, #c084fc, #7e22ce);
 }
 .prow {
   display: flex;

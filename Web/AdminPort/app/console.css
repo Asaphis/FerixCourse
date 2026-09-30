@@ -32,10 +32,10 @@
   --ad-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* brand — console indigo */
-  --ad-brand: #fdba74;
+  --ad-brand: #818cf8;
   --ad-brand-strong: #4a41d6;
   --ad-brand-ink: #ffffff;
-  --ad-brand-text: #fed7aa;
+  --ad-brand-text: #a5b4fc;
   --ad-brand-soft: rgba(129, 140, 248, 0.14);
   --ad-brand-line: rgba(129, 140, 248, 0.4);
 
@@ -67,7 +67,7 @@
   --ad-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --ad-shadow-2: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
   --ad-scrim: rgba(4, 6, 12, 0.66);
-  --ad-focus: #fed7aa;
+  --ad-focus: #a5b4fc;
   --ad-halo: rgba(129, 140, 248, 0.16);
 
   color-scheme: dark;
@@ -81,12 +81,12 @@
 }
 
 .ad[data-theme="light"] {
-  --ad-brand: #fb923c;
-  --ad-brand-strong: #c2410c;
+  --ad-brand: #6d63e8;
+  --ad-brand-strong: #4338ca;
   --ad-brand-ink: #ffffff;
-  --ad-brand-text: #c2410c;
-  --ad-brand-soft: #fff1e6;
-  --ad-brand-line: rgba(249, 115, 22, 0.32);
+  --ad-brand-text: #4338ca;
+  --ad-brand-soft: #eceafe;
+  --ad-brand-line: rgba(79, 70, 229, 0.32);
 
   --ad-bg: #f6f7fb;
   --ad-rail: #ffffff;
@@ -114,8 +114,8 @@
   --ad-shadow-1: 0 1px 2px rgba(19, 23, 40, 0.06);
   --ad-shadow-2: 0 18px 40px -24px rgba(19, 23, 40, 0.22);
   --ad-scrim: rgba(19, 23, 40, 0.42);
-  --ad-focus: #c2410c;
-  --ad-halo: rgba(249, 115, 22, 0.14);
+  --ad-focus: #4338ca;
+  --ad-halo: rgba(79, 70, 229, 0.14);
 
   color-scheme: light;
 }
@@ -148,9 +148,9 @@
   padding: 10px 16px;
   border-radius: var(--ad-r-sm);
   /* Pinned rather than tokenised: this chip sits on the indigo brand colour,
-     and white on --ad-brand-strong (#f97316) measures 4.47:1 — fractionally
-     under the 4.5:1 AA floor for small bold text. #c2410c measures 7.0:1. */
-  background: #c2410c;
+     and white on --ad-brand-strong (#6366f1) measures 4.47:1 — fractionally
+     under the 4.5:1 AA floor for small bold text. #4338ca measures 7.0:1. */
+  background: #4338ca;
   color: #ffffff;
   font-weight: 700;
   font-size: 13px;
@@ -274,7 +274,7 @@
    1.97:1 (and 1.60:1 for the alert tone). A solid chip gives both tones a
    measurable, theme-independent contrast. */
 .ad-nav-link[aria-current="page"] .ad-nav-count {
-  background: #ea580c;
+  background: #4f46e5;
   color: #ffffff;
 }
 .ad-nav-link[aria-current="page"] .ad-nav-count.is-alert {
@@ -487,8 +487,8 @@
     --ad-brand-strong carries white label text, so it has to clear AA on the
     fill itself:
 
-      dark   #4a41d6 + #fff = 6.61:1   (was #f97316 at 4.47:1 — failed)
-      light  #c2410c + #fff = 7.02:1   (was #ea580c at 4.87:1 — only just passed)
+      dark   #4a41d6 + #fff = 6.61:1   (was #6366f1 at 4.47:1 — failed)
+      light  #4338ca + #fff = 7.02:1   (was #4f46e5 at 4.87:1 — only just passed)
 
     The dark value is a deeper indigo than the brand hue on purpose: a lighter
     violet cannot hold white text at this size. The brand colour itself is

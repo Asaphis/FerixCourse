@@ -6,34 +6,22 @@ import {
   GridLayout,
   ParticipantTile,
   RoomAudioRenderer,
+  ControlBar,
   useTracks,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { Icon } from "@/components/ui/icons";
-import { LiveControls } from "@/components/live/live-controls";
-import { LiveComments } from "@/components/live/live-comments";
-import { api, type CatalogClassroom, type ClassroomMessage, type ClassroomSession } from "@/lib/dashboard-api";
+import { api, type CatalogClassroom, type ClassroomSession } from "@/lib/dashboard-api";
 
 /*
-  Live room — full-screen and outside the dashboard chrome, because a video call
-  needs the whole viewport. Same tokens as the dashboard (mounted in a `.reb`
-  scope) so the gate screen and the in-room bar read as one product.
-
-  What changed here:
-    • the library ControlBar is replaced by <LiveControls/>, which adds screen
-      sharing as a first-class button (plus mic, camera, raise hand) in the
-      product's own style;
-    • <LiveComments/> adds the class discussion that was missing entirely —
-      replies, attachments, and the classroom's existing message history;
-    • stage and comments sit side by side on a desktop and stack on a phone
-      (the wrapper carries .stagewrap / .openchat, handled by fix.css).
-
-  Access is unchanged: POST /live/token is still the only way in, and it still
-  checks classroom membership server-side before issuing anything.
+  Live room — deliberately full-screen and outside the dashboard chrome, because
+  a video call needs the whole viewport. It re-uses the rebuild tokens by
+  mounting inside a `.reb` scope, so the gate screen and the in-room bar read as
+  the same product as the dashboard.
 */
 
-function RoomView({ slug, classroomId, initial }: { slug: string; classroomId: string; initial: ClassroomMessage[] }) {
+function RoomView({ slug }: { slug: string }) {
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -42,19 +30,8 @@ function RoomView({ slug, classroomId, initial }: { slug: string; classroomId: s
     { onlySubscribed: false }
   );
 
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [unread, setUnread] = useState(0);
-  const [notice, setNotice] = useState("");
-  const [sharingSeen, setSharingSeen] = useState(false);
-
-  const sharing = tracks.some((t) => t.source === Track.Source.ScreenShare);
-
-  useEffect(() => {
-    if (sharing && !sharingSeen) setSharingSeen(true);
-  }, [sharing, sharingSeen]);
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div
         style={{
           display: "flex",
@@ -63,7 +40,6 @@ function RoomView({ slug, classroomId, initial }: { slug: string; classroomId: s
           padding: "10px 16px",
           borderBottom: "1px solid var(--border)",
           background: "var(--rail)",
-          flexWrap: "wrap",
         }}
       >
         <Link href={`/classrooms/${slug}`} className="btn ghost sm">
@@ -72,56 +48,18 @@ function RoomView({ slug, classroomId, initial }: { slug: string; classroomId: s
         <span className="live-pill">
           <i aria-hidden="true" /> LIVE
         </span>
-        {sharing && <span className="pill">Someone is sharing their screen</span>}
         <span className="hint" style={{ marginLeft: "auto" }}>
-          Camera, microphone and screen sharing are all yours to control.
+          Camera and screen share are on — the instructor&apos;s screen takes over the grid when shared.
         </span>
       </div>
-
-      {notice && (
-        <div className="alert danger" role="status" style={{ margin: "10px 16px 0" }}>
-          <Icon name="alertCircle" size={16} />
-          <span>{notice}</span>
-          <button type="button" className="btn ghost sm" style={{ marginLeft: "auto" }} onClick={() => setNotice("")}>
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      <div
-        className={"stagewrap" + (commentsOpen ? " openchat" : "")}
-        style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 16, padding: 12, alignItems: "start" }}
-      >
-        <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
-          <div style={{ minHeight: 260, borderRadius: "var(--r3, 16px)", overflow: "hidden", border: "1px solid var(--border)", background: "#0d0b0a" }}>
-            <GridLayout tracks={tracks} style={{ height: "100%" }}>
-              <ParticipantTile />
-            </GridLayout>
-          </div>
-
-          <LiveControls
-            commentsOpen={commentsOpen}
-            onToggleComments={() => {
-              setCommentsOpen((v) => !v);
-              setUnread(0);
-            }}
-            unread={unread}
-            onNotice={setNotice}
-          />
-        </div>
-
-        <aside className="panel" style={{ minWidth: 0 }}>
-          <LiveComments
-            classroomId={classroomId}
-            initial={initial}
-            className="card"
-            onMessage={() => {
-              if (!commentsOpen) setUnread((n) => n + 1);
-            }}
-          />
-        </aside>
+      <div style={{ flex: 1, minHeight: 0, padding: 12 }}>
+        <GridLayout tracks={tracks} style={{ height: "100%" }}>
+          <ParticipantTile />
+        </GridLayout>
       </div>
-
+      <div style={{ borderTop: "1px solid var(--border)", padding: 12, background: "var(--rail)" }}>
+        <ControlBar variation="minimal" saveUserChoices />
+      </div>
       <RoomAudioRenderer />
     </div>
   );
@@ -130,7 +68,6 @@ function RoomView({ slug, classroomId, initial }: { slug: string; classroomId: s
 export default function LiveRoomPage({ params }: { params: { slug: string } }) {
   const [classroom, setClassroom] = useState<CatalogClassroom | null>(null);
   const [live, setLive] = useState<ClassroomSession | null>(null);
-  const [initial, setInitial] = useState<ClassroomMessage[]>([]);
   const [token, setToken] = useState("");
   const [connect, setConnect] = useState(false);
   const [err, setErr] = useState("");
@@ -140,12 +77,11 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
   useEffect(() => {
     (async () => {
       try {
-        const cls = await api.classroom(params.slug);
-        setClassroom(cls);
+        const c = await api.classroom(params.slug);
+        setClassroom(c);
         try {
-          const ws = await api.classroomWorkspace(cls.id);
+          const ws = await api.classroomWorkspace(c.id);
           setLive((ws.sessions ?? []).find((s) => s.status === "live") ?? null);
-          setInitial(ws.messages ?? []);
         } catch {
           setLive(null);
         }
@@ -170,7 +106,7 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
     }
   }
 
-  if (connect && token && classroom) {
+  if (connect && token) {
     return (
       <div className="reb" data-theme="dark" style={{ height: "100vh" }}>
         <LiveKitRoom
@@ -185,7 +121,7 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
             setToken("");
           }}
         >
-          <RoomView slug={params.slug} classroomId={classroom.id} initial={initial} />
+          <RoomView slug={params.slug} />
         </LiveKitRoom>
       </div>
     );
@@ -195,7 +131,13 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
     <div
       className="reb"
       data-theme="dark"
-      style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "auto" }}
+      style={{
+        minHeight: "100vh",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+        overflow: "auto",
+      }}
     >
       <div className="card" style={{ width: "100%", maxWidth: 440, textAlign: "center", padding: 32 }}>
         <div className="empty" style={{ padding: 0 }}>
@@ -237,7 +179,7 @@ export default function LiveRoomPage({ params }: { params: { slug: string } }) {
             <>
               <p className="sub">
                 <strong style={{ color: "var(--text)" }}>{live.title}</strong> is live now. Join with camera and mic —
-                screen sharing and the class discussion are inside.
+                screen sharing included.
               </p>
               <button type="button" onClick={join} disabled={busy} className="btn pri" style={{ marginTop: 20, width: "100%" }}>
                 <Icon name="video" size={16} /> {busy ? "Checking access…" : "Join live classroom"}
