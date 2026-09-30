@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
 import { Badge, Emp, Err, Ic, Sk } from "@/components/reb-ui";
+import { AdminLiveComments } from "@/components/admin-live-comments";
 import { adminFetch, initials, shortDateTime } from "@/lib/admin";
 import { useAdmin, useAdminPoll } from "@/lib/use-admin";
 import type { LiveOverview, LiveToken, Session } from "@/lib/admin-types";
@@ -32,7 +33,7 @@ type StageState =
   | { phase: "live" }
   | { phase: "error"; message: string };
 
-type PanelTab = "sessions" | "people" | "controls";
+type PanelTab = "sessions" | "people" | "controls" | "discussion";
 
 function statusTone(status: string): "" | "ok" | "warn" | "danger" | "info" {
   if (status === "live" || status === "recording") return "danger";
@@ -493,7 +494,31 @@ export default function LivePage() {
                 >
                   Controls
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "discussion"}
+                  className={tab === "discussion" ? "on" : undefined}
+                  onClick={() => setTab("discussion")}
+                >
+                  Discussion
+                </button>
               </div>
+
+              {/* ---- discussion: the learner Q&A that used to have nowhere to go ---- */}
+              {tab === "discussion" ? (
+                <div className="lv-pane" style={{ overflowY: "auto", padding: 12 }}>
+                  {selected ? (
+                    <AdminLiveComments classroomId={selected.classroom_id} className="reb-card" disabled={selected.status === "ended"} />
+                  ) : (
+                    <Emp
+                      icon="messageSquare"
+                      title="No session selected"
+                      note="Pick a session first — its classroom discussion opens here, and your answers go straight back to the learners."
+                    />
+                  )}
+                </div>
+              ) : null}
 
               {/* ---- sessions ---- */}
               {tab === "sessions" ? (
