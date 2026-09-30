@@ -3499,3 +3499,8 @@
 .lv[data-state="cameras"] .lv-film, .lv[data-state="setup"] .lv-film, .lv[data-state="connecting"] .lv-film { display: none; }
 .lv[data-state="waiting"] .lv-bar, .lv[data-state="waiting"] .lv-film, .lv[data-state="waiting"] .lv-panel, .lv[data-state="waiting"] .lv-top .live-only { display: none; }
 .lv[data-state="setup"] .lv-stage { border-style: dashed; }
+/* Keep the card at the bottom of the sidebar visible on every page.
+   The rail's content is taller than the viewport, so without its own scroll
+   region the promo card was clipped at the bottom edge. */
+.rail { overflow-y: auto; }
+.rail .promo { flex: 0 0 auto; position: sticky; bottom: 0; }
