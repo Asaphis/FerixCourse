@@ -3055,3 +3055,8 @@
    any topbar/padding size (mobile included). */
 .reb .view:has(.msgpage) { display: flex; flex-direction: column; overflow: hidden; }
 .reb .view:has(.msgpage) > .msgpage { flex: 1 1 auto; min-height: 0; height: auto; }
+/* Keep the card at the bottom of the sidebar visible on every page.
+   The rail's content is taller than the viewport, so without its own scroll
+   region the promo card was clipped at the bottom edge. */
+.reb .rail { overflow-y: auto; }
+.reb .rail .promo { flex: 0 0 auto; position: sticky; bottom: 0; }
