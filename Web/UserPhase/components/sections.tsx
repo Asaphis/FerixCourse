@@ -26,7 +26,7 @@ export function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
 
 const TRACKS = [
   { icon: MonitorPlay, title: "Live training", desc: "Fixed schedules, capped seats, cameras on. Miss nothing — every session is recorded.", href: "/live", cta: "See live classes" },
-  { icon: BookOpen, title: "Self-paced courses", desc: "Start tonight, finish on your terms. Progress tracked, resources included.", href: "/learn", cta: "Browse courses" },
+  { icon: BookOpen, title: "Self-paced courses", desc: "Start tonight, finish on your terms. Progress tracked, resources included.", href: "/catalog", cta: "Browse courses" },
   { icon: UserCheck, title: "One-on-one", desc: "One instructor, entirely focused on you. Online or in person.", href: "/book", cta: "Book a session" },
   { icon: Wand2, title: "Custom training", desc: "Your stack, your schedule. We design the classroom around your goal.", href: "/request", cta: "Request it" },
 ];

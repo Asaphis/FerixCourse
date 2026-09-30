@@ -237,7 +237,7 @@ export function Section({ id, word, children, tight = false, variant = "scatter"
 
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-200 backdrop-blur">
+    <p className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[.04] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-[#ffb27a] backdrop-blur">
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500" />
       {children}
     </p>

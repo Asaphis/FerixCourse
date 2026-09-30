@@ -40,7 +40,7 @@ export default function MethodPage() {
           </div>
           <Reveal delay={0.1}>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link href="/learn" className="btn-aurora rounded-2xl px-7 py-3.5 text-sm font-bold text-white">Browse the catalog</Link>
+              <Link href="/catalog" className="btn-aurora rounded-2xl px-7 py-3.5 text-sm font-bold text-white">Browse the catalog</Link>
               <Link href="/live" className="group inline-flex items-center gap-1.5 rounded-2xl border border-white/15 px-7 py-3.5 text-sm font-bold hover:bg-white/5">
                 See live classes <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
               </Link>

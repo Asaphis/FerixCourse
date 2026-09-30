@@ -12,7 +12,7 @@ const TRACKS = [
     points: ["HD video + screen share", "Capped seats per cohort", "Automatic session recordings", "Chat, Q&A and feedback"],
   },
   {
-    icon: BookOpen, name: "Self-paced courses", href: "/learn", price: "Per course",
+    icon: BookOpen, name: "Self-paced courses", href: "/catalog", price: "Per course",
     desc: "Recorded lessons you own forever. Learn at 2am or 2pm — progress tracked lesson by lesson.",
     points: ["Watch anytime, anywhere", "Downloadable resources", "Progress tracking", "Free lesson previews"],
   },

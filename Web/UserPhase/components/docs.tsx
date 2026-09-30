@@ -21,7 +21,7 @@ function Doc({ title, eyebrow, intro, blocks }: { title: React.ReactNode; eyebro
           ))}
           <Reveal delay={0.05}>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link href="/learn" className="btn-aurora rounded-2xl px-6 py-3 text-sm font-bold text-white">Browse training</Link>
+              <Link href="/catalog" className="btn-aurora rounded-2xl px-6 py-3 text-sm font-bold text-white">Browse training</Link>
               <Link href="/contact" className="rounded-2xl border border-white/15 px-6 py-3 text-sm font-bold hover:bg-white/5">Talk to us</Link>
             </div>
           </Reveal>

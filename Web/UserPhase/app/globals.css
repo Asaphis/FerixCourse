@@ -33,11 +33,12 @@ body { @apply bg-stone-950 text-stone-100 font-body antialiased overflow-x-hidde
 }
 .btn-aurora {
   position: relative;
-  background: linear-gradient(94deg, #EA580C, #F43F5E 65%, #E11D48);
-  box-shadow: 0 8px 40px -8px rgba(234, 88, 12, 0.55), inset 0 1px 0 rgba(255,255,255,.25);
+  /* exact ember gradient from the app's .reb .btn.pri - every CTA matches the app */
+  background: linear-gradient(135deg, #f97316, #e11d48);
+  box-shadow: 0 12px 26px -14px rgba(249, 115, 22, 0.9), inset 0 1px 0 rgba(255,255,255,.25);
   transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
 }
-.btn-aurora:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 14px 50px -8px rgba(234, 88, 12, 0.7), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn-aurora:hover { transform: translateY(-2px); filter: brightness(1.07); box-shadow: 0 16px 34px -14px rgba(249, 115, 22, 1), inset 0 1px 0 rgba(255,255,255,.25); }
 .btn-aurora:active { transform: translateY(0); }
 .card-lift { transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
 .card-lift:hover { transform: translateY(-5px); border-color: rgba(251,146,60,.4); box-shadow: 0 24px 70px -24px rgba(234,88,12,.45); }

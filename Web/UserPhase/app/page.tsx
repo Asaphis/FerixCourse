@@ -39,7 +39,7 @@ export default async function Home() {
             </Reveal>
             <Reveal delay={0.24}>
               <div className="mt-8 grid w-full max-w-md grid-cols-2 gap-2.5 sm:flex sm:max-w-none">
-                <Link href="/learn" className="btn-aurora group inline-flex min-w-0 items-center justify-center gap-1.5 rounded-2xl px-3 py-3.5 text-center text-[13px] font-bold text-white sm:px-7 sm:py-4 sm:text-[15px]">
+                <Link href="/catalog" className="btn-aurora group inline-flex min-w-0 items-center justify-center gap-1.5 rounded-2xl px-3 py-3.5 text-center text-[13px] font-bold text-white sm:px-7 sm:py-4 sm:text-[15px]">
                   Claim your seat <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <Link href="/method" className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[.04] px-3 py-3.5 text-center text-[13px] font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08] sm:px-7 sm:py-4 sm:text-[15px]">
@@ -156,7 +156,7 @@ export default async function Home() {
         <Reveal delay={0.08}>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
             <h2 className="font-display text-3xl font-black uppercase tracking-[-0.02em] sm:text-5xl">Proof, not<br /><span className="font-accent font-normal normal-case tracking-normal text-aurora">promises.</span></h2>
-            <Link href="/learn" className="group inline-flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white">
+            <Link href="/catalog" className="group inline-flex items-center gap-1.5 text-sm font-bold text-slate-200 hover:text-white">
               Open full catalog <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
