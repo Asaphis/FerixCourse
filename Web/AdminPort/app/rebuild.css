@@ -3620,3 +3620,16 @@ input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38))
   .composer,
   .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
+
+/* ============================================================================
+   Info stays blue.
+   ---------------------------------------------------------------------------
+   Removing the leaked navy/indigo also swept up the blue the product uses to
+   mean "information". It was never the leak, so it is restored as a translucent
+   blue tint with a light blue foreground. Navy and indigo stay removed.
+   ========================================================================== */
+.reb {
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.13);
+  --info-line: rgba(96, 165, 250, 0.3);
+}
