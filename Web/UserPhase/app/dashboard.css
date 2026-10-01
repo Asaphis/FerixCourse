@@ -1066,12 +1066,8 @@
    --brand-text. Contrast on the card surface is now roughly 8:1.
    ========================================================================== */
 
-/* COMPOSER CLEARANCE. The bottom bar is fixed, so the message composer and the
-   live-room composer need to sit above it rather than behind it. */
-@container app (max-width: 900px) {
-  .composer,
-  .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
-}
+/* Bottom-bar clearance for the message and live panes now lives in rebuild.css,
+   applied to the page pane rather than the composer. */
 
 /* ============================================================================
    Info stays blue (dark theme).

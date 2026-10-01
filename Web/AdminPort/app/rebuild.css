@@ -3614,11 +3614,18 @@ input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38))
    --brand-text. Contrast on the card surface is now roughly 8:1.
    ========================================================================== */
 
-/* COMPOSER CLEARANCE. The bottom bar is fixed, so the message composer and the
-   live-room composer need to sit above it rather than behind it. */
+/* ============================================================================
+   Bottom-bar clearance for the message and live panes.
+   ---------------------------------------------------------------------------
+   The dock is fixed, so something has to lift the pane above it. Adding the
+   clearance to the composer itself left a blank strip inside the message card -
+   the composer moved up but the card still ended at the old height. The
+   clearance now shortens the page pane instead, so the gap falls outside the
+   card, over the page background, and the composer sits just above the bar.
+   ========================================================================== */
 @container app (max-width: 900px) {
-  .composer,
-  .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .view:has(.msgpage),
+  .view:has(.livepage) { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
 }
 
 /* ============================================================================
