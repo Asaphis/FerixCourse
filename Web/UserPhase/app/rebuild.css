@@ -3089,3 +3089,42 @@
 .reb input[type="file"] { width: 100%; padding: 11px 13px; border: 1px dashed var(--border2); border-radius: var(--r2, 12px); background: var(--surface2); color: var(--muted); font-size: 12.5px; cursor: pointer; }
 .reb input[type="file"]::file-selector-button { margin-right: 10px; padding: 7px 11px; border: 0; border-radius: 9px; background: var(--brand-strong, #f97316); color: var(--brand-ink, #231000); font-weight: 600; font-size: 12px; cursor: pointer; }
 .reb input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38)); }
+
+
+/* ============================================================================
+   Fix layer 2 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   STAT TILES. .tile carries 18px padding and a 22px radius, and the value was
+   28-30px. In the two-up grid every phone uses, each tile came out roughly as
+   tall as it was wide - the square, oversized boxes. These values give the
+   compact rectangular proportion used in the approved preview.
+
+   TABLE ROWS ON PHONES. The mobile table treatment right-aligns cells and
+   prints a label with `content: attr(data-l)` - but not one page sets a data-l
+   attribute (0 occurrences), so the label was always empty while the cell
+   stayed right-aligned. Rows now read as left-aligned rows.
+   ========================================================================== */
+.reb .statline { gap: 10px; }
+.reb .statline .tile { padding: 14px; border-radius: var(--r3, 16px); }
+.reb .statline .tile h3 { font-size: 10.5px; letter-spacing: .09em; margin-bottom: 6px; }
+.reb .statline .tile .hint { font-size: 11px; margin-top: 4px; }
+
+@container app (max-width: 900px) {
+  .reb .statline { gap: 10px; }
+  .reb .statline .tile { padding: 13px 14px; }
+  .reb .statline .tile h3 { font-size: 10px; }
+  .reb .statline .tile .hint { font-size: 10.5px; line-height: 1.35; }
+
+  /* table cells: left aligned, no phantom label */
+  .reb .view .tbl td {
+    display: block;
+    text-align: left;
+    border: none;
+    padding: 3px 0;
+  }
+  .reb .view .tbl td + td { margin-top: 7px; }
+  .reb .view .tbl td::before { content: none !important; }
+  .reb .view .tbl td > span,
+  .reb .view .tbl td > a { text-align: left; justify-content: flex-start; }
+  .reb .view .tbl tr { padding: 13px 14px; }
+}

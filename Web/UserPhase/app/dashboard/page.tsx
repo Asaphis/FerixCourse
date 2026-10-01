@@ -96,28 +96,28 @@ export default function DashboardPage() {
             <h3>
               <Icon name="radio" size={14} /> Live now
             </h3>
-            <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{stats?.live_now ?? 0}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{stats?.live_now ?? 0}</div>
             <p className="hint">{stats?.classes_total ?? 0} classrooms joined</p>
           </Link>
           <Link href="/messages" className="tile" style={{ color: "inherit" }}>
             <h3>
               <Icon name="inbox" size={14} /> Awaiting reply
             </h3>
-            <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{stats?.awaiting_reply ?? 0}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{stats?.awaiting_reply ?? 0}</div>
             <p className="hint">Threads where you spoke last</p>
           </Link>
           <Link href="/messages" className="tile" style={{ color: "inherit" }}>
             <h3>
               <Icon name="messageSquare" size={14} /> Unread
             </h3>
-            <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{stats?.unread ?? 0}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{stats?.unread ?? 0}</div>
             <p className="hint">Messages from your instructors</p>
           </Link>
           <Link href="/my-courses" className="tile" style={{ color: "inherit" }}>
             <h3>
               <Icon name="bookOpen" size={14} /> Courses
             </h3>
-            <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{stats?.courses_total ?? 0}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{stats?.courses_total ?? 0}</div>
             <p className="hint">Enrolled and learning</p>
           </Link>
         </div>
