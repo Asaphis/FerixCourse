@@ -1072,19 +1072,15 @@
   .composer,
   .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
-/* ============================================================================
-   Restore the platform's own blue for informational accents.
-   ---------------------------------------------------------------------------
-   Removing the leaked navy/indigo also swept up the blue the product actually
-   uses to mean "information" - info chips, info stat icons, session state.
-   Those were never the leak, and the substitutions made them read worse, so the
-   blue is put back: a translucent blue tint on the dark surface with the light
-   blue foreground, which measures about 8:1 instead of the amber-on-amber it
-   became. Navy/indigo remain removed everywhere.
-   ========================================================================== */
-======= */
 
-/* ---------- 1. Tokens (scoped, not global) ---------- */
+/* ============================================================================
+   Info stays blue (dark theme).
+   ---------------------------------------------------------------------------
+   Removing the leaked navy/indigo also swept up the blue this product uses to
+   mean "information", leaving an orange icon inside a blue chip. The blue
+   foreground is restored so the pair matches, roughly 8:1 on the dark surface.
+   Navy and indigo remain removed. The light theme is untouched.
+   ========================================================================== */
 .fc-dash {
   --fc-info-bg: rgba(96, 165, 250, 0.15);
   --fc-info-fg: #93c5fd;
