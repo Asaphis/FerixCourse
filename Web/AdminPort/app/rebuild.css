@@ -3502,18 +3502,34 @@
 
 /* ============================================================================
    Fix layer - appended; no rule above is modified.
-   1. Bottom nav clearance. The dock is fixed and overlays the last content on a
-      phone. The shell renders <main class="view">; the old clearance targeted
-      `.pad`, which no page renders (0 of 50).
-   2. Sidebar. The rail is taller than the viewport, so the promo card at its
-      bottom was clipped. It now scrolls and the card stays visible.
-   3. File inputs. The browser default control was unstyled in every stylesheet.
+   ---------------------------------------------------------------------------
+   PAGE GUTTER. The design defines the page padding on a class called `.pad`,
+   but no page renders it (0 of 50) and nothing else supplied padding either.
+   Content was therefore full-bleed on every page at every width: the page
+   title, the description under it and every card sat flush against the screen
+   edge, which is what made the boxes look shapeless and too close to the edges.
+   The gutter now lives on the element the shell actually renders,
+   <main class="view">, using the values the design already specified for .pad.
+   Two-pane and full-height screens (messages, the live room) opt out and keep
+   their own internal layout.
+   BOTTOM NAV - the dock is fixed, so the gutter's bottom value clears it.
+   SIDEBAR - the rail is taller than the viewport; without its own scroll
+   region the promo card at its bottom was clipped.
+   FILE INPUTS - the browser default control was unstyled everywhere.
    ========================================================================== */
+.view { padding: 22px 26px 40px; }
+.view:has(.msgpage),
+.view:has(.livepage) { padding: 0; }
+
 @container app (max-width: 900px) {
-  .view { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .view { padding: 16px 14px calc(96px + env(safe-area-inset-bottom)); }
+  .view:has(.msgpage),
+  .view:has(.livepage) { padding: 0; }
 }
+
 .rail { overflow-y: auto; }
 .rail .promo { flex: 0 0 auto; position: sticky; bottom: 0; }
-.reb input[type="file"] { width: 100%; padding: 11px 13px; border: 1px dashed var(--border2); border-radius: var(--r2, 12px); background: var(--surface2); color: var(--muted); font-size: 12.5px; cursor: pointer; }
-.reb input[type="file"]::file-selector-button { margin-right: 10px; padding: 7px 11px; border: 0; border-radius: 9px; background: var(--brand-strong, #f97316); color: var(--brand-ink, #231000); font-weight: 600; font-size: 12px; cursor: pointer; }
-.reb input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38)); }
+
+input[type="file"] { width: 100%; padding: 11px 13px; border: 1px dashed var(--border2); border-radius: var(--r2, 12px); background: var(--surface2); color: var(--muted); font-size: 12.5px; cursor: pointer; }
+input[type="file"]::file-selector-button { margin-right: 10px; padding: 7px 11px; border: 0; border-radius: 9px; background: var(--brand-strong, #f97316); color: var(--brand-ink, #231000); font-weight: 600; font-size: 12px; cursor: pointer; }
+input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38)); }
