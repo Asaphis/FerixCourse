@@ -3572,3 +3572,33 @@ input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38))
   .view .tbl td > a { text-align: left; justify-content: flex-start; }
   .view .tbl tr { padding: 13px 14px; }
 }
+
+
+/* ============================================================================
+   Fix layer 3 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   MOBILE BOTTOM BAR. .reb was sized with `height: 100vh`. On a phone 100vh is
+   the LARGE viewport - it includes the strip behind the browser's address bar -
+   so the bottom of the layout, and therefore the dock, sat below the visible
+   screen. It only came into view once the browser chrome collapsed on scroll,
+   and it jittered as the viewport resized: the "floating / shaking / not
+   sticking" behaviour.
+   `100dvh` tracks the visible viewport, and `position: fixed` glues the dock to
+   it, so it cannot move with content or chrome.
+   ========================================================================== */
+.reb { height: 100dvh; }
+
+@container app (max-width: 900px) {
+  dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+  }
+}
+
+/* Learner directory: compact rows and a quick access toggle in the list. */
+.view .tbl td, .reb .view .tbl td { padding-top: 2px; padding-bottom: 2px; }
+.view .tbl td + td, .reb .view .tbl td + td { margin-top: 6px; }
+.view .tbl .avatar, .reb .view .tbl .avatar { width: 28px; height: 28px; font-size: 10.5px; }
