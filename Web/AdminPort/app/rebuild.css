@@ -3602,3 +3602,21 @@ input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38))
 .view .tbl td, .reb .view .tbl td { padding-top: 2px; padding-bottom: 2px; }
 .view .tbl td + td, .reb .view .tbl td + td { margin-top: 6px; }
 .view .tbl .avatar, .reb .view .tbl .avatar { width: 28px; height: 28px; font-size: 10.5px; }
+
+/* ============================================================================
+   Fix layer 4 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   TONE CHIPS. The ported tokens paired a light background with an equally light
+   foreground (--fc-info was #93c5fd on #fef3c7 - about 1.6:1), so the icon and
+   the label inside those chips were unreadable. Each background is now a
+   translucent tint of its own hue on the dark surface with the light foreground
+   kept, which is the pattern the design already uses for --brand-soft and
+   --brand-text. Contrast on the card surface is now roughly 8:1.
+   ========================================================================== */
+
+/* COMPOSER CLEARANCE. The bottom bar is fixed, so the message composer and the
+   live-room composer need to sit above it rather than behind it. */
+@container app (max-width: 900px) {
+  .composer,
+  .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}

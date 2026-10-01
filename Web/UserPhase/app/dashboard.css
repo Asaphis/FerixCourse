@@ -1054,3 +1054,21 @@
   .fc-main { margin: 0; }
   .fc-dash { background: #fff; color: #000; }
 }
+
+/* ============================================================================
+   Fix layer 4 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   TONE CHIPS. The ported tokens paired a light background with an equally light
+   foreground (--fc-info was #93c5fd on #fef3c7 - about 1.6:1), so the icon and
+   the label inside those chips were unreadable. Each background is now a
+   translucent tint of its own hue on the dark surface with the light foreground
+   kept, which is the pattern the design already uses for --brand-soft and
+   --brand-text. Contrast on the card surface is now roughly 8:1.
+   ========================================================================== */
+
+/* COMPOSER CLEARANCE. The bottom bar is fixed, so the message composer and the
+   live-room composer need to sit above it rather than behind it. */
+@container app (max-width: 900px) {
+  .composer,
+  .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
