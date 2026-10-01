@@ -3193,3 +3193,23 @@
 /* Catalog detail: two columns on desktop, stacked on a phone. */
 .reb .catalog-detail { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); align-items: start; }
 @container app (max-width: 900px) { .reb .catalog-detail { grid-template-columns: minmax(0, 1fr); } }
+
+/* ============================================================================
+   Dashboard: Continue learning and Up next stack on a phone.
+   ---------------------------------------------------------------------------
+   Both sections sit in .bento, which is `repeat(12, 1fr)` and keeps that same
+   12-column definition inside every container query - it never collapses. Each
+   card also carries an inline grid-column span (7 and 5). On a phone they
+   therefore stayed side by side, each squeezed into a narrow column.
+   Below 900px the grid becomes one column and the spans are overridden, so the
+   cards list one after the other at full width. !important is required because
+   the span is an inline style, which otherwise wins. Desktop is unchanged.
+   ========================================================================== */
+@container app (max-width: 900px) {
+  .reb .bento {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .reb .bento > * {
+    grid-column: 1 / -1 !important;
+  }
+}
