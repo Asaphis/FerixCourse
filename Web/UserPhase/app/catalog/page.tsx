@@ -127,7 +127,7 @@ export default function CatalogPage() {
                   <span className="badge">{c.students} enrolled</span>
                   <span style={{ marginLeft: "auto", fontWeight: 800 }}>{money(c.price_kobo, c.currency)}</span>
                 </div>
-                <Link href={`/courses/${c.slug}`} className="btn ghost sm" style={{ marginTop: 12 }}>
+                <Link href={`/catalog/course/${c.slug}`} className="btn ghost sm" style={{ marginTop: 12 }}>
                   View course <Icon name="chevronRight" size={14} />
                 </Link>
               </article>
@@ -162,7 +162,7 @@ export default function CatalogPage() {
                   <span className="badge">{r.level}</span>
                   <span style={{ marginLeft: "auto", fontWeight: 800 }}>{money(r.price_kobo, r.currency)}</span>
                 </div>
-                <Link href={`/classrooms/${r.slug}`} className="btn pri sm" style={{ marginTop: 12 }}>
+                <Link href={`/catalog/classroom/${r.slug}`} className="btn pri sm" style={{ marginTop: 12 }}>
                   See details <Icon name="chevronRight" size={14} />
                 </Link>
               </article>

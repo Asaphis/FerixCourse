@@ -42,7 +42,7 @@ export default function MyCoursesPage() {
               <h3><Icon name="bookOpen" size={14} /> Enrolled {shortDate(c.enrolled_at)}</h3>
               <p style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.25 }}>{c.title}</p>
               <p className="hint">Lessons, materials and your progress</p>
-              <Link href={`/courses/${c.slug}`} className="btn pri sm" style={{ marginTop: 12 }}>
+              <Link href={`/catalog/course/${c.slug}`} className="btn pri sm" style={{ marginTop: 12 }}>
                 <Icon name="play" size={14} /> Continue
               </Link>
             </article>

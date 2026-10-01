@@ -3189,3 +3189,7 @@
   --info-soft: rgba(96, 165, 250, 0.13);
   --info-line: rgba(96, 165, 250, 0.3);
 }
+
+/* Catalog detail: two columns on desktop, stacked on a phone. */
+.reb .catalog-detail { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); align-items: start; }
+@container app (max-width: 900px) { .reb .catalog-detail { grid-template-columns: minmax(0, 1fr); } }
