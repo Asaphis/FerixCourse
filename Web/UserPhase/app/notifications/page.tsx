@@ -16,10 +16,10 @@ import { api, type Notification } from "@/lib/dashboard-api";
 const TONE: Record<string, string> = {
   live: "var(--danger, #f87171)",
   announcement: "var(--brand-text)",
-  material: "#7dd3fc",
+  material: "#fbbf24",
   enrollment: "#34d399",
   feedback: "var(--warn, #fbbf24)",
-  request_update: "#a78bfa",
+  request_update: "#ff8a3d",
   broadcast: "var(--brand-text)",
 };
 
