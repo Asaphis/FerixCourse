@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { PageHead } from "@/components/dashboard/shell";
-import { Icon } from "@/components/ui/icons";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { timeAgo } from "@/components/ui/primitives";
 import { api, type Notification } from "@/lib/dashboard-api";
 
@@ -24,7 +24,7 @@ const TONE: Record<string, string> = {
 };
 
 
-const ICON: Record<string, string> = {
+const ICON: Record<string, IconName> = {
   live: "radio",
   announcement: "megaphone",
   material: "fileText",
