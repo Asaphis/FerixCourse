@@ -61,7 +61,7 @@
   --fc-ok-bg: rgba(74, 222, 128, 0.15);
   --fc-warn-fg: #fcd34d;
   --fc-warn-bg: rgba(251, 191, 36, 0.15);
-  --fc-info-fg: #93c5fd;
+  --fc-info-fg: #fdba74;
   --fc-info-bg: rgba(96, 165, 250, 0.15);
   --fc-danger-fg: #fda4af;
   --fc-danger-bg: rgba(251, 113, 133, 0.15);
@@ -116,8 +116,8 @@
   --fc-ok-bg: #dcfce7;
   --fc-warn-fg: #854d0e;
   --fc-warn-bg: #fef3c7;
-  --fc-info-fg: #1d4ed8;
-  --fc-info-bg: #dbeafe;
+  --fc-info-fg: #c2410c;
+  --fc-info-bg: #fef3c7;
   --fc-danger-fg: #9f1239;
   --fc-danger-bg: #ffe4e6;
   --fc-neutral-fg: #44403c;
@@ -1053,4 +1053,36 @@
   .fc-overlay { display: none !important; }
   .fc-main { margin: 0; }
   .fc-dash { background: #fff; color: #000; }
+}
+
+/* ============================================================================
+   Fix layer 4 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   TONE CHIPS. The ported tokens paired a light background with an equally light
+   foreground (--fc-info was #93c5fd on #fef3c7 - about 1.6:1), so the icon and
+   the label inside those chips were unreadable. Each background is now a
+   translucent tint of its own hue on the dark surface with the light foreground
+   kept, which is the pattern the design already uses for --brand-soft and
+   --brand-text. Contrast on the card surface is now roughly 8:1.
+   ========================================================================== */
+
+/* COMPOSER CLEARANCE. The bottom bar is fixed, so the message composer and the
+   live-room composer need to sit above it rather than behind it. */
+@container app (max-width: 900px) {
+  .composer,
+  .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+
+/* ============================================================================
+   Info stays blue (dark theme).
+   ---------------------------------------------------------------------------
+   Removing the leaked navy/indigo also swept up the blue this product uses to
+   mean "information", leaving an orange icon inside a blue chip. The blue
+   foreground is restored so the pair matches, roughly 8:1 on the dark surface.
+   Navy and indigo remain removed. The light theme is untouched.
+   ========================================================================== */
+.fc-dash {
+  --fc-info-bg: rgba(96, 165, 250, 0.15);
+  --fc-info-fg: #93c5fd;
+  --fc-info: #60a5fa;
 }

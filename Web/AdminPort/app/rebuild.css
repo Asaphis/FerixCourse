@@ -348,10 +348,10 @@
   font-size: 19px;
 }
 .avatar.teal {
-  background: linear-gradient(135deg, #14b8a6, #0e7490);
+  background: linear-gradient(135deg, #14b8a6, #9a3412);
 }
 .avatar.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #ffb27a, #ff8a3d);
 }
 .avatar.rose {
   background: linear-gradient(135deg, #fb7185, #e11d48);
@@ -734,7 +734,7 @@
 .alert.info {
   background: rgba(96, 165, 250, 0.09);
   border-color: rgba(96, 165, 250, 0.3);
-  color: #93c5fd;
+  color: #fdba74;
 }
 .reb[data-theme="light"] .alert.danger {
   color: #b91c1c;
@@ -743,7 +743,7 @@
   color: #15803d;
 }
 .reb[data-theme="light"] .alert.info {
-  color: #1d4ed8;
+  color: #c2410c;
 }
 
 /* tables → cards on narrow */
@@ -1391,10 +1391,10 @@
   box-shadow: 0 12px 26px -14px rgba(249, 115, 22, 0.9);
 }
 .cont-cover.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #ffb27a, #ff8a3d);
 }
 .cont-cover.teal {
-  background: linear-gradient(135deg, #14b8a6, #0e7490);
+  background: linear-gradient(135deg, #14b8a6, #9a3412);
 }
 @container app (max-width: 640px) {
   .statline {
@@ -1716,11 +1716,11 @@
   opacity: 0.75;
 }
 .tk.seen {
-  color: #7dd3fc;
+  color: #fbbf24;
   opacity: 1;
 }
 .bubrow.mine .tk.seen {
-  color: #e0f2fe;
+  color: #fff7ed;
 }
 .bacts {
   position: absolute;
@@ -2472,10 +2472,10 @@
   font-size: 21px;
 }
 .camtile .ava.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #ffb27a, #ff8a3d);
 }
 .camtile .ava.teal {
-  background: linear-gradient(135deg, #14b8a6, #0e7490);
+  background: linear-gradient(135deg, #14b8a6, #9a3412);
 }
 .camtile .ava.rose {
   background: linear-gradient(135deg, #fb7185, #e11d48);
@@ -3091,10 +3091,10 @@
   background: linear-gradient(135deg, #f97316, #be123c);
 }
 .cover.ind {
-  background: linear-gradient(135deg, #fdba74, #f97316);
+  background: linear-gradient(135deg, #ffb27a, #ff8a3d);
 }
 .cover.teal {
-  background: linear-gradient(135deg, #14b8a6, #0e7490);
+  background: linear-gradient(135deg, #14b8a6, #9a3412);
 }
 .cover.olive {
   background: linear-gradient(135deg, #a3e635, #4d7c0f);
@@ -3499,3 +3499,137 @@
 .lv[data-state="cameras"] .lv-film, .lv[data-state="setup"] .lv-film, .lv[data-state="connecting"] .lv-film { display: none; }
 .lv[data-state="waiting"] .lv-bar, .lv[data-state="waiting"] .lv-film, .lv[data-state="waiting"] .lv-panel, .lv[data-state="waiting"] .lv-top .live-only { display: none; }
 .lv[data-state="setup"] .lv-stage { border-style: dashed; }
+
+/* ============================================================================
+   Fix layer - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   PAGE GUTTER. The design defines the page padding on a class called `.pad`,
+   but no page renders it (0 of 50) and nothing else supplied padding either.
+   Content was therefore full-bleed on every page at every width: the page
+   title, the description under it and every card sat flush against the screen
+   edge, which is what made the boxes look shapeless and too close to the edges.
+   The gutter now lives on the element the shell actually renders,
+   <main class="view">, using the values the design already specified for .pad.
+   Two-pane and full-height screens (messages, the live room) opt out and keep
+   their own internal layout.
+   BOTTOM NAV - the dock is fixed, so the gutter's bottom value clears it.
+   SIDEBAR - the rail is taller than the viewport; without its own scroll
+   region the promo card at its bottom was clipped.
+   FILE INPUTS - the browser default control was unstyled everywhere.
+   ========================================================================== */
+.view { padding: 22px 26px 40px; }
+.view:has(.msgpage),
+.view:has(.livepage) { padding: 0; }
+
+@container app (max-width: 900px) {
+  .view { padding: 16px 14px calc(96px + env(safe-area-inset-bottom)); }
+  .view:has(.msgpage),
+  .view:has(.livepage) { padding: 0; }
+}
+
+.rail { overflow-y: auto; }
+.rail .promo { flex: 0 0 auto; position: sticky; bottom: 0; }
+
+input[type="file"] { width: 100%; padding: 11px 13px; border: 1px dashed var(--border2); border-radius: var(--r2, 12px); background: var(--surface2); color: var(--muted); font-size: 12.5px; cursor: pointer; }
+input[type="file"]::file-selector-button { margin-right: 10px; padding: 7px 11px; border: 0; border-radius: 9px; background: var(--brand-strong, #f97316); color: var(--brand-ink, #231000); font-weight: 600; font-size: 12px; cursor: pointer; }
+input[type="file"]:hover { border-color: var(--brand-line, rgba(255,138,61,.38)); }
+
+
+/* ============================================================================
+   Fix layer 2 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   STAT TILES. .tile carries 18px padding and a 22px radius, and the value was
+   28-30px. In the two-up grid every phone uses, each tile came out roughly as
+   tall as it was wide - the square, oversized boxes. These values give the
+   compact rectangular proportion used in the approved preview.
+
+   TABLE ROWS ON PHONES. The mobile table treatment right-aligns cells and
+   prints a label with `content: attr(data-l)` - but not one page sets a data-l
+   attribute (0 occurrences), so the label was always empty while the cell
+   stayed right-aligned. Rows now read as left-aligned rows.
+   ========================================================================== */
+.statline { gap: 10px; }
+.statline .tile { padding: 14px; border-radius: var(--r3, 16px); }
+.statline .tile h3 { font-size: 10.5px; letter-spacing: .09em; margin-bottom: 6px; }
+.statline .tile .hint { font-size: 11px; margin-top: 4px; }
+
+@container app (max-width: 900px) {
+  .statline { gap: 10px; }
+  .statline .tile { padding: 13px 14px; }
+  .statline .tile h3 { font-size: 10px; }
+  .statline .tile .hint { font-size: 10.5px; line-height: 1.35; }
+
+  /* table cells: left aligned, no phantom label */
+  .view .tbl td {
+    display: block;
+    text-align: left;
+    border: none;
+    padding: 3px 0;
+  }
+  .view .tbl td + td { margin-top: 7px; }
+  .view .tbl td::before { content: none !important; }
+  .view .tbl td > span,
+  .view .tbl td > a { text-align: left; justify-content: flex-start; }
+  .view .tbl tr { padding: 13px 14px; }
+}
+
+
+/* ============================================================================
+   Fix layer 3 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   MOBILE BOTTOM BAR. .reb was sized with `height: 100vh`. On a phone 100vh is
+   the LARGE viewport - it includes the strip behind the browser's address bar -
+   so the bottom of the layout, and therefore the dock, sat below the visible
+   screen. It only came into view once the browser chrome collapsed on scroll,
+   and it jittered as the viewport resized: the "floating / shaking / not
+   sticking" behaviour.
+   `100dvh` tracks the visible viewport, and `position: fixed` glues the dock to
+   it, so it cannot move with content or chrome.
+   ========================================================================== */
+.reb { height: 100dvh; }
+
+@container app (max-width: 900px) {
+  dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+  }
+}
+
+/* Learner directory: compact rows and a quick access toggle in the list. */
+.view .tbl td, .reb .view .tbl td { padding-top: 2px; padding-bottom: 2px; }
+.view .tbl td + td, .reb .view .tbl td + td { margin-top: 6px; }
+.view .tbl .avatar, .reb .view .tbl .avatar { width: 28px; height: 28px; font-size: 10.5px; }
+
+/* ============================================================================
+   Fix layer 4 - appended; no rule above is modified.
+   ---------------------------------------------------------------------------
+   TONE CHIPS. The ported tokens paired a light background with an equally light
+   foreground (--fc-info was #93c5fd on #fef3c7 - about 1.6:1), so the icon and
+   the label inside those chips were unreadable. Each background is now a
+   translucent tint of its own hue on the dark surface with the light foreground
+   kept, which is the pattern the design already uses for --brand-soft and
+   --brand-text. Contrast on the card surface is now roughly 8:1.
+   ========================================================================== */
+
+/* COMPOSER CLEARANCE. The bottom bar is fixed, so the message composer and the
+   live-room composer need to sit above it rather than behind it. */
+@container app (max-width: 900px) {
+  .composer,
+  .lv-composer { margin-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+
+/* ============================================================================
+   Info stays blue.
+   ---------------------------------------------------------------------------
+   Removing the leaked navy/indigo also swept up the blue the product uses to
+   mean "information". It was never the leak, so it is restored as a translucent
+   blue tint with a light blue foreground. Navy and indigo stay removed.
+   ========================================================================== */
+.reb {
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.13);
+  --info-line: rgba(96, 165, 250, 0.3);
+}

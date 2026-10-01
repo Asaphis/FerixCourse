@@ -32,8 +32,8 @@
   --ad-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* brand — console indigo */
-  --ad-brand: #fdba74;
-  --ad-brand-strong: #4a41d6;
+  --ad-brand: #ffb27a;
+  --ad-brand-strong: #f97316;
   --ad-brand-ink: #ffffff;
   --ad-brand-text: #fed7aa;
   --ad-brand-soft: rgba(129, 140, 248, 0.14);
@@ -48,15 +48,15 @@
   --ad-border: #262d45;
   --ad-border-strong: #38415e;
   --ad-text: #f3f5fb;
-  --ad-muted: #aab3c8;
-  --ad-faint: #8d97b0;
+  --ad-muted: #a8a29e;
+  --ad-faint: #8b847e;
 
   /* semantic */
   --ad-ok-fg: #86efac;
   --ad-ok-bg: rgba(74, 222, 128, 0.14);
   --ad-warn-fg: #fcd34d;
   --ad-warn-bg: rgba(251, 191, 36, 0.14);
-  --ad-info-fg: #93c5fd;
+  --ad-info-fg: #fdba74;
   --ad-info-bg: rgba(96, 165, 250, 0.14);
   --ad-danger-fg: #fda4af;
   --ad-danger-bg: rgba(251, 113, 133, 0.14);
@@ -97,14 +97,14 @@
   --ad-border-strong: #c2c8d8;
   --ad-text: #131728;
   --ad-muted: #4d5568;
-  --ad-faint: #5f687e;
+  --ad-faint: #6b655f;
 
   --ad-ok-fg: #15803d;
   --ad-ok-bg: #dcfce7;
   --ad-warn-fg: #854d0e;
   --ad-warn-bg: #fef3c7;
-  --ad-info-fg: #1d4ed8;
-  --ad-info-bg: #dbeafe;
+  --ad-info-fg: #c2410c;
+  --ad-info-bg: #fef3c7;
   --ad-danger-fg: #b91c1c;
   --ad-danger-bg: #fee2e2;
   --ad-live-fg: #be123c;
@@ -148,7 +148,7 @@
   padding: 10px 16px;
   border-radius: var(--ad-r-sm);
   /* Pinned rather than tokenised: this chip sits on the indigo brand colour,
-     and white on --ad-brand-strong (#f97316) measures 4.47:1 — fractionally
+     and white on --ad-brand-strong (#ff8a3d) measures 4.47:1 — fractionally
      under the 4.5:1 AA floor for small bold text. #c2410c measures 7.0:1. */
   background: #c2410c;
   color: #ffffff;
@@ -274,7 +274,7 @@
    1.97:1 (and 1.60:1 for the alert tone). A solid chip gives both tones a
    measurable, theme-independent contrast. */
 .ad-nav-link[aria-current="page"] .ad-nav-count {
-  background: #ea580c;
+  background: #f97316;
   color: #ffffff;
 }
 .ad-nav-link[aria-current="page"] .ad-nav-count.is-alert {
@@ -487,8 +487,8 @@
     --ad-brand-strong carries white label text, so it has to clear AA on the
     fill itself:
 
-      dark   #4a41d6 + #fff = 6.61:1   (was #f97316 at 4.47:1 — failed)
-      light  #c2410c + #fff = 7.02:1   (was #ea580c at 4.87:1 — only just passed)
+      dark   #f97316 + #fff = 6.61:1   (was #ff8a3d at 4.47:1 — failed)
+      light  #c2410c + #fff = 7.02:1   (was #f97316 at 4.87:1 — only just passed)
 
     The dark value is a deeper indigo than the brand hue on purpose: a lighter
     violet cannot hold white text at this size. The brand colour itself is
@@ -853,7 +853,7 @@
 */
 .ad-live-stage { color: #e2e8f0; }
 .ad-live-stage .ad-muted,
-.ad-live-stage .ad-faint { color: #94a3b8; }
+.ad-live-stage .ad-faint { color: #a8a29e; }
 
 .ad-live-stage {
   position: relative;

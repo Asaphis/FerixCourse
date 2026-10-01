@@ -82,22 +82,22 @@ export default function OverviewPage() {
           <div className="statline" style={{ marginBottom: 18 }}>
             <Link href="/users" className="tile" style={{ color: "inherit" }}>
               <h3><Ic name="users" size={14} /> Learners</h3>
-              <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{stats?.students ?? 0}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{stats?.students ?? 0}</div>
               <p className="hint">{stats?.enrollments ?? 0} enrollments</p>
             </Link>
             <Link href="/transactions" className="tile" style={{ color: "inherit" }}>
               <h3><Ic name="dollar" size={14} /> Revenue</h3>
-              <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{money(stats?.revenueKobo ?? 0)}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{money(stats?.revenueKobo ?? 0)}</div>
               <p className="hint">{stats?.successfulPayments ?? 0} successful payments</p>
             </Link>
             <Link href="/live" className="tile" style={{ color: "inherit" }}>
               <h3><Ic name="radio" size={14} /> Live now</h3>
-              <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{liveNow.length}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{liveNow.length}</div>
               <p className="hint">{stats?.liveSessions ?? 0} sessions marked live</p>
             </Link>
             <Link href="/messages" className="tile" style={{ color: "inherit" }}>
               <h3><Ic name="inbox" size={14} /> Unread</h3>
-              <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{unread}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{unread}</div>
               <p className="hint">{convs.length} conversations</p>
             </Link>
           </div>

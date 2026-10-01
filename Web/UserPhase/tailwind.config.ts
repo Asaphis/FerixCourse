@@ -5,15 +5,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Remapped to the product palette - navy/indigo originals leaked into
+        // pages that still use these class names.
         night: {
-          950: "#05070D",
-          900: "#0A0E18",
-          850: "#0D1322",
-          800: "#131B30",
+          950: "#0b0a09",
+          900: "#12100e",
+          850: "#171412",
+          800: "#1e1a17",
         },
         aurora: {
-          violet: "#8B5CF6",
-          fuchsia: "#D946EF",
+          violet: "#ff8a3d",
+          fuchsia: "#f43f5e",
           amber: "#FBBF24",
           mint: "#34D399",
         },
@@ -22,6 +24,11 @@ const config: Config = {
         display: ["Archivo", "system-ui", "sans-serif"],
         accent: ["Instrument Serif", "Georgia", "serif"],
         body: ["Inter", "system-ui", "sans-serif"],
+      },
+      slate: {
+        50: "#faf8f5", 100: "#f7f4f1", 200: "#e7e2dc", 300: "#d6cfc7",
+        400: "#a8a29e", 500: "#8b847e", 600: "#6b655f", 700: "#524c47",
+        800: "#383330", 900: "#221e1c", 950: "#0b0a09",
       },
       keyframes: {
         marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },

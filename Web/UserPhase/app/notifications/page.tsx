@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useDashboard } from "@/components/dashboard/dashboard-context";
 import { PageHead } from "@/components/dashboard/shell";
-import { Icon } from "@/components/ui/icons";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { timeAgo } from "@/components/ui/primitives";
 import { api, type Notification } from "@/lib/dashboard-api";
 
@@ -16,11 +16,37 @@ import { api, type Notification } from "@/lib/dashboard-api";
 const TONE: Record<string, string> = {
   live: "var(--danger, #f87171)",
   announcement: "var(--brand-text)",
-  material: "#7dd3fc",
+  material: "#fbbf24",
   enrollment: "#34d399",
-  feedback: "var(--war, #fbbf24)",
-  request_update: "#a78bfa",
+  feedback: "var(--warn, #fbbf24)",
+  request_update: "#ff8a3d",
   broadcast: "var(--brand-text)",
+};
+
+
+const ICON: Record<string, IconName> = {
+  live: "radio",
+  announcement: "megaphone",
+  material: "fileText",
+  enrollment: "graduationCap",
+  feedback: "messageSquare",
+  request_update: "clipboardList",
+  broadcast: "megaphone",
+  payment_failed: "creditCard",
+  welcome: "sparkles",
+  message: "messageSquare",
+  bell: "bell",
+};
+
+const HREF: Record<string, string> = {
+  live: "/live",
+  enrollment: "/my-courses",
+  message: "/messages",
+  feedback: "/my-courses",
+  material: "/my-courses",
+  payment_failed: "/transactions",
+  request_update: "/request",
+  welcome: "/catalog",
 };
 
 function typeLabel(t: string): string {
@@ -100,8 +126,17 @@ export default function NotificationsPage() {
           {items.map((n) => (
             <article key={n.id} className="qa" style={{ borderLeft: `3px solid ${TONE[n.type] ?? "var(--border2)"}` }}>
               <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span aria-hidden="true" style={{ flex: "none", marginTop: 2, color: TONE[n.type] ?? "var(--muted)" }}>
+                  <Icon name={ICON[n.type] ?? "bell"} size={17} />
+                </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: n.is_read ? 600 : 800, marginBottom: 2 }}>{n.title}</p>
+                  {HREF[n.type] ? (
+                    <Link href={HREF[n.type]} style={{ display: "block", fontSize: 14, fontWeight: n.is_read ? 600 : 800, marginBottom: 2 }}>
+                      {n.title}
+                    </Link>
+                  ) : (
+                    <p style={{ fontSize: 14, fontWeight: n.is_read ? 600 : 800, marginBottom: 2 }}>{n.title}</p>
+                  )}
                   {n.body && <p className="sub" style={{ marginTop: 0 }}>{n.body}</p>}
                   <p className="hint">
                     <span className="badge" style={{ marginRight: 8 }}>{typeLabel(n.type)}</span>

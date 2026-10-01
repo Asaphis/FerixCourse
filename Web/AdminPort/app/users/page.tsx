@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shell } from "@/components/shell";
 import { Badge, Emp, Err, Ic, Ph, SecHead, Sk } from "@/components/reb-ui";
-import { initials, shortDate } from "@/lib/admin";
+import { adminFetch, initials, shortDate } from "@/lib/admin";
 import { useAdmin } from "@/lib/use-admin";
 import type { Profile } from "@/lib/admin-types";
 
@@ -18,6 +18,28 @@ export default function UsersPage() {
   const users = useAdmin<Profile[]>(`/admin/users?search=${encodeURIComponent(applied)}`);
 
   const rows = users.data ?? [];
+  const [busyId, setBusyId] = useState("");
+  const [listErr, setListErr] = useState("");
+
+  /* Restrict / restore an account straight from the list. The detail page has
+     the full controls; this is the one action an operator needs most often.
+     DELETE is not offered because the backend exposes no user-delete route -
+     it exposes PATCH /admin/users/:id { is_active } instead. */
+  async function toggleAccess(u: Profile) {
+    setBusyId(u.id);
+    setListErr("");
+    try {
+      await adminFetch(`/admin/users/${u.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ is_active: !u.is_active }),
+      });
+      users.reload();
+    } catch (e: unknown) {
+      setListErr(e instanceof Error ? e.message : "Could not update that account.");
+    } finally {
+      setBusyId("");
+    }
+  }
 
   return (
     <Shell>
@@ -73,6 +95,7 @@ export default function UsersPage() {
       </form>
 
       {users.error ? <Err msg={users.error} onRetry={users.reload} /> : null}
+      {listErr ? <Err msg={listErr} onRetry={() => setListErr("")} /> : null}
 
       <section className="reb-card">
         <SecHead icon="users" title={`Accounts · ${rows.length}`} />
@@ -122,9 +145,20 @@ export default function UsersPage() {
                     <td>{u.is_active ? <Badge tone="ok">Active</Badge> : <Badge tone="danger">Disabled</Badge>}</td>
                     <td className="hint">{shortDate(u.created_at)}</td>
                     <td>
-                      <Link className="reb-btn ghost sm" href={`/users/${u.id}`}>
-                        <Ic name="eye" size={13} /> Manage
-                      </Link>
+                      <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className={`reb-btn sm ${u.is_active ? "danger" : "pri"}`}
+                          disabled={busyId === u.id}
+                          onClick={() => void toggleAccess(u)}
+                        >
+                          <Ic name={u.is_active ? "lock" : "check"} size={13} />
+                          {busyId === u.id ? "Saving…" : u.is_active ? "Restrict" : "Restore"}
+                        </button>
+                        <Link className="reb-btn ghost sm" href={`/users/${u.id}`}>
+                          <Ic name="eye" size={13} /> Manage
+                        </Link>
+                      </span>
                     </td>
                   </tr>
                 ))}
