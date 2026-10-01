@@ -167,7 +167,6 @@ export default function InboxPage() {
       <div
         className="msgpage"
         data-open={activeId ? "1" : "0"}
-        data-open={activeId ? "1" : "0"}
         style={{ borderRadius: "var(--r4)", border: "1px solid var(--border)", overflow: "hidden" }}
       >
         <div className="msglist">
