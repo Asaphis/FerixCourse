@@ -62,7 +62,7 @@ export default function TransactionsPage() {
             </thead>
             <tbody>
               {rows.map((t) => (
-                <tr key={t.id} className="trow">
+                <tr key={t.id}>
                   <td style={{ padding: "12px 16px" }} className="hint">{shortDateTime(t.completed_at ?? t.created_at)}</td>
                   <td style={{ padding: "12px 16px" }}>
                     {t.product_type === "course" ? "Course" : t.product_type === "classroom" ? "Classroom" : t.product_type}
